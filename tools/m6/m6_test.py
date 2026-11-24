@@ -6,7 +6,7 @@ Compiles tools/m6/m6_harness.c + the candidate (+ the reference interpreter) wit
 it over the routine's corpus files (default: both movies under ..\\Gamefiles\\Movies\\m6\\corpus). Prints the
 harness's last line: "PASS n/n ..." or one compact "FAIL state ..." line. Exit code: 0 pass, 1 mismatch,
 2 setup problem, 3 the candidate does not compile (the compiler's first errors are printed).
-m6_names.h (RAM names from meta/btdd.meta, reviewed + proposed) is written into the work folder.
+m6_names_N.h (RAM names from decomp HEAD, older btdd.meta names as aliases) is written per compile unit.
 """
 import argparse
 import os
@@ -130,19 +130,23 @@ def callee_sources(callees, work, bank=None, candidate=None):
 def build(candidate, work, callees=None, bank=None):
     os.makedirs(work, exist_ok=True)
     extra = callee_sources(callees or [], work, bank, candidate)
-    decl = set()
-    for src in [candidate] + extra:
-        text = open(src, encoding='utf-8', errors='replace').read()
+    units = []
+    for i, unit in enumerate([candidate] + extra):  # each unit gets its own names header: a local in one
+        text = open(unit, encoding='utf-8', errors='replace').read()  # must not drop a #define another needs
         for inc in re.findall(r'#include "([^"]+)"', text):
             if os.path.isfile(inc):
                 text += open(inc, encoding='utf-8', errors='replace').read()
-        decl |= set(re.findall(r'\b(?:u?int(?:8|16|32)_t|int|unsigned|char|bool|long)\s+([A-Za-z_]\w*)', text))
-    write_names(os.path.join(work, 'm6_names.h'), decl)
+        decl = set(re.findall(r'\b(?:u?int(?:8|16|32)_t|int|unsigned|char|bool|long)\s+([A-Za-z_]\w*)', text))
+        write_names(os.path.join(work, 'm6_names_%d.h' % i), decl)
+        wrap = os.path.join(work, 'unit_%d.c' % i)
+        with open(wrap, 'w', newline='\n') as f:
+            f.write('#include "m6_names_%d.h"\n#include "%s"\n' % (i, os.path.abspath(unit).replace('\\', '/')))
+        units.append(wrap)
     exe = os.path.join(work, 'm6_harness.exe')
     src = os.path.join(REPO, 'src')
     cmd = CC + ['-O1', '-std=c11', '-w', '-D_CRT_SECURE_NO_WARNINGS', '-I' + src, '-I' + HERE, '-I' + work,
-                '-include', 'm6_api.h', '-include', 'm6_names.h', '-include', 'm6_callees.h',
-                os.path.join(HERE, 'm6_harness.c'), candidate] + extra + [
+                '-include', 'm6_api.h', '-include', 'm6_callees.h',
+                os.path.join(HERE, 'm6_harness.c')] + units + [
                 os.path.join(src, 'runtime', 'cpu.c'), os.path.join(src, 'rom', 'rom.c'),
                 os.path.join(src, 'rom', 'sha1.c'), '-o', exe]
     r = subprocess.run(cmd, capture_output=True, text=True)
