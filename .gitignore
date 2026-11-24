@@ -1,0 +1,23 @@
+# Never commit game data or anything derived from it
+*.nes
+*.bin
+*.cdl
+*.mlb
+*.mss
+*.sav
+*.fm2
+*.wav
+*.mid
+generated/*
+!generated/README.md
+assets/*
+!assets/README.md
+# Build output
+build/
+build-*/
+out/
+.vs/
+__pycache__/
+*.pyc
+private/*
+!private/README.md
