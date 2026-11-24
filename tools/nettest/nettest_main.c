@@ -3,7 +3,11 @@
  * run's RAM for that frame, for the whole movie, and both finish.
  *
  *   nettest ROM MOVIE.fm2 [--ping MS] [--jitter MS] [--loss PCT] [--dup PCT] [--delay N] [--frames N] [--seed N]
- *                         [--ppu old|new]
+ *                         [--ppu old|new] [--desync-at F]
+ *
+ * --desync-at F corrupts the guest's RAM once at frame F (player 1's lives): the RAM checksums must report the
+ * desync, the host resyncs (sends its state), and from the resync frame on both peers must equal the solo run
+ * again.
  *
  * The clock is virtual (one tick = one 60 Hz display frame), so runs are reproducible for a seed. */
 #include "net/netplay.h"
@@ -95,18 +99,31 @@ static uint32_t t_now(void *ctx)
     return ((End *)ctx)->link->now;
 }
 
+/* --desync-at: the guest's emulation differs once, at that frame, whether run for the first time or re-simulated
+ * (like real non-determinism would; a one-off poke would be undone by the next rollback) */
+static long desync_at = -1;
+static uint64_t frame_base[2];
+static int desyncs_injected;
+static void *guest_ctx;   /* the guest's Peer */
+static int guest_resynced; /* after a resync the host's state rules: no more injection */
+
 static void run_frame(void *ctx, Nes *nes, uint8_t p1, uint8_t p2, int resim)
 {
-    (void)ctx;
+    int who = ctx == guest_ctx;
     (void)resim;
     nes_set_pads(nes, p1, p2);
     nes_run_frame(nes);
+    if (who && !guest_resynced && desync_at >= 0 && (long)(nes->ppu.frame - frame_base[1]) == desync_at + 1) {
+        nes->ram[0x11] ^= 0x06; /* player 1's lives */
+        desyncs_injected++;
+    }
 }
 
 typedef struct Peer {
     NetSession s;
     End end;
     long confirmed, bad, first_bad;
+    uint8_t *ok; /* per frame: 1 = equal to the solo run, 2 = different (re-reports after a resync overwrite) */
 } Peer;
 
 static uint32_t *solo; /* RAM CRC after each frame of the solo run */
@@ -118,11 +135,7 @@ static void on_confirmed(void *ctx, uint32_t f, const uint8_t *ram)
     if ((long)f >= solo_frames)
         return;
     p->confirmed = (long)f + 1;
-    if (net_crc32(ram, 0x800) != solo[f]) {
-        if (!p->bad)
-            p->first_bad = (long)f + 1;
-        p->bad++;
-    }
+    p->ok[f] = net_crc32(ram, 0x800) == solo[f] ? 1 : 2;
 }
 
 int main(int argc, char **argv)
@@ -136,6 +149,7 @@ int main(int argc, char **argv)
     Fm2 movie = {0};
     long frames = -1, ticks = 0, i;
     int delay = 1, k, model = -1;
+    long resync_frame = 0;
 
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--ping") && i + 1 < argc)
@@ -152,6 +166,8 @@ int main(int argc, char **argv)
             frames = strtol(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--seed") && i + 1 < argc)
             rng = (uint32_t)strtoul(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--desync-at") && i + 1 < argc)
+            desync_at = strtol(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
             model = !strcmp(argv[++i], "new") ? PPU_MODEL_NEW : PPU_MODEL_OLD;
         else if (!rom_path)
@@ -191,12 +207,16 @@ int main(int argc, char **argv)
         NetTransport tr;
         nes_init(&nes[k], &rom);
         nes_power(&nes[k], (PpuModel)model);
+        peer[k].ok = calloc((size_t)frames, 1);
         peer[k].end.link = &link;
         peer[k].end.me = k;
         tr.ctx = &peer[k].end;
         tr.send = t_send;
         tr.recv = t_recv;
         tr.now_ms = t_now;
+        frame_base[k] = nes[k].ppu.frame;
+        if (k == 1)
+            guest_ctx = &peer[k];
         if (net_init(&peer[k].s, &nes[k], k, delay, summary, tr, run_frame, on_confirmed, &peer[k]) != 0)
             return 1;
     }
@@ -208,6 +228,12 @@ int main(int argc, char **argv)
             uint8_t pad = f < movie.count ? movie.frames[f].pad[k] : 0;
             net_tick(s, pad);
         }
+        if (peer[0].s.state == NET_DESYNC) /* the host offers a resync, as the player would from the menu */
+            net_resync(&peer[0].s);
+        if (peer[1].s.stats.resyncs)
+            guest_resynced = 1;
+        if (peer[0].s.stats.resyncs && !resync_frame)
+            resync_frame = (long)peer[0].s.rs_frame;
         ticks++;
         link.now = (uint32_t)(ticks * 1000 / 60);
         if (ticks > frames * 4 + 10000) {
@@ -215,6 +241,15 @@ int main(int argc, char **argv)
                    frames);
             return 1;
         }
+    }
+    for (k = 0; k < 2; k++) { /* frames that differ from the solo run (after a resync: only from its frame on) */
+        long f;
+        for (f = resync_frame; f < frames; f++)
+            if (peer[k].ok[f] != 1) {
+                if (!peer[k].bad)
+                    peer[k].first_bad = f + 1;
+                peer[k].bad++;
+            }
     }
     for (k = 0; k < 2; k++) {
         NetStats *t = &peer[k].s.stats;
@@ -228,7 +263,11 @@ int main(int argc, char **argv)
     printf("link: ping %d ms, jitter %d ms, loss %d%% (%llu lost), dup %d%% (%llu); delay %d; %ld ticks for %ld frames\n",
            link.ping, link.jitter, link.loss, (unsigned long long)link.lost, link.dup, (unsigned long long)link.dupd,
            delay, ticks, frames);
-    k = !peer[0].bad && !peer[1].bad && peer[0].s.stats.desync_frame < 0 && peer[1].s.stats.desync_frame < 0;
+    if (desync_at >= 0)
+        printf("desync injected at guest frame %ld; detected and resynced at frame %ld (host resyncs %u, guest %u)\n",
+               desync_at, resync_frame, peer[0].s.stats.resyncs, peer[1].s.stats.resyncs);
+    k = !peer[0].bad && !peer[1].bad && peer[0].s.stats.desync_frame < 0 && peer[1].s.stats.desync_frame < 0 &&
+        (desync_at < 0 || (resync_frame > 0 && peer[1].s.stats.resyncs > 0));
     printf("%s\n", k ? "PASS" : "FAIL");
     fm2_free(&movie);
     return k ? 0 : 1;

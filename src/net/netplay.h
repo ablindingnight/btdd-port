@@ -28,7 +28,7 @@ typedef struct NetTransport {
 typedef void (*NetRunFrame)(void *ctx, Nes *nes, uint8_t pad1, uint8_t pad2, int resim);
 typedef void (*NetConfirmed)(void *ctx, uint32_t frame, const uint8_t *ram); /* RAM after a confirmed frame */
 
-enum NetState { NET_IDLE, NET_HANDSHAKE, NET_RUNNING, NET_REJECTED, NET_DESYNC };
+enum NetState { NET_IDLE, NET_HANDSHAKE, NET_RUNNING, NET_REJECTED, NET_DESYNC, NET_RESYNC };
 
 typedef struct NetStats {
     uint64_t rollbacks, resim_frames, stalls, sync_waits, packets_in, packets_out, bad_packets, rate_dropped;
@@ -36,6 +36,7 @@ typedef struct NetStats {
     int ping_ms;           /* round trip, smoothed */
     int desync_frame;      /* -1 = none */
     uint32_t checks_ok;    /* RAM checksums compared equal */
+    uint32_t resyncs;      /* completed resyncs */
 } NetStats;
 
 typedef struct NetSession {
@@ -67,6 +68,10 @@ typedef struct NetSession {
     uint32_t echo_ts;                   /* the peer's newest timestamp, echoed back */
     int peer_adv;                       /* the peer's frame advantage over us, as it sees it */
     uint32_t last_sync_wait;
+    /* resync: the host's state of frame rs_frame, sent in chunks (host) / assembled (guest) */
+    uint8_t *rs_buf, *rs_have;
+    uint32_t rs_frame, rs_next, rs_got;
+    int rs_active;
     NetStats stats;
 } NetSession;
 
@@ -78,6 +83,9 @@ void net_free(NetSession *s);
  * (handshake, stall, rejected). */
 int net_tick(NetSession *s, uint8_t local_pad);
 const char *net_status(const NetSession *s, char *buf, size_t len); /* one line for the overlay */
+/* Host, after a desync: send our state of the last confirmed frame to the guest; both continue from there. The
+ * state is the machine state only (RAM, CHR-RAM, registers), checked by the guest like a save state. */
+int net_resync(NetSession *s);
 
 uint32_t net_crc32(const uint8_t *p, size_t n);
 

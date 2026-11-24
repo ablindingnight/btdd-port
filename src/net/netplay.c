@@ -8,7 +8,7 @@
 #include <string.h>
 
 /* ---- packets (little-endian); every one starts with 'B' 'N', protocol, type ---- */
-enum { PK_HELLO = 1, PK_ACCEPT = 2, PK_REJECT = 3, PK_INPUT = 4, PK_CHECK = 5 };
+enum { PK_HELLO = 1, PK_ACCEPT = 2, PK_REJECT = 3, PK_INPUT = 4, PK_CHECK = 5, PK_STATE = 6, PK_STATE_DONE = 7 };
 #define HDR 4
 #define MAX_INPUTS_PER_PACKET 64
 #define INPUT_FIXED (HDR + 4 + 4 + 4 + 1 + 4 + 4 + 1) /* frame, ack, start, count, ts, echo, frame advantage */
@@ -17,6 +17,9 @@ enum { PK_HELLO = 1, PK_ACCEPT = 2, PK_REJECT = 3, PK_INPUT = 4, PK_CHECK = 5 };
 #define REJECT_SIZE (HDR + NET_SUMMARY)
 #define CHECK_SIZE (HDR + 4 + 4)
 #define RATE_LIMIT 200 /* packets per second from the peer */
+#define CHUNK 1024
+#define STATE_FIXED (HDR + 4 + 4 + 4 + 4 + 2) /* frame, offset, total, layout fingerprint, length */
+#define DONE_SIZE (HDR + 4)
 
 static void put32(uint8_t *p, uint32_t v)
 {
@@ -92,7 +95,16 @@ int net_init(NetSession *s, Nes *nes, int local, int delay, const char *summary,
 void net_free(NetSession *s)
 {
     free(s->states);
-    s->states = NULL;
+    free(s->rs_buf);
+    free(s->rs_have);
+    s->states = s->rs_buf = s->rs_have = NULL;
+}
+
+static void clear_checks(NetSession *s)
+{
+    memset(s->my_crc_frame, 0, sizeof s->my_crc_frame);
+    memset(s->peer_crc_frame, 0, sizeof s->peer_crc_frame);
+    s->stats.desync_frame = -1;
 }
 
 static void start_running(NetSession *s)
@@ -179,6 +191,115 @@ static void got_check(NetSession *s, const uint8_t *p, int len)
     }
 }
 
+/* forward declarations */
+static uint8_t *state_at(NetSession *s, uint32_t f);
+
+static void send_done(NetSession *s, uint32_t f)
+{
+    uint8_t d[DONE_SIZE];
+    header(d, PK_STATE_DONE);
+    put32(d + HDR, f);
+    send_packet(s, d, sizeof d);
+}
+
+/* guest: a chunk of the host's state */
+static void got_state(NetSession *s, const uint8_t *p, int len)
+{
+    uint32_t f, off, total, fp;
+    int n;
+    if (len < STATE_FIXED || s->local != 1)
+        goto bad;
+    f = get32(p + HDR);
+    off = get32(p + HDR + 4);
+    total = get32(p + HDR + 8);
+    fp = get32(p + HDR + 12);
+    n = p[HDR + 16] | p[HDR + 17] << 8;
+    if (total != s->state_size || fp != nes_state_fingerprint() || n <= 0 || n > CHUNK || len != STATE_FIXED + n ||
+        off % CHUNK || off + (uint32_t)n > total)
+        goto bad;
+    if (!s->rs_buf && !(s->rs_buf = malloc(s->state_size)))
+        return;
+    if (!s->rs_have && !(s->rs_have = calloc(s->state_size / CHUNK + 1, 1)))
+        return;
+    if (!s->rs_active || s->rs_frame != f) { /* a new resync */
+        s->rs_active = 1;
+        s->rs_frame = f;
+        s->rs_got = 0;
+        memset(s->rs_have, 0, s->state_size / CHUNK + 1);
+        s->state = NET_RESYNC;
+    }
+    if (!s->rs_have[off / CHUNK]) {
+        memcpy(s->rs_buf + off, p + STATE_FIXED, (size_t)n);
+        s->rs_have[off / CHUNK] = 1;
+        s->rs_got += (uint32_t)n;
+    }
+    if (s->rs_got == total && s->state == NET_RESYNC) { /* complete: continue from the host's state */
+        nes_state_restore(s->nes, s->rs_buf);
+        s->frame = f;
+        s->reported = f;
+        s->rollback_from = UINT32_MAX;
+        if (s->have[s->local] < f)
+            s->have[s->local] = f;
+        clear_checks(s);
+        s->state = NET_RUNNING;
+        s->stats.resyncs++;
+        snprintf(s->message, sizeof s->message, "resynced at frame %lu", (unsigned long)f);
+        send_done(s, f);
+    } else if (s->rs_got == total) { /* the host is still sending: confirm again */
+        send_done(s, f);
+    }
+    return;
+bad:
+    s->stats.bad_packets++;
+}
+
+int net_resync(NetSession *s)
+{
+    if (s->local != 0 || (s->state != NET_DESYNC && s->state != NET_RUNNING))
+        return -1;
+    if (!s->rs_buf && !(s->rs_buf = malloc(s->state_size)))
+        return -1;
+    s->rs_frame = s->reported; /* the state at the start of this frame = after the last confirmed one */
+    if (s->rs_frame == s->frame)
+        nes_state_capture(s->nes, s->rs_buf);
+    else
+        memcpy(s->rs_buf, state_at(s, s->rs_frame), s->state_size);
+    if (s->rs_frame != s->frame) { /* the host continues from that frame too */
+        nes_state_restore(s->nes, s->rs_buf);
+        s->frame = s->rs_frame;
+        s->rollback_from = UINT32_MAX;
+    }
+    s->rs_next = 0;
+    s->rs_active = 1;
+    s->state = NET_RESYNC;
+    snprintf(s->message, sizeof s->message, "resyncing: sending our game to player 2...");
+    return 0;
+}
+
+static void send_state_chunks(NetSession *s)
+{
+    int k;
+    for (k = 0; k < 8; k++) { /* 8 chunks per frame (rate limit), cycling until the guest confirms */
+        uint8_t p[STATE_FIXED + CHUNK];
+        uint32_t off = s->rs_next * CHUNK, n;
+        if (off >= s->state_size) {
+            s->rs_next = 0;
+            off = 0;
+        }
+        n = s->state_size - off < CHUNK ? (uint32_t)(s->state_size - off) : CHUNK;
+        header(p, PK_STATE);
+        put32(p + HDR, s->rs_frame);
+        put32(p + HDR + 4, off);
+        put32(p + HDR + 8, (uint32_t)s->state_size);
+        put32(p + HDR + 12, nes_state_fingerprint());
+        p[HDR + 16] = (uint8_t)n;
+        p[HDR + 17] = (uint8_t)(n >> 8);
+        memcpy(p + STATE_FIXED, s->rs_buf + off, n);
+        send_packet(s, p, (int)(STATE_FIXED + n));
+        s->rs_next++;
+    }
+}
+
 static void receive(NetSession *s)
 {
     uint8_t p[NET_MAX_PACKET];
@@ -249,12 +370,30 @@ static void receive(NetSession *s)
                      s->peer_summary, s->summary);
             break;
         case PK_INPUT:
-            if (s->state == NET_RUNNING || s->state == NET_DESYNC)
+            if (s->state == NET_RUNNING || s->state == NET_DESYNC || s->state == NET_RESYNC)
                 got_input(s, p, len);
             break;
         case PK_CHECK:
             if (s->state == NET_RUNNING)
                 got_check(s, p, len);
+            break;
+        case PK_STATE:
+            if (s->state == NET_RUNNING || s->state == NET_DESYNC || s->state == NET_RESYNC)
+                got_state(s, p, len);
+            break;
+        case PK_STATE_DONE: /* host: the guest has our state */
+            if (len != DONE_SIZE || s->local != 0) {
+                s->stats.bad_packets++;
+                break;
+            }
+            if (s->state == NET_RESYNC && get32(p + HDR) == s->rs_frame) {
+                s->state = NET_RUNNING;
+                s->rs_active = 0;
+                s->reported = s->rs_frame;
+                clear_checks(s);
+                s->stats.resyncs++;
+                snprintf(s->message, sizeof s->message, "resynced at frame %lu", (unsigned long)s->rs_frame);
+            }
             break;
         default:
             s->stats.bad_packets++;
@@ -383,8 +522,17 @@ int net_tick(NetSession *s, uint8_t local_pad)
         }
         return 0;
     }
-    if (s->state != NET_RUNNING)
+    if (s->state == NET_RESYNC) {
+        if (s->local == 0)
+            send_state_chunks(s);
+        send_inputs(s); /* keep the input stream (and its acks) going */
         return 0;
+    }
+    if (s->state != NET_RUNNING) {
+        if (s->state == NET_DESYNC)
+            send_inputs(s);
+        return 0;
+    }
     /* this display frame's local input is for frame `frame + delay` */
     if (s->have[l] <= s->frame + (uint32_t)s->delay && s->have[l] - s->peer_ack < NET_INPUT_RING / 2) {
         s->in[l][s->have[l] % NET_INPUT_RING] = local_pad;
