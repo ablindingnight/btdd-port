@@ -163,7 +163,12 @@ and 2P, the ending and credits. In rough order of bytes at stake:
    and stage intro to the end without pressing anything (bank 2 `$F7CC-$F93F` read at section 00 of levels 2, 5,
    8, 9, 6; bank 4 `$BDE6`, `$BEC5`, `$C043-$C1FC` metasprites read by bank 4 `load_metasprite_c6c5` / `$C7B0`
    during `$FD/$FF` transitions; ~600 B). If an intermission differs between 1P and 2P or after a death, that is
-   the case to log.
+   the case to log. **Done by script (2026-11-24, `Debugger\agent-intermissions.cdl`)**: the TAS up to every stage
+   end (2P and 1P), then no input for 4,000-8,000 frames: **+1,147 bytes** (bank 4 545, bank 2 370, bank 6 232;
+   all data, no code). Forced 1P (`$16`=0) and both players on their last life gave nothing more. Scripted idle,
+   walk-left, slow-right, punch/jump, up/down and Start-every-300-frames play from all 20 section starts
+   (`agent-checklist-play.cdl`, 120 runs) gave nothing new, so items 1-3 and 5 really need varied human play.
+   Seen after this: 98.1% (5,022 bytes unseen, 30 gaps >= 32 bytes = 2,000 bytes).
 5. **Stage 4 (level 4) section 06 and stage 1 (level 3) sections 04/05**: slow play (bank 5 `$FF32`, bank 3
    `$9C69`, bank 4 `$B8B6`).
 6. **Title text, bank 4 `$CBF0-$CDFF` (528 B) and `$CE0C`**: drawn by bank 4 `sub_c5fe`/`sub_c61a` (screen text);
