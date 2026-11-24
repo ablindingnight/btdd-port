@@ -85,7 +85,7 @@ def corpus_files(bank, addr, dirs):
     out = []
     for d in dirs:
         p = os.path.join(d, 'b%d_%04x.m6c' % (bank, addr))
-        if os.path.isfile(p):
+        if os.path.isfile(p) and os.path.getsize(p) > 12:  # 12 = header only: the routine never ran in that movie
             out.append(p)
     return out
 
