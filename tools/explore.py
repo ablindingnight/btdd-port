@@ -46,7 +46,7 @@ def main():
     ap.add_argument('--workers', type=int, default=os.cpu_count() or 4)
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--known', default=os.path.join(GAME, 'Debugger'))
-    ap.add_argument('--ram-pcs', default=os.path.join(GAME, 'Movies', 'coverage', 'tas2p-ram-pcs.txt'))
+    ap.add_argument('--ram-pcs', default=os.path.join(GAME, 'Movies', 'coverage', 'movies-ram-pcs.txt'))
     ap.add_argument('--publish', default=None)
     ap.add_argument('--extra', default='')
     a = ap.parse_args()
