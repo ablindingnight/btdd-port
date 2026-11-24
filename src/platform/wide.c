@@ -369,6 +369,35 @@ static void debug_dump(const Nes *n, const Level *L)
     fprintf(stderr, "wide debug: nt column %d best = map column %d tile %d (world tile col %d), row offset %d tiles, %d/30 rows\n",
             tx, bbc, bsub, bbc * 4 + bsub, bbr, best);
     fprintf(stderr, "wide debug: camera tile col +16 = %d\n", (camx >> 3) + 16);
+    if (getenv("WIDE_DEBUG_COLS")) { /* every visible nametable column on its own */
+        int c;
+        for (c = 0; c < 32; c++) {
+            int ntc = ((camx >> 3) + c) & 31, b2 = 0, bc2 = -1, bs2 = 0, bo2 = 0;
+            for (bc = 0; bc < L->cols; bc++)
+                for (sub = 0; sub < 4; sub++)
+                    for (off = -40; off < 40; off++) {
+                        int ty, hit = 0;
+                        for (ty = 4; ty < 30; ty++) {
+                            int wty = ty + off;
+                            uint8_t block;
+                            br = wty >> 2;
+                            if (wty < 0 || br >= L->rows)
+                                continue;
+                            block = byte_at(n, (uint16_t)(L->map + br * L->cols + bc));
+                            if (byte_at(n, (uint16_t)(L->blocks + block * 16 + (wty & 3) * 4 + sub)) == nt[ty * 32 + ntc])
+                                hit++;
+                        }
+                        if (hit > b2) {
+                            b2 = hit;
+                            bc2 = bc;
+                            bs2 = sub;
+                            bo2 = off;
+                        }
+                    }
+            fprintf(stderr, "wide debug: screen tile col %2d (world %d): map col %d tile %d row off %d, %d/26\n", c,
+                    (camx >> 3) + c, bc2, bs2, bo2, b2);
+        }
+    }
     { /* the sprite pass's screen position vs the game's own ($0485, $0494 - $0476) for entities in the window */
         int slot, ok = 0, bad = 0;
         for (slot = 0; slot < 15; slot++) {

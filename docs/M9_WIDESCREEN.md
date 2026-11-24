@@ -12,8 +12,8 @@ display mod. Background: `docs/WIDESCREEN_NOTES.md`, `docs/DATA_FORMATS.md` sect
 | `widehud` | each player's half of the status bar moves to the edges of the wide picture |
 | `widefade` | the outer 40 pixels of each margin are darkened (35-100%): spawns are camera-triggered and despawns happen behind the left edge, so enemies appearing or vanishing near the outer edges are less visible |
 
-`btdd_play`: the SDL renderer path takes the wide picture and widens a windowed window (the M10 GPU shader path
-stays 256 wide for now). `btdd_shot --mod widescreen ...` (or `--wide`) writes `wide_<frame>.png`.
+`btdd_play`: both renderers take the wide picture (SDL renderer and the M10 GPU shader path with every preset)
+and widen a windowed window. `btdd_gfxshot --wide` renders the GPU presets at 16:9 (e.g. 1696x960). `btdd_shot --mod widescreen ...` (or `--wide`) writes `wide_<frame>.png`.
 
 ## How the margins are drawn
 - Background: the AxROM nametable is 256 pixels wide, so the margins come from the level data: block map,
@@ -38,7 +38,7 @@ stays 256 wide for now). `btdd_shot --mod widescreen ...` (or `--wide`) writes `
 | stage (level) | result | why |
 |---|---|---|
 | 1 (3) | widens (section 04: 18/18 samples, 05: 5/8) | map 72 blocks; the rest are boss/transition frames |
-| 2 (5) | **pillarboxed** (0/47) | the background does not follow the level map (camera X runs to ~10,000 px over a 2,048 px map; best map match 14-18 of 30 rows): it is built another way (repeating segments?), not found yet |
+| 2 (5) | **pillarboxed** (0/47) | the background does not come from the level map: no visible nametable column matches any map column above ~60 % (`WIDE_DEBUG_COLS`), neighbouring columns map to unrelated map columns, and camera X is not monotonic (1,039 -> 784 -> 10,032): another block format or source, not found yet |
 | 3 (2) | **pillarboxed** | vertical shaft, 256 px wide: there are no extra columns |
 | 4 (4) | partly (section 06: 1/19, 07: 7/10) | section 06 is open space (black, nothing to add); 07's boss ship works; the RAM map is generated, so a wrong alignment is possible: calibration requires 90 % and dx within +-8 |
 | 5 (8) | widens (42/42) | map 144 blocks; black at the map's left end |
@@ -63,6 +63,6 @@ in the samples; spawns triggered by the camera can pop in at the right edge (use
   stages, with all four mods on.
 
 ## Next
-Stage 2's background source; per-stage enable table (skip the search where it cannot work); the GPU path at
-424 wide; the bank 4 object drawer and the special entity types in the margins; optional "lock margin" while
+Stage 2's background source (another block format or a second map; trace the bank 5 column writer `loc_a004` in
+level 5); per-stage enable table (skip the search where it cannot work); the bank 4 object drawer and the special entity types in the margins; optional "lock margin" while
 `$A9` holds the camera; a wider camera clamp at map ends (show a border instead of black).
