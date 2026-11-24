@@ -122,6 +122,13 @@ enters the `$FFCB`/`$FFCD` trampoline: site = the JSR/JMP before it, target = ba
   bank 6 `$80AA` -> `$80AD-$80CE` (step 3) and `$810A`; `$9992` -> `$9A8E`, `$9A94`; `$9995` -> `$8EFD`, `$8F0C`,
   `$E75E`. Bank 0 `$FE20` (`jmp ($2A)` in the other NMI path) never ran in any log; the only values the game ever
   stores in `$2A/$2B` (bank 0 `$85D1/$85D3`) are `$D241` and `$8397`, so those are its likely targets.
+  **Forced (2026-11-24):** `sub_fe05` is entered from the bank 0 NMI only when `$09` bit 7 is clear, and reaches
+  `$FE20` only when it is set, so `$FE20` runs only when an NMI arrives through another bank's NMI stub
+  (`$FF9C`-style: switch to bank 0, `jmp $FE05`) while the main loop is idle; that never happened in any log.
+  With bank 0 `$FDE2` patched in memory to `lda #0` (`btdd_headless --prg-poke 0:FDE2=A9,0:FDE3=00`, every NMI
+  then takes this path) the game keeps running and `$FE20` jumps to `$8397` (19,020x) and `$D241` (745x) in
+  20,000 frames: the same two targets as `$FDFD`. Confidence: high for the target set (RAM differs from the
+  normal run only by timing: the random generator first, then the TAS desyncs).
 - The 6 dynamic far calls: all resolved. Bank 0 `$84C4` -> bank 3 slots `$800C-$8015`; `$9F6C` -> bank 5 `$801E`,
   `$8021`; bank 2 `$FD49` -> bank 4 `$8015`, `$8027`; bank 4 `$ABB9` -> bank 3 `$8003-$8015`; `$C599` -> bank 1
   `$8003`, bank 7 `$8003`; bank 6 `$E7ED` -> bank 3 `$800C`, `$800F`, `$8015` (slot JMP targets in the TSV).
