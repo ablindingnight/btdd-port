@@ -1,5 +1,8 @@
 # Rules for agents (read first)
 
+- Before starting work, read `C:\Users\theop\claude\Battle\STATUS.md` (live progress, gaps, who works where; owned
+  by the coordinator session: send it updates instead of editing it). Game facts: `docs/GAME_FACTS.md`.
+
 - This repo is the PC port. The decomp at `..\btdd-decomp` is READ-ONLY from here: never edit, commit, or run its
   loop from this repo. Ask the user before running anything in it (its Kilo loop may be running).
 - ROM: `..\Gamefiles\Battletoads-Double Dragon (USA).nes`. Never copy it, dump banks into this folder, or commit
