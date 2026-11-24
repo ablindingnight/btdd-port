@@ -178,6 +178,10 @@ and 2P, the ending and credits. In rough order of bytes at stake:
    (the overlay table that `sub_8c15` draws on top of a **player** frame only while `$04B2,x` bit 5 is set,
    indexed by the player animation `$03D1,x` * 4): ~110 player animations never happened in that state. Finding
    what sets bit 5 (an item/hold/ride state in stages 2 and 6) is the next lead for a human or a targeted script.
+   Bit 5 is set by bank 0 `sub_9718` (2P TAS: 21 / 19 / 33 player animations seen with it in levels 5 / 8 / 9).
+   Round i explored only from 221 snapshots inside the two long hold periods of the TAS (frames 10,543-11,598,
+   53,989-55,058), short bursts, god off: 21M frames, **+1 byte**. So most of those overlay entries are most likely
+   animations that cannot happen in that state (unused data), not missed play.
 5. **Stage 4 (level 4) section 06 and stage 1 (level 3) sections 04/05**: slow play (bank 5 `$FF32`, bank 3
    `$9C69`, bank 4 `$B8B6`).
 6. **Title text, bank 4 `$CBF0-$CDFF` (528 B) and `$CE0C`**: drawn by bank 4 `sub_c5fe`/`sub_c61a` (screen text);
