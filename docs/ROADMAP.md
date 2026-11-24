@@ -14,7 +14,7 @@
 | M8 | PC features | config file, rebinding, 2P on gamepads, fullscreen/scaling, save states + rewind, fast boot |
 | M9 | Quality extras | no sprite flicker, widescreen (extra columns from level data), optional difficulty/lives tweaks |
 | M10 | Graphics upgrade (start with research: match the best options of recent official retro collections and native PC ports; 2x/3x/4x sizes with real enhancement: pixel-art upscalers, CRT/NTSC shaders via the SDL3 GPU API, borders) | renderer from game state, runtime upscalers on the player's tiles, HD tile-pack loader |
-| M11 | Launcher | polished app modelled on the Nice Crash launcher (docs/LAUNCHER.md): home with ROM/build status and PLAY, first-run checklist (verify ROM, recompile, self-check, optional enhance), settings pages for display/graphics/audio/controls/mods, logs + save report, own name and art |
+| M11 | Launcher | starts with a design session (art style matching the game's mood, own name/logo/art, page with screenshots like github.com/ablindingnight/nice-crash); then a polished app modelled on the Nice Crash launcher (docs/LAUNCHER.md): home with ROM/build status and PLAY, first-run checklist (verify ROM, recompile, self-check, optional enhance), settings pages for display/graphics/audio/controls/mods, logs + save report, own name and art |
 | M12 | Release | launcher + game exe + `btdd.meta` + libtcc.dll; release audit clean on the whole package (no ROM bytes/strings); player supplies ROM |
 
 Order: M1-M3 make it playable; M4-M5 make it native from the ROM; M6 runs in the background the whole time.

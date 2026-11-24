@@ -31,6 +31,18 @@ same author, CC0; its architecture and screen flow can be reused, its art and na
 - Testable headless: `--ui-shot <screen> out.png [w h]` renders any screen offscreen, `--launch-game` starts the
   game as PLAY does (both exist in Nice Crash and made its UI work reviewable by agents).
 
+## Design session (user wish, 2026-11-24)
+Once the port is at a good place for it (game playable natively from the player's ROM, settings stable), start a
+dedicated design session for the launcher before building its screens:
+- Art direction that matches the game's feel (1993 beat-'em-up: space ship hull, gritty sci-fi, bold comic-book
+  energy, CRT-era colours), done the way Nice Crash did its own star/tilt-ring/truck art: original shapes,
+  typography and backdrop, inspired by the mood, never the game's characters, logos or sprites.
+- Deliverables: project name + logo, colour palette and fonts (open licences), home/first-run/settings mockups,
+  backdrop art, PLAY button and icon set, and a style sheet the launcher code follows.
+- A project page like https://github.com/ablindingnight/nice-crash: README with launcher screenshots (made with
+  `--ui-shot`, so they never contain game graphics), How to play, What's in the download, No-Nintendo-data
+  statement, licence, and For developers.
+
 ## Tech choice (decide when the milestone starts)
 - Nice Crash uses GDI+ (Windows only). Options: reuse its launcher code (fastest, Windows-only), or rebuild the same
   screens on SDL3 + our renderer (cross-platform, shares input/gamepad code with btdd_play). Default: SDL3, reusing
