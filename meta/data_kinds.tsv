@@ -1,0 +1,295 @@
+# data_kinds.tsv: PRG data ranges by format (tools/data_kinds.py; formats in docs/DATA_FORMATS.md)
+bank	start	end	kind	fmt	conf	source
+0	$9D8C	$9D95	table	pal_cycle	low	sprites_palettes_text.md: data_9d82 read by 0:$8774
+0	$9DF3	$9E0A	table	pal_cycle	medium	sprites_palettes_text.md: data_9df3 read by 0:$9DE4(sub_9de4),0:$8774
+1	$8193	$81FE	ptrtable	chr_list_ptrs	high	sprites_palettes_text.md: incbin+data_81f3 read by 1:$8015(loc_8015)
+1	$81FF	$83BD	table	chr_list_mode	high	sprites_palettes_text.md: data_81f3,incbin,data_8265 read by 1:$8015(loc_8015)
+1	$8201	$8228	table	chr_set	medium	read log: loader reads
+1	$8267	$83BD	table	chr_set	medium	read log: loader reads
+1	$83BE	$85BD	graphics	chr_1bpp	high	sprites_palettes_text.md: data_8265 read by 1:$8174,1:$811B..$8149
+1	$83BE	$891D	graphics	chr_raw	high	read log: loader reads
+1	$85BE	$881D	graphics	chr_tiles_raw	medium	sprites_palettes_text.md: data_8265 read by 1:$8174
+1	$881E	$F597	graphics	chr_rle	high	sprites_palettes_text.md: data_8265 read by 1:$809C(sub_809c)
+1	$8820	$883E	graphics	chr_rle	high	read log: loader reads
+1	$8859	$914B	graphics	chr_rle	high	read log: loader reads
+1	$914E	$9B40	graphics	chr_rle	high	read log: loader reads
+1	$9AE1	$9CA0	graphics	chr_raw	high	read log: loader reads
+1	$9BE3	$A285	graphics	chr_rle	high	read log: loader reads
+1	$A276	$A2E5	graphics	chr_raw	high	read log: loader reads
+1	$A2E8	$AEF1	graphics	chr_rle	high	read log: loader reads
+1	$AEF4	$B295	graphics	chr_rle	high	read log: loader reads
+1	$B298	$B80E	graphics	chr_rle	high	read log: loader reads
+1	$B74F	$B8CE	graphics	chr_raw	high	read log: loader reads
+1	$B8D1	$BA7B	graphics	chr_rle	high	read log: loader reads
+1	$BA7E	$BF19	graphics	chr_rle	high	read log: loader reads
+1	$BF1C	$C221	graphics	chr_rle	high	read log: loader reads
+1	$C224	$CC11	graphics	chr_rle	high	read log: loader reads
+1	$C264	$C333	graphics	chr_raw	high	read log: loader reads
+1	$CC14	$D06F	graphics	chr_rle	high	read log: loader reads
+1	$D072	$D506	graphics	chr_rle	high	read log: loader reads
+1	$D507	$D546	graphics	chr_raw	high	read log: loader reads
+1	$D549	$F597	graphics	chr_rle	high	read log: loader reads
+1	$F6FC	$FF6B	graphics	chr_rle	medium	sprites_palettes_text.md: data_f6a2 read by 1:$809C(sub_809c)
+1	$F6FE	$FF6B	graphics	chr_rle	high	read log: loader reads
+2	$8030	$AF8F	graphics	chr_raw	high	read log: loader reads
+2	$8030	$ECAF	graphics	chr_tiles_raw	high	sprites_palettes_text.md: data_8030..data_e2d0 read by 0:$0782(RAM copy loop)
+2	$B0A0	$B5DF	graphics	chr_raw	high	read log: loader reads
+2	$B680	$BA2F	graphics	chr_raw	high	read log: loader reads
+2	$BCF0	$BF9F	graphics	chr_raw	high	read log: loader reads
+2	$C050	$ECAF	graphics	chr_raw	high	read log: loader reads
+2	$FC94	$FD43	graphics	chr_rowfill	medium	sprites_palettes_text.md: data_fc94 read by 2:$FD50(sub_fd50)
+2	$FE07	$FF06	ptrtable	chr_player_frame_ptrs	high	sprites_palettes_text.md: data_fe07..data_fed7 read by 2:$FD6C(sub_fd6c)
+2	$FF07	$FF64	ptrtable	chr_player_frame_ptrs	medium	sprites_palettes_text.md: data_fed7..data_ff53 read by 2:$FD6C(sub_fd6c)
+3	$8996	$8999	table	snd_sample_start	high	music.md: incbin_8996 read by sub_8977
+3	$8A15	$8A8C	table	snd_sample_gen_b	medium	music.md: data_8a15(part) read by sub_8b8d
+3	$8A8D	$8AAE	table	snd_sample_gen_c	medium	music.md: data_8a15(part) read by sub_8bf3
+3	$8AAF	$8AF3	table	snd_sample_gen_a	medium	music.md: data_8a15(part) read by loc_8afc
+3	$8FF2	$9009	ptrtable	snd_cmd_jumptab	high	music.md: data_8ff2 read by sub_8d58,sub_8f55
+3	$900A	$902D	ptrtable	snd_cmd_jumptab	high	music.md: incbin_900a read by sub_8d58,sub_8f55
+3	$902E	$9059	ptrtable	snd_cmd_jumptab	high	music.md: data_902e read by sub_8d58,sub_8f55
+3	$905A	$905B	ptrtable	snd_cmd_jumptab	high	music.md: incbin_905a read by sub_8d58,sub_8f55
+3	$905C	$906D	ptrtable	snd_cmd_jumptab	high	music.md: data_905c read by sub_8d58,sub_8f55
+3	$906E	$9079	ptrtable	snd_cmd_jumptab	high	music.md: incbin_906e read by sub_8d58,sub_8f55
+3	$907A	$9099	ptrtable	snd_cmd_jumptab	high	music.md: data_907a read by sub_8d58,sub_8f55
+3	$9120	$912E	table	snd_lenpreset	medium	music.md: data_9120 read by sub_90d9,loc_90f9
+3	$9314	$9322	table	snd_env_delay	medium	music.md: data_9314 read by sub_92e1
+3	$9324	$9332	table	snd_env_rate	medium	music.md: data_9324 read by sub_92e1
+3	$9334	$9342	table	snd_env_target	medium	music.md: data_9334 read by sub_92e1
+3	$93D3	$9432	table	snd_period	high	music.md: data_93d3 read by sub_8d58
+3	$9433	$943A	table	snd_period	high	music.md: data_9433 read by sub_8d58
+3	$943B	$9440	table	snd_period	high	music.md: incbin_943b read by sub_8d58
+3	$9441	$9448	table	snd_period	high	music.md: data_9441 read by sub_8d58
+3	$9449	$944C	table	snd_period	high	music.md: incbin_9449 read by sub_8d58
+3	$944D	$945F	ptrtable	snd_sfx_ptrs	high	music.md: data_944d read by loc_8eee
+3	$9460	$9460	ptrtable	snd_sfx_ptrs	high	music.md: incbin_9460 read by loc_8eee
+3	$9461	$946C	ptrtable	snd_sfx_ptrs	high	music.md: data_9461 read by loc_8eee
+3	$946D	$946E	ptrtable	snd_sfx_ptrs	high	music.md: incbin_946d read by loc_8eee
+3	$946F	$9488	ptrtable	snd_sfx_ptrs	high	music.md: data_946f read by loc_8eee
+3	$9489	$9492	ptrtable	snd_sfx_ptrs	high	music.md: data_9489 read by loc_8eee
+3	$9493	$9508	ptrtable	snd_sfx_ptrs	high	music.md: data_9493 read by loc_8eee
+3	$9509	$950C	ptrtable	snd_sfx_ptrs	high	music.md: incbin_9509 read by loc_8eee
+3	$950D	$9524	ptrtable	snd_sfx_ptrs	high	music.md: data_950d read by loc_8eee
+3	$9525	$9530	ptrtable	snd_sfx_ptrs	high	music.md: data_9525 read by loc_8eee
+3	$9531	$953A	ptrtable	snd_sfx_ptrs	high	music.md: data_9531 read by loc_8eee
+3	$953B	$9540	ptrtable	snd_sfx_ptrs	high	music.md: incbin_953b read by loc_8eee
+3	$9541	$954A	ptrtable	snd_sfx_ptrs	high	music.md: data_9541(part) read by loc_8eee
+3	$954B	$961E	music	snd_sfx_stream	high	music.md: data_9541(part) read by loc_8eee,sub_8f55
+3	$961F	$9639	music	snd_sfx_stream	high	music.md: data_961f read by loc_8eee,sub_8f55
+3	$963A	$967A	music	snd_sfx_stream	high	music.md: data_963a read by loc_8eee,sub_8f55
+3	$967B	$967B	music	snd_sfx_stream	high	music.md: incbin_967b read by loc_8eee,sub_8f55
+3	$967C	$969F	music	snd_sfx_stream	high	music.md: data_967c read by loc_8eee,sub_8f55
+3	$96A0	$96A0	music	snd_sfx_stream	high	music.md: incbin_96a0 read by loc_8eee,sub_8f55
+3	$96A1	$96AF	music	snd_sfx_stream	high	music.md: data_96a1 read by loc_8eee,sub_8f55
+3	$96B0	$96B6	music	snd_sfx_stream	high	music.md: incbin_96b0 read by loc_8eee,sub_8f55
+3	$96B7	$96D7	music	snd_sfx_stream	high	music.md: data_96b7 read by loc_8eee,sub_8f55
+3	$96D8	$96E9	music	snd_sfx_stream	high	music.md: data_96d8 read by loc_8eee,sub_8f55
+3	$96EA	$96F8	music	snd_sfx_stream	high	music.md: data_96ea read by loc_8eee,sub_8f55
+3	$96F9	$9705	music	snd_sfx_stream	high	music.md: data_96f9 read by loc_8eee,sub_8f55
+3	$9706	$9713	music	snd_sfx_stream	high	music.md: data_9706 read by loc_8eee,sub_8f55
+3	$9714	$9720	music	snd_sfx_stream	high	music.md: data_9714 read by loc_8eee,sub_8f55
+3	$9721	$9755	music	snd_sfx_stream	high	music.md: data_9721 read by loc_8eee,sub_8f55
+3	$9756	$9756	music	snd_sfx_stream	high	music.md: incbin_9756(part) read by loc_8eee,sub_8f55
+3	$975F	$976B	music	snd_sfx_stream	high	music.md: data_975f read by loc_8eee,sub_8f55
+3	$976C	$9926	music	snd_sfx_stream	high	music.md: data_976c read by loc_8eee,sub_8f55
+3	$9927	$9932	music	snd_sfx_stream	high	music.md: incbin_9927 read by loc_8eee,sub_8f55
+3	$9933	$9A5F	music	snd_sfx_stream	high	music.md: data_9933 read by loc_8eee,sub_8f55
+3	$9A60	$9A66	music	snd_sfx_stream	high	music.md: incbin_9a60 read by loc_8eee,sub_8f55
+3	$9A67	$9B72	music	snd_sfx_stream	high	music.md: data_9a67 read by loc_8eee,sub_8f55
+3	$9B73	$9BA0	music	snd_sfx_stream	high	music.md: data_9b73 read by loc_8eee,sub_8f55
+3	$9BA1	$9C36	music	snd_sfx_stream	high	music.md: data_9ba1 read by loc_8eee,sub_8f55
+3	$9C37	$9C3F	music	snd_sfx_stream	high	music.md: incbin_9c37 read by loc_8eee,sub_8f55
+3	$9C40	$9C68	music	snd_sfx_stream	high	music.md: data_9c40 read by loc_8eee,sub_8f55
+3	$9C69	$9C94	music	snd_sfx_stream	high	music.md: incbin_9c69 read by loc_8eee,sub_8f55
+3	$9C95	$9C9C	music	snd_sfx_stream	high	music.md: data_9c95 read by loc_8eee,sub_8f55
+3	$9C9D	$9C9D	music	snd_sfx_stream	high	music.md: incbin_9c9d read by loc_8eee,sub_8f55
+3	$9C9E	$9CD3	music	snd_sfx_stream	high	music.md: data_9c9e read by loc_8eee,sub_8f55
+3	$9CD4	$9CF3	music	snd_sfx_stream	high	music.md: data_9cd4 read by loc_8eee,sub_8f55
+3	$9CF4	$9CFB	music	snd_sfx_stream	high	music.md: data_9cf4 read by loc_8eee,sub_8f55
+3	$9CFC	$9D00	music	snd_sfx_stream	high	music.md: incbin_9cfc read by loc_8eee,sub_8f55
+3	$9D01	$9D79	music	snd_sfx_stream	high	music.md: data_9d01 read by loc_8eee,sub_8f55
+3	$9D7A	$9D7B	music	snd_sfx_stream	high	music.md: incbin_9d7a(part) read by loc_8eee,sub_8f55
+3	$9D7C	$9D88	table	snd_loopstack_base	medium	music.md: incbin_9d7a(part) read by sub_9140,sub_9190
+3	$9D89	$9DA0	table	snd_song_hdr	high	music.md: incbin_9d7a(part) read by sub_8c5e
+3	$9DA1	$9DA8	ptrtable	snd_song_ptrs	high	music.md: incbin_9d7a(part) read by sub_8c5e
+3	$9DA9	$9DB8	ptrtable	snd_song_ptrs	high	music.md: data_9da9 read by sub_8c5e
+3	$9DB9	$9DC0	ptrtable	snd_song_ptrs	high	music.md: incbin_9db9 read by sub_8c5e
+3	$9DC1	$9DC8	ptrtable	snd_song_ptrs	high	music.md: data_9dc1 read by sub_8c5e
+3	$9DC9	$9DD0	ptrtable	snd_song_ptrs	high	music.md: incbin_9dc9 read by sub_8c5e
+3	$9DD1	$9DF8	ptrtable	snd_song_ptrs	high	music.md: data_9dd1 read by sub_8c5e
+3	$9DF9	$9E00	ptrtable	snd_song_ptrs	high	music.md: incbin_9df9 read by sub_8c5e
+3	$9E01	$9E28	ptrtable	snd_song_ptrs	high	music.md: data_9e01 read by sub_8c5e
+3	$9E29	$9E30	ptrtable	snd_song_ptrs	high	music.md: incbin_9e29 read by sub_8c5e
+3	$9E31	$9E60	ptrtable	snd_song_ptrs	high	music.md: data_9e31(part) read by sub_8c5e
+3	$9E61	$A049	music	snd_stream	high	music.md: data_9e31(part) read by sub_8d58,cmd handlers $909A-$93D2
+3	$A05B	$B31F	music	snd_stream	high	music.md: data_a05b read by sub_8d58,cmd handlers $909A-$93D2
+3	$B5AA	$B5EE	table	huff_tree_left	medium	sprites_palettes_text.md: data_b5aa read by 3:$B57E(sub_b57e)
+3	$B5EF	$B633	table	huff_tree_right	medium	sprites_palettes_text.md: data_b5aa read by 3:$B57E(sub_b57e)
+3	$B634	$B679	table	huff_symbols	medium	sprites_palettes_text.md: data_b5aa read by 3:$B57E(sub_b57e)
+3	$B67A	$B693	table	huff_msg_bitoffsets	medium	sprites_palettes_text.md: data_b5aa read by 3:$B50A(sub_b50a)
+3	$B696	$C01B	text	text_huffman	high	sprites_palettes_text.md: data_b696 read by 3:$B57E(sub_b57e)
+3	$C01D	$C068	music	snd_stream	high	music.md: data_c01d read by sub_8d58,cmd handlers $909A-$93D2
+3	$C069	$C06B	music	snd_stream	high	music.md: incbin_c069 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C06C	$C0AD	music	snd_stream	high	music.md: data_c06c read by sub_8d58,cmd handlers $909A-$93D2
+3	$C0AE	$C0B0	music	snd_stream	high	music.md: incbin_c0ae read by sub_8d58,cmd handlers $909A-$93D2
+3	$C0B1	$C0E7	music	snd_stream	high	music.md: data_c0b1 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C0E8	$C0EC	music	snd_stream	high	music.md: incbin_c0e8 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C0ED	$C132	music	snd_stream	high	music.md: data_c0ed read by sub_8d58,cmd handlers $909A-$93D2
+3	$C133	$C135	music	snd_stream	high	music.md: incbin_c133 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C136	$C1A1	music	snd_stream	high	music.md: data_c136 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C1A2	$C1BC	music	snd_stream	high	music.md: data_c1a2 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C1BD	$C1BF	music	snd_stream	high	music.md: incbin_c1bd read by sub_8d58,cmd handlers $909A-$93D2
+3	$C1C0	$C203	music	snd_stream	high	music.md: data_c1c0 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C206	$C333	music	snd_stream	high	music.md: data_c206 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C334	$C34F	music	snd_stream	high	music.md: data_c334 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C350	$C352	music	snd_stream	high	music.md: incbin_c350 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C353	$C38E	music	snd_stream	high	music.md: data_c353 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C38F	$C3A2	music	snd_stream	high	music.md: data_c38f read by sub_8d58,cmd handlers $909A-$93D2
+3	$C3A3	$C3BA	music	snd_stream	high	music.md: data_c3a3 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C3BB	$C3C4	music	snd_stream	high	music.md: data_c3bb read by sub_8d58,cmd handlers $909A-$93D2
+3	$C3C5	$C4C6	music	snd_stream	high	music.md: data_c3c5 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C4C7	$C4CD	music	snd_stream	high	music.md: incbin_c4c7 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C4CE	$C522	music	snd_stream	high	music.md: data_c4ce read by sub_8d58,cmd handlers $909A-$93D2
+3	$C523	$C525	music	snd_stream	high	music.md: incbin_c523 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C526	$C554	music	snd_stream	high	music.md: data_c526 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C555	$C564	music	snd_stream	high	music.md: incbin_c555 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C565	$C57A	music	snd_stream	high	music.md: data_c565 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C57B	$C57F	music	snd_stream	high	music.md: incbin_c57b read by sub_8d58,cmd handlers $909A-$93D2
+3	$C580	$C5C5	music	snd_stream	high	music.md: data_c580 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C5C6	$C5D0	music	snd_stream	high	music.md: incbin_c5c6 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C5D1	$C605	music	snd_stream	high	music.md: data_c5d1 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C606	$C61B	music	snd_stream	high	music.md: incbin_c606 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C61C	$C63B	music	snd_stream	high	music.md: data_c61c read by sub_8d58,cmd handlers $909A-$93D2
+3	$C68C	$C7A1	music	snd_stream	high	music.md: data_c68c read by sub_8d58,cmd handlers $909A-$93D2
+3	$C7AF	$CE92	music	snd_stream	high	music.md: data_c7af read by sub_8d58,cmd handlers $909A-$93D2
+3	$CEDB	$CF99	music	snd_stream	high	music.md: data_cedb(part) read by sub_8d58,cmd handlers $909A-$93D2
+3	$D0C1	$D0EB	table	spawn_sec_tables	high	per section: prespawn count, list lo, list hi
+3	$D1C1	$D203	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$D330	$D341	table	spawn_lvl_ptrs	high	per level list lo ($D330,x) / hi ($D338,x)
+3	$D342	$D379	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$D566	$D5A8	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$ED0F	$ED7D	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$EFAF	$F03E	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$F3F6	$F68A	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$F6BB	$F8CD	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$F98F	$F9F2	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$FACB	$FB7B	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$FCBD	$FCF4	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+3	$FE4B	$FEF0	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
+4	$80C9	$80F0	ptrtable	chr_list_ptrs	medium	sprites_palettes_text.md: incbin+data_80cb+data_80e7 read by 4:$802B(sub_802b)
+4	$80F1	$8173	table	chr_list_rle	medium	sprites_palettes_text.md: data_80f7,data_8150 read by 4:$802B(sub_802b)
+4	$8174	$B287	graphics	chr_rle	medium	sprites_palettes_text.md: data_8174.. read by 4:$802B(sub_802b)
+4	$8176	$AED4	graphics	chr_rle	medium	read log: loader reads
+4	$BCA8	$BD43	ptrtable	spr4_frame_ptrs	high	sprites_palettes_text.md: metasprite_defs(tail)+data_bcc8.. read by 4:$C6C5,4:$C756,4:$C88F
+4	$BD44	$C4C0	table	spr4_frame	medium	sprites_palettes_text.md: data_bd44..data_c3fb read by 4:$C7B0(draw_metasprite)
+4	$C8D5	$C90E	ptrtable	screen_desc_ptrs	medium	sprites_palettes_text.md: incbin+data_c8dd read by 4:$C4C1(sub_c4c1)
+4	$C90F	$CB4A	table	screen_desc	medium	sprites_palettes_text.md: data_c90f,data_cb47 read by 4:$C59C(sub_c59c)
+4	$DDD4	$DFEF	table	pal_screen	high	sprites_palettes_text.md: - read by 4:$C59C(sub_c59c)
+4	$E3C3	$FF71	graphics	chr_rle	medium	sprites_palettes_text.md: - read by 4:$802B(sub_802b)
+4	$E3C5	$E901	graphics	chr_rle	medium	read log: loader reads
+4	$E904	$F182	graphics	chr_rle	medium	read log: loader reads
+4	$F185	$F3BD	graphics	chr_rle	medium	read log: loader reads
+4	$F3C0	$F883	graphics	chr_rle	medium	read log: loader reads
+4	$F886	$FA84	graphics	chr_rle	medium	read log: loader reads
+4	$FA87	$FAF8	graphics	chr_rle	medium	read log: loader reads
+4	$FAFB	$FF71	graphics	chr_rle	medium	read log: loader reads
+5	$83C1	$83D0	ptrtable	chr_list_ptrs	medium	sprites_palettes_text.md: data_83c1 read by 5:$8323(loc_8323)
+5	$83D1	$8400	table	chr_list_rle	medium	sprites_palettes_text.md: data_83c1 read by 5:$8323(loc_8323)
+5	$860F	$9F60	graphics	chr_rle	medium	sprites_palettes_text.md: - read by 5:$8323(loc_8323)
+5	$A38C	$A39A	table	start_idx	high	section -> player start offset (0 = keep)
+5	$A39B	$A3EF	table	start_pos	medium	6 bytes per player: X hi/lo, Y hi/lo, Z hi/lo
+5	$A4A1	$A4EE	table	lvl_ptrs	high	per level 13 x (blocks lo/hi, attr lo/hi, map lo/hi)
+5	$A52F	$A6CE	table	lvl_map	high	level 5 block map, row-major
+5	$A6CF	$ABFE	table	lvl_blocks	high	level 5: 83 blocks x 16 tile ids
+5	$ABFF	$AC51	table	lvl_block_attr	high	level 5: 1 attribute byte per block
+5	$BBCF	$C04E	table	lvl_map	high	level 8 block map, row-major
+5	$C04F	$C84E	table	lvl_blocks	high	level 8: 128 blocks x 16 tile ids
+5	$C84F	$C8CE	table	lvl_block_attr	high	level 8: 1 attribute byte per block
+5	$C8CF	$CB56	table	lvl_map	high	level 3 block map, row-major
+5	$CB57	$D506	table	lvl_blocks	high	level 3: 155 blocks x 16 tile ids
+5	$D507	$D5A1	table	lvl_block_attr	high	level 3: 1 attribute byte per block
+5	$D5A2	$D6A1	table	lvl_map	high	level A block map, row-major
+5	$D6A2	$DA81	table	lvl_blocks	high	level A: 62 blocks x 16 tile ids
+5	$DA82	$DABF	table	lvl_block_attr	high	level A: 1 attribute byte per block
+5	$DAC2	$DBA1	table	lvl_map	high	level 9 block map, row-major
+5	$DBA2	$DF21	table	lvl_blocks	high	level 9: 56 blocks x 16 tile ids
+5	$DF22	$DF59	table	lvl_block_attr	high	level 9: 1 attribute byte per block
+5	$DF5A	$E699	table	lvl_map	high	level 2 block map, row-major
+5	$E69A	$F049	table	lvl_blocks	high	level 2: 155 blocks x 16 tile ids
+5	$F04A	$F0E4	table	lvl_block_attr	high	level 2: 1 attribute byte per block
+5	$F1F5	$F218	table	lvl_map	medium	level 4 map strip, copied to RAM $0624-$0647
+5	$F219	$F5C8	table	lvl_blocks	high	level 4: 59 blocks x 16 tile ids
+5	$F5C9	$F603	table	lvl_block_attr	high	level 4: 1 attribute byte per block
+5	$F604	$F653	table	lvl_map	high	level 6 block map, row-major
+5	$F654	$F9F3	table	lvl_blocks	high	level 6: 58 blocks x 16 tile ids
+5	$F9F4	$FA2D	table	lvl_block_attr	high	level 6: 1 attribute byte per block
+5	$FA2E	$FD09	graphics	chr_rle	medium	sprites_palettes_text.md: - read by 5:$8323(loc_8323)
+6	$8B26	$8B36	table	spr_burst_tiles	medium	sprites_palettes_text.md: data_8b26 read by 6:$8B37(draw_entity_sprite)
+6	$8E9F	$8EBE	table	spr_burst_offsets	medium	sprites_palettes_text.md: data_8e9f read by 6:$8B37(draw_entity_sprite)
+6	$8EBF	$8EC8	table	spr_char_palette_sel	medium	sprites_palettes_text.md: data_8e9f read by 6:$8C15(sub_8c15)
+6	$A0E2	$A0EB	table	sec_first	high	level -> first section ($A0E2,x)
+6	$A0ED	$A0FA	table	sec_recidx	high	section -> record offset ($A0EC,y)
+6	$A19A	$A217	table	sec_record	high	14 x 9-byte section records
+6	$A3FA	$A415	ptrtable	pal_ptrs	high	14 palette pointers
+6	$A416	$A425	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A426	$A435	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A436	$A445	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A446	$A455	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A456	$A465	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A466	$A475	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A476	$A485	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A486	$A495	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A496	$A4A5	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A4A6	$A4B5	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A4B6	$A4C5	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A4C6	$A4D5	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A4D6	$A4E5	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A4E6	$A4F5	table	pal_16	high	16 colour indices -> PPU $3F00
+6	$A4F6	$A79D	table	spr_overlay_pairs	medium	sprites_palettes_text.md: data_a4fa..data_a78e read by 6:$8C15(sub_8c15)
+6	$A7A6	$BFE0	table	spr_frame	high	sprites_palettes_text.md: data_a7b3..data_bed1 read by 6:$8C15(sub_8c15)
+6	$BFE1	$C092	ptrtable	spr_frame_ptr_lo_player	high	sprites_palettes_text.md: incbin+data_bfe2..data_c087 read by 6:$8C15(sub_8c15)
+6	$C093	$C191	ptrtable	spr_frame_ptr_lo_enemy	high	sprites_palettes_text.md: data_c094..data_c180 read by 6:$8C15(sub_8c15)
+6	$C192	$C243	ptrtable	spr_frame_ptr_hi_player	high	sprites_palettes_text.md: data_c193.. read by 6:$8C15(sub_8c15)
+6	$C244	$C342	ptrtable	spr_frame_ptr_hi_enemy	high	sprites_palettes_text.md: ..data_c331 read by 6:$8C15(sub_8c15)
+6	$C343	$C365	ptrtable	spr_frame_ptr_lo_special	high	sprites_palettes_text.md: data_c346,data_c359 read by 6:$8C15(sub_8c15)
+6	$C366	$C388	ptrtable	spr_frame_ptr_hi_special	high	sprites_palettes_text.md: data_c369,data_c37c read by 6:$8C15(sub_8c15)
+6	$C389	$E45D	table	spr_frame	high	sprites_palettes_text.md: data_c388..data_e394 read by 6:$8C15(sub_8c15)
+6	$E708	$E70F	ptrtable	text_list_ptrs	high	sprites_palettes_text.md: player_status_text read by 6:$E6D3(display_player_status_text)
+6	$E710	$E756	text	text_string_list	high	sprites_palettes_text.md: player_status_text read by 6:$EEAB(sub_eeab)
+6	$E7F0	$E7F2	table	sound_id_offsets	medium	sprites_palettes_text.md: title_screen_text read by 6:$E7E6(draw_title_screen_text)
+6	$E7F3	$E885	text	text_string_list	high	sprites_palettes_text.md: title_screen_text read by 6:$EEAB(sub_eeab)
+6	$E8B6	$E8E5	table	pal_char_sprite	medium	sprites_palettes_text.md: data_e8b6 read by 6:$9115(sub_9115)
+6	$E8E7	$E8FA	table	pal_char_colors3	medium	sprites_palettes_text.md: data_e8b6(after) read by 6:$9637(sub_9637)
+6	$EEE0	$EF1A	table	text_charmap	high	sprites_palettes_text.md: incbin+data_eef0+incbin+data_eefe read by 6:$EEAB,6:$9A98,6:$9562
+6	$FAB3	$FACC	ptrtable	bigfont_substr_ptrs	low	sprites_palettes_text.md: intro_presents_text(tail),data_fac3 read by 6:$9562(update_intro_cast_text)
+6	$FB09	$FC4A	text	text_bigfont	medium	sprites_palettes_text.md: game_over_text..intro_cast_text read by 6:$9562(update_intro_cast_text)
+6	$FC4B	$FD0A	table	bigfont_glyphs	medium	sprites_palettes_text.md: intro_cast_text(tail)..data_fd03 read by 6:$9562(update_intro_cast_text)
+7	$825B	$82A8	ptrtable	chr_list_ptrs	high	sprites_palettes_text.md: incbin+data_825d+incbin read by 7:$80E2(loc_80e2)
+7	$82AB	$83FC	table	chr_list_mode	high	sprites_palettes_text.md: data_82a9+incbin read by 7:$80E2(loc_80e2)
+7	$82AD	$838D	table	chr_set	medium	read log: loader reads
+7	$8398	$83E7	table	chr_set	medium	read log: loader reads
+7	$83FF	$8407	table	chr_set	medium	read log: loader reads
+7	$8408	$EC4B	graphics	chr_rle	high	sprites_palettes_text.md: data_83fd read by 7:$8164(sub_8164),7:$823C
+7	$840F	$85CB	graphics	chr_rle	high	read log: loader reads
+7	$860E	$92B7	graphics	chr_rle	high	read log: loader reads
+7	$92BA	$A0E5	graphics	chr_rle	high	read log: loader reads
+7	$A0E8	$A480	graphics	chr_rle	high	read log: loader reads
+7	$A483	$ABDE	graphics	chr_rle	high	read log: loader reads
+7	$ABE1	$B328	graphics	chr_rle	high	read log: loader reads
+7	$B32B	$BC62	graphics	chr_rle	high	read log: loader reads
+7	$BC65	$C17B	graphics	chr_rle	high	read log: loader reads
+7	$C17E	$C9DD	graphics	chr_rle	high	read log: loader reads
+7	$C9F8	$CA29	graphics	chr_rle	high	read log: loader reads
+7	$CA9C	$CB97	graphics	chr_rle	high	read log: loader reads
+7	$CB9A	$CC78	graphics	chr_rle	high	read log: loader reads
+7	$CC7B	$D601	graphics	chr_rle	high	read log: loader reads
+7	$D604	$D639	graphics	chr_rle	high	read log: loader reads
+7	$D63C	$D69C	graphics	chr_rle	high	read log: loader reads
+7	$D69F	$D97D	graphics	chr_rle	high	read log: loader reads
+7	$D980	$DD63	graphics	chr_rle	high	read log: loader reads
+7	$DD66	$E172	graphics	chr_rle	high	read log: loader reads
+7	$E175	$E37C	graphics	chr_rle	high	read log: loader reads
+7	$E37F	$E814	graphics	chr_rle	high	read log: loader reads
+7	$E817	$EC4B	graphics	chr_rle	high	read log: loader reads
+7	$ED1A	$EE5B	graphics	chr_unknown	low	sprites_palettes_text.md: - read by 7:$EC4C(vram_update_tiles)
+7	$EEAF	$FF71	graphics	chr_rle	medium	sprites_palettes_text.md: data_eeaf read by 7:$8164(sub_8164)
+7	$EEB1	$FF71	graphics	chr_rle	high	read log: loader reads

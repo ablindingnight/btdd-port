@@ -36,6 +36,7 @@ DEF_ROM = os.path.join(REPO, '..', 'Gamefiles', 'Battletoads-Double Dragon (USA)
 DEF_CDL = os.path.join(REPO, '..', 'Gamefiles', 'Debugger')
 DEF_OUT = os.path.join(REPO, 'meta', 'btdd.meta')
 OVERRIDES = os.path.join(REPO, 'meta', 'overrides.meta')
+DATA_KINDS = os.path.join(REPO, 'meta', 'data_kinds.tsv')   # tools/data_kinds.py (docs/DATA_FORMATS.md)
 
 TRAMPOLINE = 0xFFCB      # ldx #lo / ldy #i / jsr $FFCB  ->  $80lo in bank byte[$FFB3+i]
 BANK_TABLE = 0xFFB3
@@ -422,6 +423,7 @@ def analyse_bank(bk, banks, recs, proposed, music, stats):
             t = bk.seg_at(d[3])
             if t is not None and t.kind == 'data' and t.dkind == 'unknown':
                 t.dkind = 'table'
+    apply_data_kinds(bk, b)
 
     # code range validation
     for i, s in enumerate(bk.segs):
@@ -599,6 +601,8 @@ def analyse_bank(bk, banks, recs, proposed, music, stats):
             extra = ''
             if np == 'auto' and s.name in proposed.get(b, {}):
                 extra = ' proposed=%s' % proposed[b][s.name]
+            if getattr(s, 'fmt', None):
+                extra += ' fmt=%s' % s.fmt
             add(s.start, 'data %d %s %s %s kind=%s naming=%s src=%s cdl_read=%d/%d cdl_exec=%d%s' % (
                 b, h4(s.start), h4(s.end), s.name, s.dkind, np, s.how, seen_data, n, seen_code, extra))
             if seen_code:
@@ -722,6 +726,36 @@ def find_jump_tables(bk):
         if t['table'] not in uniq or len(t['targets']) > len(uniq[t['table']]['targets']):
             uniq[t['table']] = t
     return sorted(uniq.values(), key=lambda t: t['table'])
+
+
+_DATA_KINDS = None
+
+
+def apply_data_kinds(bk, b):
+    """meta/data_kinds.tsv (tools/data_kinds.py): give a data range the kind/format that covers most of its
+    bytes (at least half). Ranges the decomp already typed as vectors keep that."""
+    global _DATA_KINDS
+    if _DATA_KINDS is None:
+        _DATA_KINDS = []
+        if os.path.exists(DATA_KINDS):
+            for line in open(DATA_KINDS, encoding='utf-8'):
+                c = line.rstrip('\n').split('\t')
+                if line.startswith('#') or c[0] == 'bank' or len(c) < 5:
+                    continue
+                _DATA_KINDS.append((int(c[0]), int(c[1][1:], 16), int(c[2][1:], 16), c[3], c[4]))
+    rows = [r for r in _DATA_KINDS if r[0] == b]
+    for s in bk.segs:
+        if s.kind != 'data' or s.dkind == 'vectors':
+            continue
+        cov = {}
+        for _, lo, hi, kind, fmt in rows:
+            n = min(hi, s.end) - max(lo, s.start) + 1
+            if n > 0:
+                cov[(kind, fmt)] = cov.get((kind, fmt), 0) + n
+        if cov:
+            (kind, fmt), n = max(cov.items(), key=lambda kv: kv[1])
+            if 2 * n >= s.end - s.start + 1:
+                s.dkind, s.fmt = kind, fmt
 
 
 def data_kind(s, music, b):
