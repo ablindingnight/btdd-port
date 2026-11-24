@@ -68,8 +68,7 @@ BTDD_NATIVE_PROFILE=out.txt ...           # interpreted instructions per (bank, 
 ## First start: generate, compile, cache (`btdd_jit`)
 `btdd_jit` contains no generated code. On the first `cpu_run` it:
 1. computes the cache key SHA-1(PRG bytes + `btdd.meta` + exe version + compiler/options) and looks for
-   `%LOCALAPPDATA%tdd\cache\<key16>
-ative.dll` (never in the repo; `BTDD_CACHE_DIR` overrides);
+   `%LOCALAPPDATA%\btdd\cache\<key16>\native.dll` (never in the repo; `BTDD_CACHE_DIR` overrides);
 2. on a miss, runs the C generator in-process (`btdd_gen_write`, recomp/gen.c) into that folder and compiles the
    C to `native.dll`: with libtcc in a `BTDD_LIBTCC` build (libtcc stays its own DLL, dynamically linked: LGPL),
    otherwise with the command in `BTDD_CC` (development stand-in);
@@ -91,9 +90,9 @@ compilers, which is the same situation as an MSVC exe loading a tcc-built DLL.
 **libtcc: not done yet.** TinyCC is not on this machine and I did not download it: a download needs the user's
 own go-ahead in this session, and the request reached me through another session. Everything around it is in
 place: `CMakeLists.txt` option `BTDD_LIBTCC` finds `libtcc.h` + the import library under `BTDD_TINYCC_DIR`
-(default `..	ools	inycc`), and `recomp/native_jit.c` calls `tcc_new / tcc_set_lib_path / tcc_add_include_path /
+(default `..\tools\tinycc`), and `recomp/native_jit.c` calls `tcc_new / tcc_set_lib_path / tcc_add_include_path /
 tcc_set_output_type(TCC_OUTPUT_DLL) / tcc_add_file / tcc_output_file`. After installing TinyCC (official source:
-repo.or.cz/tinycc.git, build `libtcc.dll` with its `win32uild-tcc.bat`), the remaining steps are: configure with
+repo.or.cz/tinycc.git, build `libtcc.dll` with its `win32\build-tcc.bat`), the remaining steps are: configure with
 `-DBTDD_LIBTCC=ON`, build `btdd_jit`, run `sh recomp/lockstep.sh` with `EXE` pointing at it, and compare fps with
 the clang build. Expectation (unmeasured): compile in a few seconds instead of ~50, run noticeably slower.
 

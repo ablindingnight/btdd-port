@@ -73,7 +73,7 @@ if(BTDD_NATIVE_GEN)
 endif()
 
 # M5 load-time recompiler: btdd_jit generates C from the player's ROM at first start, compiles it to a DLL in
-# %LOCALAPPDATA%tdd\cache and loads it. With BTDD_LIBTCC=ON the compiler is libtcc, used as a separate,
+# %LOCALAPPDATA%\btdd\cache and loads it. With BTDD_LIBTCC=ON the compiler is libtcc, used as a separate,
 # dynamically linked DLL (LGPL) from BTDD_TINYCC_DIR (default ../tools/tinycc: libtcc.h, libtcc.dll, its import
 # library, and tcc's include/ + lib/). Without it the compiler command comes from the BTDD_CC environment
 # variable (development only).
