@@ -1,13 +1,19 @@
 /* btdd_play: the game in a window, running on the reference interpreter (milestone M2).
  *
  *   btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] [--fullscreen] [--no-audio]
- *             [--selftest-gamepad]
+ *             [--dump-ram out.bin] [--selftest-gamepad] [--selftest-states]
  *
  * Keys (defaults, changeable in btdd.cfg or with F5): player 1 arrows, X = A, Z = B, Right Shift = Select,
  * Enter = Start; player 2 W/A/S/D, H = A, G = B, T = Select, Y = Start. Gamepads: the first two are
  * players 1 and 2 (east button = A, south button = B, Back = Select, Start, d-pad or left stick).
  * Hotkeys: Esc quit, P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter
  * (nearest / sharp / bilinear), F4 scanlines, F5 redefine keys, F11 or Alt+Enter fullscreen, F12 screenshot.
+ * States (M8): F6 save / F7 load the current slot, 0-9 or Shift+F6 / Shift+F7 pick the slot (10 slots, in
+ * <settings folder>\states\<ROM SHA-1>); hold Backspace to rewind (rewind_seconds of history, sound muted),
+ * hold Tab to fast-forward (ff_speed x; one frame's sound in ff_speed is played, so pacing stays on the sound
+ * clock). Backspace, Tab and 0-9 yield to the player's key bindings if bound.
+ * --dump-ram writes RAM after every newly emulated frame (tools/ramdiff.py format); --selftest-states
+ * scripts save / rewind / load / fast-forward over a movie (see states_script).
  * --movie plays an fm2 instead of live input (--frames N quits after N frames, for automated checks);
  * --selftest-gamepad checks the gamepad path with a virtual pad.
  *
@@ -17,7 +23,9 @@
 #include "config.h"
 #include "nes/apu.h"
 #include "nes/nes.h"
+#include "nes/state.h"
 #include "platform/png.h"
+#include "platform/rewind.h"
 #include "platform/screen.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
@@ -74,6 +82,125 @@ static void soft_reset(void)
     attach_apu();
 }
 
+/* ---- save states (F6/F7, 10 slots) and rewind (Backspace) ----
+ * Slot files: <settings folder>\states\<ROM SHA-1>\slotN.state (nes/state.h format). Rewind keeps one
+ * blob per emulated frame (machine state + displayed picture + frame number) as compressed deltas. */
+
+static Rewind rw;
+static uint8_t *rw_blob;
+static int rw_on;
+static char states_dir[1100];
+
+static size_t blob_size(void)
+{
+    return nes_state_size() + sizeof(Screen) + 8;
+}
+
+static void blob_capture(uint8_t *b, long frame)
+{
+    int64_t f = frame;
+    nes_state_capture(&nes, b);
+    memcpy(b + nes_state_size(), &screen, sizeof screen);
+    memcpy(b + nes_state_size() + sizeof screen, &f, 8);
+}
+
+static long blob_restore(const uint8_t *b)
+{
+    int64_t f;
+    nes_state_restore(&nes, b);
+    memcpy(&screen, b + nes_state_size(), sizeof screen);
+    memcpy(&f, b + nes_state_size() + sizeof screen, 8);
+    return (long)f;
+}
+
+static void rewind_setup(const Config *cfg)
+{
+    rw_on = 0;
+    if (cfg->rewind_seconds <= 0)
+        return;
+    rw_blob = malloc(blob_size());
+    /* gameplay averages ~17 KB per frame; allow 1.5 MB per second of history */
+    if (rw_blob && rewind_init(&rw, blob_size(), cfg->rewind_seconds * 60 + 1,
+                               (size_t)cfg->rewind_seconds * 1536 * 1024) == 0)
+        rw_on = 1;
+    else
+        SDL_Log("rewind disabled: out of memory");
+}
+
+static void rewind_record(long frame)
+{
+    if (!rw_on)
+        return;
+    blob_capture(rw_blob, frame);
+    rewind_push(&rw, rw_blob);
+}
+
+/* <folder of btdd.cfg>\states\<sha1> */
+static void states_setup(const Config *cfg, const char *sha1)
+{
+    char *slash;
+    snprintf(states_dir, sizeof states_dir, "%s", cfg->path);
+    slash = strrchr(states_dir, '\\');
+    if (!slash || (strrchr(states_dir, '/') && strrchr(states_dir, '/') > slash))
+        slash = strrchr(states_dir, '/');
+    if (!slash) {
+        states_dir[0] = 0;
+        return;
+    }
+    snprintf(slash + 1, sizeof states_dir - (size_t)(slash + 1 - states_dir), "states/%.40s", sha1);
+}
+
+static void slot_path(int slot, char *out, size_t len)
+{
+    snprintf(out, len, "%s/slot%d.state", states_dir, slot);
+}
+
+static void slot_save(int slot, long frame, const char *sha1, char *msg, size_t len)
+{
+    char path[1200];
+    int r;
+    if (!states_dir[0] || !SDL_CreateDirectory(states_dir)) {
+        snprintf(msg, len, "cannot create the states folder");
+        return;
+    }
+    slot_path(slot, path, sizeof path);
+    r = nes_state_save(&nes, (uint64_t)frame, sha1, path);
+    if (r == NES_STATE_OK)
+        snprintf(msg, len, "saved slot %d", slot);
+    else
+        snprintf(msg, len, "slot %d not saved: %s", slot, nes_state_error(r));
+    SDL_Log("%s (%s)", msg, path);
+}
+
+static int slot_load(int slot, long *frame, const char *sha1, char *msg, size_t len)
+{
+    char path[1200];
+    uint64_t f = 0;
+    int r;
+    slot_path(slot, path, sizeof path);
+    r = states_dir[0] ? nes_state_load(&nes, &f, sha1, path) : NES_STATE_IO;
+    if (r == NES_STATE_OK) {
+        *frame = (long)f;
+        snprintf(msg, len, "loaded slot %d", slot);
+    } else if (r == NES_STATE_IO) {
+        snprintf(msg, len, "slot %d is empty", slot);
+    } else {
+        snprintf(msg, len, "slot %d: %s", slot, nes_state_error(r));
+    }
+    return r == NES_STATE_OK;
+}
+
+static void slot_describe(int slot, char *msg, size_t len)
+{
+    char path[1200];
+    SDL_PathInfo info;
+    slot_path(slot, path, sizeof path);
+    if (states_dir[0] && SDL_GetPathInfo(path, &info))
+        snprintf(msg, len, "slot %d (used)", slot);
+    else
+        snprintf(msg, len, "slot %d (empty)", slot);
+}
+
 /* ---- input ---- */
 
 static const uint8_t pad_bits[BTN_COUNT] = {PAD_A, PAD_B, PAD_SELECT, PAD_START, PAD_UP, PAD_DOWN, PAD_LEFT, PAD_RIGHT};
@@ -114,6 +241,17 @@ static uint8_t read_pad(const Config *cfg, int port, SDL_Gamepad *gp)
     return v;
 }
 
+/* hotkeys that could collide with a player's binding (Backspace, Tab, 0-9) yield to the binding */
+static int key_is_bound(const Config *cfg, SDL_Scancode sc)
+{
+    int p, b;
+    for (p = 0; p < 2; p++)
+        for (b = 0; b < BTN_COUNT; b++)
+            if (cfg->keys[p][b] == sc)
+                return 1;
+    return 0;
+}
+
 static void open_gamepads(SDL_Gamepad *gp[2])
 {
     int n = 0, i, slot = 0;
@@ -137,9 +275,11 @@ static Uint64 message_until;
 
 static void say(const char *text)
 {
+    int repeat = !strcmp(message, text) && SDL_GetTicksNS() < message_until;
     SDL_strlcpy(message, text, sizeof message);
     message_until = SDL_GetTicksNS() + 2500000000ull;
-    SDL_Log("%s", text);
+    if (!repeat) /* status lines repeated every frame (rewind, fast forward) are logged once */
+        SDL_Log("%s", text);
 }
 
 typedef struct Rebind {
@@ -252,6 +392,45 @@ static const SelfTest selftest[] = {
 };
 #define SELFTEST_STEPS (int)(sizeof selftest / sizeof selftest[0])
 
+/* --selftest-states (with --movie, unpaced): the same functions as the hotkeys, scripted. Save slot 9 at
+ * frame 3000, play to 3600, rewind 300 frames (RAM must equal frame 3300's), play to 3500, load slot 9 (RAM
+ * must equal frame 3000's), then the rest of the movie in fast-forward steps; --dump-ram then lets
+ * tools/ramdiff.py check the whole run against FCEUX. Slots go to states-selftest\, not the user's slots.
+ * Returns the next phase (4 = done). */
+static int states_script(int phase, long *frame, const char *sha1, uint8_t *ram_a, uint8_t *ram_r, int *failed,
+                         const Config *cfg)
+{
+    char msg[200];
+    long k;
+    (void)cfg;
+    if (phase == 0 && *frame == 3000) {
+        slot_save(9, *frame, sha1, msg, sizeof msg);
+        printf("%s: %s\n", strstr(msg, "not") ? "FAIL" : "ok  ", msg);
+        *failed |= strstr(msg, "not") != NULL;
+        memcpy(ram_a, nes.ram, 0x800);
+        return 1;
+    }
+    if (phase == 1 && *frame == 3300)
+        memcpy(ram_r, nes.ram, 0x800);
+    if (phase == 1 && *frame == 3600) {
+        for (k = 0; k < 300 && rw_on && rewind_pop(&rw, rw_blob); k++)
+            *frame = blob_restore(rw_blob);
+        k = *frame == 3300 && !memcmp(nes.ram, ram_r, 0x800);
+        printf("%s: rewind 300 frames from 3600 -> frame %ld, RAM %s\n", k ? "ok  " : "FAIL", *frame,
+               k ? "equals frame 3300's" : "differs");
+        *failed |= !k;
+        return 2;
+    }
+    if (phase == 2 && *frame == 3500) {
+        k = slot_load(9, frame, sha1, msg, sizeof msg) && *frame == 3000 && !memcmp(nes.ram, ram_a, 0x800);
+        printf("%s: %s -> frame %ld, RAM %s\n", k ? "ok  " : "FAIL", msg, *frame,
+               k ? "equals frame 3000's" : "differs");
+        *failed |= !k;
+        return 4;
+    }
+    return phase;
+}
+
 static int fail(const char *what)
 {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "btdd", what, NULL);
@@ -264,9 +443,12 @@ int main(int argc, char **argv)
     Config cfg;
     Video video;
     Rebind rb;
-    const char *movie_path = NULL;
-    long max_frames = -1, frame = 0;
+    const char *movie_path = NULL, *dump_path = NULL;
+    long max_frames = -1, frame = 0, dumped = 0;
     int i, quit = 0, paused = 0, have_cfg, no_audio = 0, selftest_on = 0, seen[SELFTEST_STEPS] = {0};
+    int slot = 0, states_test = 0, st_phase = 0, st_fail = 0, rewinding = 0, ff = 0, step, steps;
+    static uint8_t st_ram_a[0x800], st_ram_r[0x800];
+    FILE *dump = NULL;
     SDL_Joystick *vjoy = NULL;
     char hash[41], msg[1400];
     Fm2 movie = {0};
@@ -293,6 +475,10 @@ int main(int argc, char **argv)
             cfg.scale = SDL_clamp(atoi(argv[++i]), 1, 10);
         else if (!strcmp(argv[i], "--selftest-gamepad"))
             selftest_on = 1;
+        else if (!strcmp(argv[i], "--selftest-states"))
+            states_test = 1;
+        else if (!strcmp(argv[i], "--dump-ram") && i + 1 < argc)
+            dump_path = argv[++i];
         else if (!strcmp(argv[i], "--no-audio"))
             no_audio = 1;
         else if (!strcmp(argv[i], "--fullscreen"))
@@ -301,7 +487,8 @@ int main(int argc, char **argv)
             snprintf(cfg.rom, sizeof cfg.rom, "%s", argv[i]);
         else
             return fail("usage: btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] "
-                        "[--fullscreen] [--no-audio] [--selftest-gamepad]");
+                        "[--fullscreen] [--no-audio] [--dump-ram out.bin] [--selftest-gamepad] "
+                        "[--selftest-states]");
     }
     if (!have_cfg)
         SDL_Log("could not read or create btdd.cfg; using defaults");
@@ -363,7 +550,24 @@ int main(int argc, char **argv)
         SDL_Log("self-test pad: %s", gp[0] ? SDL_GetGamepadName(gp[0]) : SDL_GetError());
     }
 
+    if (states_test && !movie.frames)
+        return fail("--selftest-states needs --movie");
+    if (dump_path && !(dump = fopen(dump_path, "wb")))
+        return fail("cannot write the --dump-ram file");
+    states_setup(&cfg, hash);
+    if (states_test) { /* never touch the user's slots: <folder>\states-selftest\<sha1> */
+        char *p = strstr(states_dir, "states/");
+        if (p) {
+            char tail[64];
+            snprintf(tail, sizeof tail, "%s", p + 7);
+            snprintf(p, sizeof states_dir - (size_t)(p - states_dir), "states-selftest/%s", tail);
+        }
+        if (cfg.rewind_seconds < 10)
+            cfg.rewind_seconds = 10;
+    }
+    rewind_setup(&cfg);
     power_on(cfg.ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD);
+    rewind_record(0);
     next_tick = SDL_GetTicksNS();
 
     while (!quit) {
@@ -416,6 +620,24 @@ int main(int argc, char **argv)
                     memcpy(rb.backup, cfg.keys, sizeof rb.backup);
                 } else if (ev.key.key == SDLK_F12) {
                     save_screenshot(&cfg);
+                } else if (ev.key.key == SDLK_F6 || ev.key.key == SDLK_F7) {
+                    int is_f6 = ev.key.key == SDLK_F6;
+                    if (ev.key.mod & SDL_KMOD_SHIFT) { /* Shift+F6 / Shift+F7: previous / next slot */
+                        slot = (slot + (is_f6 ? 9 : 1)) % 10;
+                        slot_describe(slot, msg, sizeof msg);
+                    } else if (is_f6) {
+                        slot_save(slot, frame, hash, msg, sizeof msg);
+                    } else if (slot_load(slot, &frame, hash, msg, sizeof msg)) {
+                        rewind_record(frame);
+                        if (audio)
+                            SDL_ClearAudioStream(audio);
+                    }
+                    say(msg);
+                } else if (ev.key.key >= SDLK_0 && ev.key.key <= SDLK_9 && !(ev.key.mod & SDL_KMOD_ALT) &&
+                           !key_is_bound(&cfg, ev.key.scancode)) {
+                    slot = (int)(ev.key.key - SDLK_0);
+                    slot_describe(slot, msg, sizeof msg);
+                    say(msg);
                 }
                 break;
             default:
@@ -430,9 +652,43 @@ int main(int argc, char **argv)
             SDL_Delay(15);
             continue;
         }
+        {
+            const bool *keys = SDL_GetKeyboardState(NULL);
+            int was_rewinding = rewinding, was_ff = ff;
+            rewinding = !states_test && rw_on && keys[SDL_SCANCODE_BACKSPACE] &&
+                        !key_is_bound(&cfg, SDL_SCANCODE_BACKSPACE);
+            ff = !states_test && keys[SDL_SCANCODE_TAB] && !key_is_bound(&cfg, SDL_SCANCODE_TAB);
+            if (rewinding != was_rewinding)
+                SDL_Log("rewind %s at frame %ld", rewinding ? "start" : "stop", frame);
+            if (ff != was_ff)
+                SDL_Log("fast forward %s at frame %ld", ff ? "start" : "stop", frame);
+        }
 
-        /* pacing: keep about QUEUE_TARGET_FRAMES of audio queued */
-        if (audio) {
+        if (rewinding) { /* one step back per frame period, sound muted */
+            Uint64 now = SDL_GetTicksNS();
+            if (audio)
+                SDL_ClearAudioStream(audio);
+            if (now < next_tick) {
+                SDL_Delay(1);
+                continue;
+            }
+            next_tick = (now - next_tick > 100000000u) ? now : next_tick + (Uint64)(1e9 / FRAME_HZ);
+            if (rewind_pop(&rw, rw_blob)) {
+                frame = blob_restore(rw_blob);
+                say("<< rewind");
+            } else {
+                say("<< rewind: start of the history");
+            }
+            screen_to_rgb(&screen, pixels, PPU_W);
+            video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
+            continue;
+        }
+
+        /* pacing: keep about QUEUE_TARGET_FRAMES of audio queued (fast-forward: ff_speed frames per frame of
+         * sound, so the sound card still sets the pace and only one frame's sound in ff_speed is heard) */
+        if (states_test) {
+            run_frame = 1;
+        } else if (audio) {
             int queued = SDL_GetAudioStreamQueued(audio);
             run_frame = queued < (int)(QUEUE_TARGET_FRAMES * AUDIO_RATE / FRAME_HZ) * (int)sizeof(float);
         } else {
@@ -444,36 +700,52 @@ int main(int argc, char **argv)
             SDL_Delay(1);
             continue;
         }
+        if (ff)
+            say(">> fast forward");
 
-        if (movie.frames) {
-            if (frame >= movie.count)
-                break;
-            nes_set_pads(&nes, movie.frames[frame].pad[0], movie.frames[frame].pad[1]);
-        } else {
+        for (step = 0, steps = ff ? cfg.ff_speed : 1; step < steps; step++) {
+            size_t n;
+            if (movie.frames) {
+                if (frame >= movie.count) {
+                    quit = 1;
+                    break;
+                }
+                nes_set_pads(&nes, movie.frames[frame].pad[0], movie.frames[frame].pad[1]);
+            } else {
+                if (vjoy) {
+                    int k;
+                    for (k = 0; k < SELFTEST_STEPS; k++)
+                        SDL_SetJoystickVirtualButton(vjoy, selftest[k].button,
+                                                     frame >= selftest[k].start && frame < selftest[k].start + 8);
+                    SDL_UpdateJoysticks();
+                }
+                nes_set_pads(&nes, read_pad(&cfg, 0, gp[0]), read_pad(&cfg, 1, gp[1]));
+            }
+            nes_run_frame(&nes);
+            frame++;
             if (vjoy) {
                 int k;
                 for (k = 0; k < SELFTEST_STEPS; k++)
-                    SDL_SetJoystickVirtualButton(vjoy, selftest[k].button,
-                                                 frame >= selftest[k].start && frame < selftest[k].start + 8);
-                SDL_UpdateJoysticks();
+                    if (frame > selftest[k].start && frame <= selftest[k].start + 10 &&
+                        nes.ram[0x30] == selftest[k].expect)
+                        seen[k] = 1;
             }
-            nes_set_pads(&nes, read_pad(&cfg, 0, gp[0]), read_pad(&cfg, 1, gp[1]));
-        }
-        nes_run_frame(&nes);
-        frame++;
-        if (vjoy) {
-            int k;
-            for (k = 0; k < SELFTEST_STEPS; k++)
-                if (frame > selftest[k].start && frame <= selftest[k].start + 10 && nes.ram[0x30] == selftest[k].expect)
-                    seen[k] = 1;
-        }
-
-        apu_render(&nes.apu, nes.cpu.cycles);
-        {
-            size_t n = apu_take(&nes.apu);
-            if (audio && n)
+            apu_render(&nes.apu, nes.cpu.cycles);
+            n = apu_take(&nes.apu);
+            if (audio && n && step == steps - 1)
                 SDL_PutAudioStreamData(audio, samples, (int)(n * sizeof(float)));
             apu_set_buffer(&nes.apu, samples, sizeof samples / sizeof samples[0]);
+            rewind_record(frame);
+            if (dump && frame > dumped) {
+                uint8_t h[4] = {(uint8_t)frame, (uint8_t)(frame >> 8), (uint8_t)(frame >> 16), (uint8_t)(frame >> 24)};
+                fwrite(h, 1, 4, dump);
+                fwrite(nes.ram, 1, sizeof nes.ram, dump);
+                dumped = frame;
+            }
+            if (states_test)
+                st_phase = states_script(st_phase, &frame, hash, st_ram_a, st_ram_r, &st_fail, &cfg);
+            if (states_test && st_phase == 4)
+                steps = cfg.ff_speed; /* the rest of the movie with fast-forward's frame loop */
         }
         screen_to_rgb(&screen, pixels, PPU_W);
         video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
@@ -483,6 +755,19 @@ int main(int argc, char **argv)
     }
 
     SDL_Log("ran %ld frames", frame);
+    if (dump)
+        fclose(dump);
+    if (states_test) {
+        if (st_phase != 4)
+            st_fail = 1;
+        printf("%s: states self-test (%s), ended at frame %ld\n", st_fail ? "FAIL" : "ok  ",
+               st_phase == 4 ? "all steps ran" : "script did not finish", frame);
+        if (st_fail)
+            quit = 2;
+    }
+    if (rw_on)
+        rewind_free(&rw);
+    free(rw_blob);
     if (vjoy) {
         int k, ok = 1;
         for (k = 0; k < SELFTEST_STEPS; k++) {

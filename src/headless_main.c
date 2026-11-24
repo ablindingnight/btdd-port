@@ -11,6 +11,8 @@
  *                                                  level/section change and camera lock/unlock; gate log
  *                                                  gates.txt/gates.tsv + gate-*.ram in D)
  *                     [--load X.snap]             (start from a snapshot; the movie continues at its frame)
+ *                     [--save-state N X.state]    (save state after frame N, see nes/state.h; run continues)
+ *                     [--load-state X.state]      (start from a save state; the movie continues at its frame)
  *                     [--warp L[:S]] [--warp-every]  (start the next stage as level L, section S; see cov/play.h)
  *                     [--god]                     (refill players' HP and lives after every frame)
  *                     [--poke 11=00,12=00@900]    (RAM writes after frame N; "@N+" keeps them frozen)
@@ -29,6 +31,7 @@
  */
 #include "cov/coverage.h"
 #include "cov/snapshot.h"
+#include "nes/state.h"
 #include "cov/tracker.h"
 #include "cov/play.h"
 #include "nes/nes.h"
@@ -98,7 +101,8 @@ int main(int argc, char **argv)
     const char *watch_spec = NULL, *exec_spec = NULL;
     const char *cdl_path = NULL, *cdl_mesen_path = NULL, *reads_path = NULL;
     int cdl_clear = 0;
-    const char *snap_dir = NULL, *load_path = NULL;
+    const char *snap_dir = NULL, *load_path = NULL, *state_save_path = NULL, *state_load_path = NULL;
+    long state_save_at = -1;
     long snap_every = 60, start = 0;
     static Tracker trk;
     static Play play;
@@ -135,6 +139,11 @@ int main(int argc, char **argv)
             snap_dir = argv[++i];
         else if (!strcmp(argv[i], "--snap-every") && i + 1 < argc)
             snap_every = strtol(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--save-state") && i + 2 < argc) {
+            state_save_at = strtol(argv[++i], NULL, 10);
+            state_save_path = argv[++i];
+        } else if (!strcmp(argv[i], "--load-state") && i + 1 < argc)
+            state_load_path = argv[++i];
         else if (!strcmp(argv[i], "--load") && i + 1 < argc)
             load_path = argv[++i];
         else if (!strcmp(argv[i], "--warp") && i + 1 < argc) {
@@ -254,6 +263,15 @@ int main(int argc, char **argv)
         play_install(&play, &nes);
         play_after_frame(&play, &nes, 0);
     }
+    if (state_load_path) {
+        uint64_t f = 0;
+        int lr = nes_state_load(&nes, &f, hash, state_load_path);
+        if (lr != NES_STATE_OK) {
+            fprintf(stderr, "%s: %s\n", state_load_path, nes_state_error(lr));
+            return 1;
+        }
+        start = (long)f;
+    }
     if (load_path) {
         SnapInfo si;
         int lr = snap_load(&nes, &si, load_path);
@@ -329,6 +347,11 @@ int main(int argc, char **argv)
                     return 1;
                 }
             }
+        }
+        if (state_save_path && i + 1 == state_save_at &&
+            nes_state_save(&nes, (uint64_t)(i + 1), hash, state_save_path) != NES_STATE_OK) {
+            fprintf(stderr, "cannot write %s\n", state_save_path);
+            return 1;
         }
         if (nes.cpu.jammed) {
             fprintf(stderr, "CPU jammed at frame %ld, PC=$%04X\n", i + 1, nes.cpu.pc);

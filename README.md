@@ -42,14 +42,18 @@ cmake --build build-gcc
 Targets: `btdd_play` (the game in a window), `btdd` (M0: ROM check), `btdd_headless` (reference
 interpreter + coverage recorder), `btdd_explore`, `btdd_static` (M1.5, docs/M15_COVERAGE.md),
 `btdd_apu_check` / `btdd_shot` (sound and picture checks against FCEUX), tests (`nestest_check`,
-`cpu_call_test`, `apu_synth_test`), `btdd_sdl_probe` (not in the default build).
+`cpu_call_test`, `apu_synth_test`, `rewind_test`), `btdd_sdl_probe` (not in the default build).
+
+All gates in one command (builds with every compiler found, runs every check, prints one PASS/FAIL table):
+`python tools/check_all.py` (`--list` names the gates, `--only` / `--skip` pick some, `--no-build` reuses builds).
 
 ## Play (M2)
 ```powershell
 .\build\Release\btdd_play.exe "..\Gamefiles\Battletoads-Double Dragon (USA).nes"
 ```
 Player 1: arrows, X = A, Z = B, Right Shift = Select, Enter = Start. Player 2: W/A/S/D, H = A, G = B, T = Select,
-Y = Start. Gamepads work too. Esc quits, P pauses, F11 fullscreen, F2 square pixels / 4:3, F12 screenshot.
+Y = Start. Gamepads work too. Esc quits, P pauses, F11 fullscreen, F2 square pixels / 4:3, F12 screenshot,
+F6/F7 save/load state (0-9 pick a slot), hold Backspace to rewind, hold Tab to fast-forward.
 Keys, scale and the ROM path are set in `%APPDATA%\btdd\btdd.cfg` (created on first run). Details:
 `docs/M2_PLAY.md`.
 

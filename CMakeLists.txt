@@ -30,6 +30,7 @@ add_library(btdd_core STATIC
     src/nes/ppu_new.c
     src/nes/apu.c
     src/nes/nes.c
+    src/nes/state.c
 )
 target_include_directories(btdd_core PUBLIC src)
 if(NOT WIN32 OR NOT MSVC)
@@ -44,9 +45,14 @@ btdd_warnings(btdd_core)
 add_library(btdd_screen STATIC
     src/platform/screen.c
     src/platform/png.c
+    src/platform/rewind.c
 )
 target_link_libraries(btdd_screen PUBLIC btdd_core)
 btdd_warnings(btdd_screen)
+
+add_executable(rewind_test tests/state/rewind_test.c)
+target_link_libraries(rewind_test PRIVATE btdd_screen)
+btdd_warnings(rewind_test)
 
 add_executable(btdd_shot tools/shot/shot_main.c)
 target_link_libraries(btdd_shot PRIVATE btdd_screen)

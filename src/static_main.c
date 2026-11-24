@@ -168,9 +168,9 @@ static void scan_known(void)
             while (i < 0x8000 && is_code(base + i)) {
                 uint16_t pc = (uint16_t)(0x8000 + i);
                 uint8_t op = byte_at(bank, pc);
-                int n = cov_opsize(op), k, ok = cpu_official[op];
-                for (k = 1; k < n && ok; k++)
-                    ok = i + k < 0x8000 && is_code(base + i + k);
+                int n = cov_opsize(op), off, ok = cpu_official[op];
+                for (off = 1; off < n && ok; off++)
+                    ok = i + off < 0x8000 && is_code(base + i + off);
                 if (!ok) { /* misaligned or data inside: resync at the next byte */
                     i++;
                     continue;

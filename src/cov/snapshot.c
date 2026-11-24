@@ -1,5 +1,6 @@
 /* Snapshots (see snapshot.h). */
 #include "snapshot.h"
+#include "nes/state.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,25 +22,10 @@ static uint32_t layout_fingerprint(void)
     return h;
 }
 
-/* Copies every pointer / hook field from `from` into `to`. */
+/* Copies every host field (hooks, buffers, picture) from `from` into `to` (shared with save states). */
 static void keep_pointers(Nes *to, const Nes *from)
 {
-    to->rom = from->rom;
-    to->cpu.ctx = from->cpu.ctx;
-    to->cpu.read = from->cpu.read;
-    to->cpu.write = from->cpu.write;
-    to->cpu.trap = from->cpu.trap;
-    to->cpu.exec_hook = from->cpu.exec_hook;
-    to->cpu.exec_watch = from->cpu.exec_watch;
-    to->cpu.insn_hook = from->cpu.insn_hook;
-    to->cpu.vector_hook = from->cpu.vector_hook;
-    to->ppu.cpu = from->ppu.cpu;
-    to->apu_hook = from->apu_hook;
-    to->apu_user = from->apu_user;
-    to->watch_hook = from->watch_hook;
-    to->user = from->user;
-    memcpy(to->watch, from->watch, sizeof to->watch);
-    to->log_traps = from->log_traps;
+    nes_state_adopt_host(to, from);
 }
 
 void snap_copy(Nes *dst, const Nes *src)
@@ -65,13 +51,12 @@ static uint32_t get32(const uint8_t *p)
 
 int snap_save(const Nes *nes, const SnapInfo *info, const char *path)
 {
-    static Nes tmp, zero;
+    static Nes tmp;
     uint8_t hdr[32] = {0};
     FILE *f;
     int ok;
     memcpy(&tmp, nes, sizeof tmp);
-    memset(&zero, 0, sizeof zero);
-    keep_pointers(&tmp, &zero); /* clear pointers and debugging state */
+    nes_state_clear_host(&tmp); /* clear pointers and debugging state */
     memcpy(hdr, MAGIC, 8);
     put32(hdr + 8, (uint32_t)sizeof(Nes));
     put32(hdr + 12, layout_fingerprint());
