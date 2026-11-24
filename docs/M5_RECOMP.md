@@ -65,21 +65,65 @@ BTDD_NATIVE=0 ...                         # same exe, interpreter only
 BTDD_NATIVE_PROFILE=out.txt ...           # interpreted instructions per (bank, PC)
 ```
 
+## First start: generate, compile, cache (`btdd_jit`)
+`btdd_jit` contains no generated code. On the first `cpu_run` it:
+1. computes the cache key SHA-1(PRG bytes + `btdd.meta` + exe version + compiler/options) and looks for
+   `%LOCALAPPDATA%tdd\cache\<key16>
+ative.dll` (never in the repo; `BTDD_CACHE_DIR` overrides);
+2. on a miss, runs the C generator in-process (`btdd_gen_write`, recomp/gen.c) into that folder and compiles the
+   C to `native.dll`: with libtcc in a `BTDD_LIBTCC` build (libtcc stays its own DLL, dynamically linked: LGPL),
+   otherwise with the command in `BTDD_CC` (development stand-in);
+3. loads the DLL, compares the Cpu/Nes struct layout it was compiled with (`native_layout`) against the host's,
+   and calls `native_register_all(&api)`. Generated code reaches the host only through that `NativeApi` struct
+   (table, counter, register function), so it works from a DLL built by any compiler.
+
+Measured with `BTDD_CC="zig cc -O2"` (clang, one process for all 8 banks):
+| step | first start | cached start |
+|---|---|---|
+| generate C (in-process) | 0.05 s | - |
+| compile | 48-55 s | - |
+| load + layout check + register | 0.09-0.26 s | 0.01-0.04 s |
+
+Both TAS gates are exact with the code loaded from the cached DLL (2P 59,351/59,351, 1P 83,576/83,576), and an
+MSVC-built `btdd_jit` loading a clang-built DLL is exact too (3,000 frames): the layout check holds across
+compilers, which is the same situation as an MSVC exe loading a tcc-built DLL.
+
+**libtcc: not done yet.** TinyCC is not on this machine and I did not download it: a download needs the user's
+own go-ahead in this session, and the request reached me through another session. Everything around it is in
+place: `CMakeLists.txt` option `BTDD_LIBTCC` finds `libtcc.h` + the import library under `BTDD_TINYCC_DIR`
+(default `..	ools	inycc`), and `recomp/native_jit.c` calls `tcc_new / tcc_set_lib_path / tcc_add_include_path /
+tcc_set_output_type(TCC_OUTPUT_DLL) / tcc_add_file / tcc_output_file`. After installing TinyCC (official source:
+repo.or.cz/tinycc.git, build `libtcc.dll` with its `win32uild-tcc.bat`), the remaining steps are: configure with
+`-DBTDD_LIBTCC=ON`, build `btdd_jit`, run `sh recomp/lockstep.sh` with `EXE` pointing at it, and compare fps with
+the clang build. Expectation (unmeasured): compile in a few seconds instead of ~50, run noticeably slower.
+
+## Fast blocks (`--fast-blocks`, opt-in)
+Straight-line runs of instructions that touch only RAM get a second, unchecked copy, taken when the remaining
+budget covers the run's worst-case cycles; without a hardware access no new interrupt can appear inside, so the
+per-instruction checks there could not fire. Exact on both gates. **No measurable speedup** on this machine
+(best of 5 runs of 20,000 2P frames: 1.90 s vs 1.82 s inside `cpu_run`; the run-to-run noise from other jobs is
+larger), so it stays off by default (`BTDD_FAST_BLOCKS=1` turns it on for `btdd_jit`; it is part of the cache key).
+A first version compared the budget with cycles instead of budget units and skipped checks it must not skip; the
+2P gate caught it at once (frame 10 diverged), which is what the gates are for.
+
 ## CPU API notes (src/runtime is not edited by M5)
 - Missing: a public way to execute one instruction / poll interrupts from another run loop. Worked around by
-  compiling `cpu.c` inside `recomp/native_cpu.c` with `cpu_run` renamed. Cleaner: export
-  `cpu_execute_one(Cpu*)` and `cpu_poll_interrupts(Cpu*)`, or a `native` lookup hook in `cpu_run`.
+  compiling `cpu.c` inside `recomp/native_cpu.c` with `cpu_run` renamed.
+- What exporting `cpu_execute_one(Cpu*)` and `cpu_poll_interrupts(Cpu*)` would change: `native_cpu.c` would stop
+  including `cpu.c` and keep only its own run loop, so `btdd_native` / `btdd_jit` could link `btdd_core` as is (no
+  second copy of the interpreter, no source-level coupling to its static functions). Better still, a lookup hook
+  in `cpu_run` itself (`NativeFn (*native)(void *ctx, uint16_t pc)` in `Cpu`, NULL = interpreter as today) would
+  give native dispatch to every caller (`cpu_step`, `cpu_call`, both PPU models) with one well-predicted branch per
+  instruction when unused, and the M5 code would shrink to the generated code, the loader and the cache.
 - `cpu_call` is not needed by this design (native code never calls the interpreter recursively; it returns to
   the loop), so native and interpreted code can interleave at any instruction.
 - `exec_hook` (debug `--exec`) turns native dispatch off for the run.
 
 ## Next
-1. Embed libtcc: `btdd_gen` already produces the C in-process-ready form (0.24 s); what is left is compiling it with
-   libtcc instead of clang/MSVC, caching the result by ROM hash + exe version, and registering the functions.
-   With clang -O2 the bank 0 file (3.3 MB of C) takes most of the ~40 s build; tcc will be far faster to compile
-   and slower to run, so measure both.
+1. Install TinyCC (needs the user's go-ahead), build with `-DBTDD_LIBTCC=ON`, run both gates with the tcc-built
+   code and report its fps against the clang build (see "First start" above).
 2. RAM code: compile the `$0700-$07FF` routine at run time with invalidation on RAM writes, or keep it interpreted.
-3. Speed: check the budget per basic block instead of per instruction (exit points stay exact), drop the
-   per-instruction counters in release builds; then the PPU is the bottleneck.
+3. Speed: per-block budget checks are done (no gain, see above); dropping the per-instruction counters in release
+   builds is the next small step, but the PPU is the bottleneck now.
 4. The meta gaps listed in docs/M4_META.md (open ends, `xcode`, unknown `jmp (ptr)` targets) only affect how much
    runs natively, not correctness.
