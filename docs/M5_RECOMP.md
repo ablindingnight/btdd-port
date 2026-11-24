@@ -104,14 +104,33 @@ Both TAS gates are exact with the code loaded from the cached DLL (2P 59,351/59,
 MSVC-built `btdd_jit` loading a clang-built DLL is exact too (3,000 frames): the layout check holds across
 compilers, which is the same situation as an MSVC exe loading a tcc-built DLL.
 
-**libtcc: not done yet.** TinyCC is not on this machine and I did not download it: a download needs the user's
-own go-ahead in this session, and the request reached me through another session. Everything around it is in
-place: `CMakeLists.txt` option `BTDD_LIBTCC` finds `libtcc.h` + the import library under `BTDD_TINYCC_DIR`
-(default `..\tools\tinycc`), and `recomp/native_jit.c` calls `tcc_new / tcc_set_lib_path / tcc_add_include_path /
-tcc_set_output_type(TCC_OUTPUT_DLL) / tcc_add_file / tcc_output_file`. After installing TinyCC (official source:
-repo.or.cz/tinycc.git, build `libtcc.dll` with its `win32\build-tcc.bat`), the remaining steps are: configure with
-`-DBTDD_LIBTCC=ON`, build `btdd_jit`, run `sh recomp/lockstep.sh` with `EXE` pointing at it, and compare fps with
-the clang build. Expectation (unmeasured): compile in a few seconds instead of ~50, run noticeably slower.
+## libtcc (done 2026-11-24, branch m5-libtcc)
+TinyCC 0.9.27 from the official Savannah release (`tcc-0.9.27.tar.bz2`, SHA-256 `de23af78...396ceb9c`, the same
+value Arch Linux publishes; no signature is published for this release), built with its own `win32\build-tcc.bat
+-c cl -t 64` (MSVC) into `..\tools\tinycc\tcc\` (outside the repo): `libtcc.dll`, `libtcc\libtcc.h` +
+`libtcc.lib` (import library), `include\`, `lib\libtcc1-64.a`. LGPL: libtcc stays a separate DLL, dynamically
+linked, copied next to `btdd_jit.exe` by CMake.
+
+Build: `cmake -DBTDD_LIBTCC=ON -DBTDD_TINYCC_DIR=<..\tools\tinycc\tcc>`; targets `btdd_jit` and
+`btdd_apu_check_jit` (the APU checker with libtcc-native code).
+
+| | libtcc | clang -O2 (`BTDD_CC`, for comparison) |
+|---|---|---|
+| first start: generate C in-process | 0.09-0.14 s | 0.3 s |
+| first start: compile all 8 banks to the cached DLL | **1.0-1.4 s** | 50-78 s |
+| cached start (load + layout check + register) | **0.01-0.08 s** | 0.01-0.4 s |
+| 2P old PPU, 20,000 frames, interleaved (interpreter ~3,100-3,250 fps on this merged tree) | 2,200-2,800 fps | 3,400-4,700 fps |
+
+- **Exact:** with the libtcc-built code, 2P (old PPU) 59,351/59,351 and 1P (new PPU) 83,576/83,576 frames equal
+  FCEUX's RAM; `btdd_apu_check_jit` gives an APU CSV and a 120 s WAV byte-identical to the interpreter build
+  (`apudiff` vs FCEUX 59,351/59,351 rows).
+- **Speed:** TinyCC does not inline, so the first build (a call per helper per 6502 instruction) ran at about half
+  the interpreter's speed. Under `__TINYC__` the hottest helpers (`n_cyc`, `n_zn`, `n_rdram`, `n_wrram`, `n_push`,
+  `n_pop`) are macros and the API pointer is a plain variable: that doubled tcc's speed (1,727 -> 3,367 fps on
+  3,000 frames) and stays exact, but tcc-native is still ~0.85x the interpreter (clang-native ~1.35x). Next:
+  keep A/X/Y/P in locals between exits, drop the per-instruction counters in release builds.
+- **Cache key** = SHA-1(PRG + `btdd.meta` + exe version + compiler/options + `recomp/native_rt.h`); CMake builds
+  use the build date/time as the exe version, the shell scripts commit + source hash.
 
 ## Fast blocks (`--fast-blocks`, opt-in)
 Straight-line runs of instructions that touch only RAM get a second, unchecked copy, taken when the remaining

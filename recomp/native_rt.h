@@ -37,12 +37,17 @@ typedef struct NativeApi {
 
 #ifndef NATIVE_HOST
 /* generated code: the API pointer, one per translation unit */
+#ifdef __TINYC__
+static const NativeApi *n_api_v; /* tcc does not inline: a plain variable, not an accessor call per use */
+#define n_api n_api_v
+#else
 static inline const NativeApi **n_api_slot(void)
 {
     static const NativeApi *p;
     return &p;
 }
 #define n_api (*n_api_slot())
+#endif
 #define native_insns (*n_api->insns)
 #define native_register(b, f, a, k) n_api->reg(b, f, a, k)
 #define native_table (n_api->table)
@@ -224,6 +229,23 @@ static inline NativeFn n_next(Cpu *c)
 #define N_PRE(c, a) ((void)0)
 #define N_TICK(c, a) ((void)0)
 #define N_FASTOK(c) 1
+#endif
+
+/* TinyCC does not inline functions, so a call per helper per 6502 instruction made tcc-built code slower than the
+ * interpreter. For tcc only, the hottest helpers become macros with the same effect (each argument evaluated
+ * once, in the same order). Every other compiler uses the inline functions above. */
+#if defined(__TINYC__) && !defined(NATIVE_HOST)
+#undef n_cyc
+#define n_cyc(c, n) ((c)->cycles += (uint64_t)(n), (c)->budget -= (n) * CPU_CYCLE_UNITS)
+#define n_zn(c, v) do { uint8_t zn_ = (uint8_t)(v); \
+    (c)->p = (uint8_t)(((c)->p & ~(CPU_Z | CPU_N)) | (zn_ == 0 ? CPU_Z : 0) | (zn_ & CPU_N)); } while (0)
+#define n_rdram(c, a) ((c)->bus = NES(c)->ram[(a) & 0x7FF])
+#define n_wrram(c, a, v) do { uint16_t wa_ = (uint16_t)(a); uint8_t wv_ = (uint8_t)(v); Nes *wn_ = NES(c); \
+    wn_->ram[wa_ & 0x7FF] = wv_; \
+    if (wn_->watch[wa_ & 0x7FF] && wn_->watch_hook) wn_->watch_hook(wn_, (uint16_t)(wa_ & 0x7FF), wv_); \
+    (c)->bus = wv_; } while (0)
+#define n_push(c, v) do { uint8_t pv_ = (uint8_t)(v); n_wrram(c, 0x100 | (c)->s, pv_); (c)->s--; } while (0)
+#define n_pop(c) ((c)->s++, n_rdram(c, 0x100 | (c)->s))
 #endif
 
 #endif
