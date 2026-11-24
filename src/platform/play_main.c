@@ -26,7 +26,9 @@
 #include "nes/nes.h"
 #include "nes/state.h"
 #include "mods/mods.h"
+#include "net/netplay.h"
 #include "platform/menu.h"
+#include "platform/udp.h"
 #include "platform/png.h"
 #include "platform/rewind.h"
 #include "platform/screen.h"
@@ -481,6 +483,98 @@ static int states_script(int phase, long *frame, const char *sha1, uint8_t *ram_
     return phase;
 }
 
+/* ---- M13 online 2-player (src/net/netplay.c over src/platform/udp.c; docs/M13_NETPLAY.md) ---- */
+
+static NetSession net;
+static Udp *net_udp;
+static int net_on;
+static SDL_AudioStream *net_audio;
+static FILE *net_dump; /* --dump-ram while online: RAM after every confirmed frame */
+static long net_dumped;
+static char net_last_msg[160];
+
+/* one frame for the netplay session; re-simulated frames (rollback) make no sound */
+static void net_frame(void *ctx, Nes *n, uint8_t p1, uint8_t p2, int resim)
+{
+    size_t k;
+    (void)ctx;
+    nes_set_pads(n, p1, p2);
+    nes_run_frame(n);
+    apu_render(&n->apu, n->cpu.cycles);
+    k = apu_take(&n->apu);
+    if (!resim && net_audio && k)
+        SDL_PutAudioStreamData(net_audio, samples, (int)(k * sizeof(float)));
+    apu_set_buffer(&n->apu, samples, sizeof samples / sizeof samples[0]);
+}
+
+static void net_confirmed(void *ctx, uint32_t f, const uint8_t *ram)
+{
+    (void)ctx;
+    if (net_dump && (long)f + 1 > net_dumped) {
+        uint8_t h[4] = {(uint8_t)(f + 1), (uint8_t)((f + 1) >> 8), (uint8_t)((f + 1) >> 16), (uint8_t)((f + 1) >> 24)};
+        fwrite(h, 1, 4, net_dump);
+        fwrite(ram, 1, 0x800, net_dump);
+        net_dumped = (long)f + 1;
+    }
+}
+
+/* What both sides must share: protocol, core layout, PPU model, CPU path, logic mods and cheats, ROM. Display
+ * settings (widescreen, shaders, no flicker) may differ. */
+static void net_summary(const Config *cfg, const char *sha1_hex, char *out, size_t len)
+{
+    char mods[48] = "none";
+#ifdef BTDD_HAVE_MODS
+    {
+        int i;
+        size_t n = 0;
+        for (i = 0; i < mods_count() && n + 16 < sizeof mods; i++)
+            if (mods_enabled(i) && mods_def(i)->kind == MOD_LOGIC)
+                n += (size_t)snprintf(mods + n, sizeof mods - n, "%s%.12s=%d", n ? "," : "", mods_def(i)->id,
+                                      mods_value(i));
+        if (!n)
+            snprintf(mods, sizeof mods, "none");
+    }
+#endif
+    snprintf(out, len, "p%d core %08lx ppu %s cpu interp mods %s rom %.12s", NET_PROTOCOL,
+             (unsigned long)nes_state_fingerprint(), cfg->ppu_new ? "new" : "old", mods, sha1_hex);
+}
+
+static void net_stop(void)
+{
+    if (!net_on)
+        return;
+    net_free(&net);
+    udp_close(net_udp);
+    net_udp = NULL;
+    net_on = 0;
+}
+
+/* host = 1: listen on cfg->net_port (2: on 127.0.0.1 only); host = 0: join `addr` */
+static int net_start(int host, const char *addr, const Config *cfg, const char *sha1_hex, char *msg, size_t len)
+{
+    char summary[NET_SUMMARY];
+    net_stop();
+    net_udp = host ? udp_host(cfg->net_port, host == 2, msg, len) : udp_join(addr, cfg->net_port, msg, len);
+    if (!net_udp)
+        return -1;
+    power_on(cfg->ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD); /* both sides start from power-on */
+    net_summary(cfg, sha1_hex, summary, sizeof summary);
+    if (net_init(&net, &nes, host ? 0 : 1, cfg->net_delay, summary, udp_transport(net_udp), net_frame, net_confirmed,
+                 NULL) != 0) {
+        udp_close(net_udp);
+        snprintf(msg, len, "out of memory");
+        return -1;
+    }
+    net_on = 1;
+    net_last_msg[0] = 0;
+    if (host)
+        snprintf(msg, len, "hosting on UDP port %d: waiting for player 2", cfg->net_port);
+    else
+        snprintf(msg, len, "joining %s ...", addr);
+    SDL_Log("netplay: %s (%s)", msg, summary);
+    return 0;
+}
+
 /* ---- settings overlay (Esc, or Guide / Back+Start on a gamepad): src/platform/menu.c pages built from the live
  * state; changes apply at once and are saved to btdd.cfg when the menu closes ---- */
 
@@ -886,10 +980,18 @@ static void stage(const char *name)
     stage_last = now;
 }
 
+/* SDL_clamp is a macro that evaluates its argument more than once: never pass argv[++i] to it */
+static int arg_int(const char *s, int lo, int hi)
+{
+    int v = atoi(s);
+    return v < lo ? lo : v > hi ? hi : v;
+}
+
 static int fail(const char *what)
 {
+    fprintf(stderr, "%s\n", what); /* first: the box waits for the user */
+    fflush(stderr);
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "btdd", what, NULL);
-    fprintf(stderr, "%s\n", what);
     return 1;
 }
 
@@ -901,6 +1003,7 @@ int main(int argc, char **argv)
     const char *movie_path = NULL, *dump_path = NULL;
     long max_frames = -1, frame = 0, dumped = 0;
     int i, quit = 0, paused = 0, have_cfg, no_audio = 0, selftest_on = 0, seen[SELFTEST_STEPS] = {0};
+    int net_cli = 0; /* 1 = --host, 2 = --join, 3 = --host-loopback */
     int slot = 0, states_test = 0, st_phase = 0, st_fail = 0, rewinding = 0, ff = 0, step, steps, pads_ready = 0;
     int menu_step = 0, menu_nav_ok = 0, menu_close_ok = 0; /* --selftest-gamepad, menu part */
     static uint8_t st_ram_a[0x800], st_ram_r[0x800];
@@ -933,11 +1036,24 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
             cfg.ppu_new = !strcmp(argv[++i], "new");
         else if (!strcmp(argv[i], "--scale") && i + 1 < argc)
-            cfg.scale = SDL_clamp(atoi(argv[++i]), 1, 10);
+            cfg.scale = arg_int(argv[++i], 1, 10);
         else if (!strcmp(argv[i], "--selftest-gamepad"))
             selftest_on = 1;
         else if (!strcmp(argv[i], "--selftest-states"))
             states_test = 1;
+        else if (!strcmp(argv[i], "--host")) { /* M13: host an online game (optional port) */
+            net_cli = 1;
+            if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9')
+                cfg.net_port = arg_int(argv[++i], 1, 65535);
+        } else if (!strcmp(argv[i], "--host-loopback")) { /* tests on one PC */
+            net_cli = 3;
+            if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9')
+                cfg.net_port = arg_int(argv[++i], 1, 65535);
+        } else if (!strcmp(argv[i], "--join") && i + 1 < argc) {
+            net_cli = 2;
+            snprintf(cfg.net_join, sizeof cfg.net_join, "%s", argv[++i]);
+        } else if (!strcmp(argv[i], "--net-delay") && i + 1 < argc)
+            cfg.net_delay = arg_int(argv[++i], 0, 3);
         else if (!strcmp(argv[i], "--dump-ram") && i + 1 < argc)
             dump_path = argv[++i];
         else if (!strcmp(argv[i], "--mod") && i + 1 < argc) {
@@ -1055,6 +1171,13 @@ int main(int argc, char **argv)
     rewind_setup(&cfg);
     power_on(cfg.ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD);
     rewind_record(0);
+    net_audio = audio;
+    if (net_cli) {
+        if (net_start(net_cli == 1 ? 1 : net_cli == 3 ? 2 : 0, cfg.net_join, &cfg, hash, msg, sizeof msg) != 0)
+            return fail(msg);
+        net_dump = dump;
+        say(msg);
+    }
     stage("gamepads+console");
     SDL_Log("startup: %s; total %llu ms", stage_text, (unsigned long long)((SDL_GetTicksNS() - stage_t0) / 1000000));
     next_tick = SDL_GetTicksNS();
@@ -1145,7 +1268,7 @@ int main(int argc, char **argv)
                     toggle_mod("widescreen", &cfg, have_cfg);
                 } else if (ev.key.key == SDLK_F12) {
                     save_screenshot(&cfg);
-                } else if (ev.key.key == SDLK_F6 || ev.key.key == SDLK_F7) {
+                } else if ((ev.key.key == SDLK_F6 || ev.key.key == SDLK_F7) && !net_on) {
                     int is_f6 = ev.key.key == SDLK_F6;
                     if (ev.key.mod & SDL_KMOD_SHIFT) { /* Shift+F6 / Shift+F7: previous / next slot */
                         slot = (slot + (is_f6 ? 9 : 1)) % 10;
@@ -1201,6 +1324,38 @@ int main(int argc, char **argv)
                 SDL_Log("rewind %s at frame %ld", rewinding ? "start" : "stop", frame);
             if (ff != was_ff)
                 SDL_Log("fast forward %s at frame %ld", ff ? "start" : "stop", frame);
+        }
+
+        if (net_on) { /* online: one session tick per 60 Hz display frame (not paced by the audio queue) */
+            Uint64 now = SDL_GetTicksNS();
+            char st[160];
+            if (now < next_tick) {
+                SDL_Delay(1);
+                continue;
+            }
+            next_tick = (now - next_tick > 100000000u) ? now : next_tick + (Uint64)(1e9 / FRAME_HZ);
+            {
+                int l = net.local;
+                uint8_t pad = movie.frames ? (net.have[l] < (uint32_t)movie.count ? movie.frames[net.have[l]].pad[l] : 0)
+                                           : read_pad(&cfg, 0, gp[0]); /* each player uses their own player 1 keys */
+                if (net_tick(&net, pad))
+                    frame = (long)net.frame;
+            }
+            if (audio && SDL_GetAudioStreamQueued(audio) > (int)(8 * AUDIO_RATE / FRAME_HZ) * (int)sizeof(float))
+                SDL_ClearAudioStream(audio); /* clock drift between the sound card and the 60 Hz timer */
+            if (strcmp(net.message, net_last_msg)) {
+                snprintf(net_last_msg, sizeof net_last_msg, "%s", net.message);
+                say(net.message);
+            }
+            if ((frame % 60) == 0) {
+                snprintf(st, sizeof st, TITLE " - online: %s", net_status(&net, msg, sizeof msg));
+                SDL_SetWindowTitle(video.win, st);
+            }
+            if ((movie.frames && (long)net.reported >= movie.count) || (max_frames >= 0 && (long)net.reported >= max_frames))
+                quit = 1;
+            make_picture(&video);
+            video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
+            continue;
         }
 
         if (rewinding) { /* one step back per frame period, sound muted */
@@ -1341,6 +1496,7 @@ int main(int argc, char **argv)
         SDL_DestroyAudioStream(audio);
     video_close(&video);
     fm2_free(&movie);
+    net_stop();
     SDL_Quit();
     return quit == 2 ? 1 : 0;
 }
