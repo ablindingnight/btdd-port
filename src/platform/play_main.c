@@ -485,7 +485,7 @@ static int states_script(int phase, long *frame, const char *sha1, uint8_t *ram_
  * state; changes apply at once and are saved to btdd.cfg when the menu closes ---- */
 
 enum {
-    PG_MAIN, PG_STATES, PG_DISPLAY, PG_GRAPHICS, PG_AUDIO, PG_CONTROLS, PG_KEYS1, PG_KEYS2, PG_GAMEPLAY, PG_MODS,
+    PG_MAIN, PG_STATES, PG_DISPLAY, PG_GRAPHICS, PG_AUDIO, PG_CONTROLS, PG_KEYS1, PG_KEYS2, PG_GAMEPLAY, PG_MODS, PG_CHEATS,
 };
 enum {
     ID_RESUME = 1, ID_RESET, ID_POWER, ID_QUIT, ID_SLOT, ID_SAVE, ID_LOAD, ID_SCALE, ID_FULLSCREEN, ID_ASPECT,
@@ -605,10 +605,13 @@ static void build_page(Menu *m, PlayCtx *c)
         add_back(m);
         break;
     case PG_MODS:
-        menu_begin(m, "MODS");
+    case PG_CHEATS: /* the game's own codes (mods named cheat_*) get their own page */
+        menu_begin(m, m->page == PG_CHEATS ? "CHEATS (the game's codes)" : "MODS");
 #ifdef BTDD_HAVE_MODS
         for (i = 0; i < mods_count() && i < MENU_MAX_ITEMS - 4; i++) {
             const ModDef *d = mods_def(i);
+            if ((strncmp(d->id, "cheat_", 6) == 0) != (m->page == PG_CHEATS))
+                continue;
             if (d->value_min != d->value_max && mods_enabled(i))
                 snprintf(v, sizeof v, "%d", mods_value(i));
             else
@@ -630,6 +633,7 @@ static void build_page(Menu *m, PlayCtx *c)
         menu_add(m, ITEM_PAGE, PG_CONTROLS, "Controls", "", "");
         menu_add(m, ITEM_PAGE, PG_GAMEPLAY, "Gameplay", "", "");
         menu_add(m, ITEM_PAGE, PG_MODS, "Mods", "", "");
+        menu_add(m, ITEM_PAGE, PG_CHEATS, "Cheats", "", "the game's own codes, entered for you");
         menu_add(m, ITEM_INFO, 0, "", "", "");
         menu_add(m, ITEM_ACTION, ID_RESET, "Reset", "", "F1 in game");
         menu_add(m, ITEM_ACTION, ID_POWER, "Power cycle", "", "Ctrl+F1 in game");

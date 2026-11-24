@@ -12,6 +12,16 @@ addresses; a display mod only changes how the picture is built. Mods never conta
 F8/F9 apply at once and are saved to btdd.cfg. Command lines: `btdd_play --mod nolimit --mod lives=7`, the same
 `--mod` for `btdd_headless` and `btdd_shot`. A changed `lives` value takes effect the next time a player starts.
 
+## Cheats: the game's own codes (`src/mods/mod_cheats.c`, settings menu page "Cheats")
+| mod | what the game does | how the mod enters it |
+|---|---|---|
+| `cheat_lives5` | the held code: Up+A+B on the Start press gives that player 5 lives | before bank 6 `$9888` (lives hand-out, Y = player) that player's held buttons read Up+A+B+Start; restored after |
+| `cheat_code1` | B, A, Down, B, Up, Down on the screen before stage 1: `$17` = 5, players joining later get 5 lives | before each call of the code checker (bank 6 `$9809`) the new-press byte holds the next button of the sequence (taken from the checker's own position counter); restored after |
+| `cheat_code2` | Down, Up, Up, Down, A, B, B, A: `$17` = 10, players joining later get 10 lives | same, sequence 2 |
+No lives are written by the mods: the game's own checks run, so the result (including the confirmation sound and
+who gets the lives) is exactly the real code's. `mods_test` checks all three (5/5 lives, `$17` = 5 / 10, a second
+player joining at frame 1200 gets 10 lives with code 2 and 3 without). Details of the codes: `docs/GAME_FACTS.md`.
+
 ## How hooks work (`src/mods/`)
 A logic mod lists hooks `{bank, address, kind, fn}` on routine entries:
 - **MOD_BEFORE**: `fn` runs when the routine is entered, then the original runs.

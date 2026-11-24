@@ -7,10 +7,11 @@
 extern const ModDef mod_lives;
 extern const ModDef mod_nolimit;
 extern const ModDef mod_widescreen, mod_widesprites, mod_widehud, mod_widefade;
+extern const ModDef mod_cheat_lives5, mod_cheat_code1, mod_cheat_code2;
 #define MAX_MODS 32
 static const ModDef *all[MAX_MODS] = {&mod_nolimit, &mod_lives, &mod_widescreen, &mod_widesprites, &mod_widehud,
-                                      &mod_widefade};
-static int n_mods = 6; /* built-in mods first, then mods_add() */
+                                      &mod_widefade, &mod_cheat_lives5, &mod_cheat_code1, &mod_cheat_code2};
+static int n_mods = 9; /* built-in mods first, then mods_add() */
 
 static int enabled[MAX_MODS];
 static int values[MAX_MODS];

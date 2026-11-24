@@ -122,6 +122,63 @@ static void test_before_replace(const Fm2 *m2p)
 /* widescreen (M9, display only): over a movie, two consoles in lockstep (one rendered wide, with sprites): RAM
  * identical; the wide picture's middle (columns 8-255) is the game's own picture on every frame; and some frames of
  * the widening stages get margins drawn from the map. */
+/* cheats: the game's own codes entered by the cheat mods (2P movie). join = player 2 does not start at frame 680
+ * (pad 2 released there) and presses Start at frame 1200 instead, i.e. joins later. */
+static void run_cheat(const Fm2 *m, const char *mod, long until, int join, Nes *n)
+{
+    long f;
+    int i;
+    for (i = 0; i < mods_count(); i++)
+        if (!strncmp(mods_def(i)->id, "cheat_", 6))
+            mods_enable(i, 0);
+    if (mod)
+        mods_enable(mods_find(mod), 1);
+    nes_init(n, &rom);
+    nes_power(n, PPU_MODEL_OLD);
+    mods_attach(n);
+    for (f = 0; f < until && f < m->count; f++) {
+        uint8_t p1 = m->frames[f].pad[0], p2 = m->frames[f].pad[1];
+        if (join && (f == 679 || f == 680))
+            p2 = 0;
+        if (join && (f == 1200 || f == 1201))
+            p2 = PAD_START;
+        nes_set_pads(n, p1, p2);
+        nes_run_frame(n);
+    }
+}
+
+static void test_cheats(const Fm2 *m2p)
+{
+    static Nes n;
+    char text[200];
+
+    run_cheat(m2p, NULL, 800, 0, &n);
+    snprintf(text, sizeof text, "cheats off: $17 = %d, lives %d/%d", n.ram[0x17], n.ram[0x11], n.ram[0x12]);
+    check(n.ram[0x17] == 0 && n.ram[0x11] == 3 && n.ram[0x12] == 3, text);
+
+    run_cheat(m2p, "cheat_lives5", 700, 0, &n);
+    snprintf(text, sizeof text, "cheat_lives5 (held code on the Start frame): lives %d/%d", n.ram[0x11], n.ram[0x12]);
+    check(n.ram[0x11] == 5 && n.ram[0x12] == 5, text);
+
+    run_cheat(m2p, "cheat_code1", 800, 0, &n);
+    snprintf(text, sizeof text, "cheat_code1 (B,A,Down,B,Up,Down fed to the game's checker): $17 = %d", n.ram[0x17]);
+    check(n.ram[0x17] == 5, text);
+
+    run_cheat(m2p, "cheat_code2", 800, 0, &n);
+    snprintf(text, sizeof text, "cheat_code2 (Down,Up,Up,Down,A,B,B,A): $17 = %d", n.ram[0x17]);
+    check(n.ram[0x17] == 10, text);
+
+    run_cheat(m2p, "cheat_code2", 1300, 1, &n);
+    snprintf(text, sizeof text, "cheat_code2, player 2 joins at frame 1200: P1 %d lives, P2 %d lives (game rule: joiners get $17)",
+             n.ram[0x11], n.ram[0x12]);
+    check(n.ram[0x11] == 3 && n.ram[0x12] == 10, text);
+
+    run_cheat(m2p, NULL, 1300, 1, &n);
+    snprintf(text, sizeof text, "no cheat, player 2 joins at frame 1200: P2 %d lives", n.ram[0x12]);
+    check(n.ram[0x12] == 3, text);
+    run_cheat(m2p, NULL, 0, 0, &n); /* all cheat mods off again */
+}
+
 static void test_widescreen(const Fm2 *m, PpuModel model, long frames, const char *label)
 {
     static Nes a, b;
@@ -238,6 +295,7 @@ int main(int argc, char **argv)
     }
     test_lives(&m2p);
     test_before_replace(&m2p);
+    test_cheats(&m2p);
     test_nolimit(&m2p, PPU_MODEL_OLD, frames, "2P old PPU");
     test_nolimit(&m1p, PPU_MODEL_NEW, frames, "1P new PPU");
     test_widescreen(&m2p, PPU_MODEL_OLD, 60000, "2P old PPU");
