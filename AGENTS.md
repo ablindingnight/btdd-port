@@ -1,7 +1,13 @@
 # Rules for agents (read first)
 
+- Before starting work, read `C:\Users\theop\claude\Battle\STATUS.md` (live progress, gaps, who works where; owned
+  by the coordinator session: send it updates instead of editing it). Game facts: `docs/GAME_FACTS.md`.
+
 - This repo is the PC port. The decomp at `..\btdd-decomp` is READ-ONLY from here: never edit, commit, or run its
-  loop from this repo. Ask the user before running anything in it (its Kilo loop may be running).
+  loop or build from this repo. Its read-only fact tools may be run anytime (`python tools/facts.py`,
+  `ramfacts.py`, `tablefacts.py`, `show.py`, `progress.py`, `cdlfrontier.py --dry`-style counts); prefer reading
+  files through `git -C ..\btdd-decomp show HEAD:<path>` so the running loop's edits don't race. Anything that
+  writes there goes through the loop session.
 - ROM: `..\Gamefiles\Battletoads-Double Dragon (USA).nes`. Never copy it, dump banks into this folder, or commit
   anything derived from ROM bytes (docs/ROM_POLICY.md). `generated/` and `assets/` are gitignored for that reason.
 - The pre-commit hook (`tools/pre-commit-hook.sh`, installed in `.git/hooks`) runs `tools/release_audit.py`:

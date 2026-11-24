@@ -323,6 +323,8 @@ static void execute(Cpu *c)
     c->p_before = c->p;
     op = rd(c, c->pc);
     add_cycles(c, cpu_base_cycles[op]);
+    if (c->tick_hook)
+        c->tick_hook(c->ctx, c);
     if (c->exec_hook && c->exec_watch[c->pc])
         c->exec_hook(c->ctx, c);
     c->pc++;
