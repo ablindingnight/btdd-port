@@ -1,6 +1,6 @@
 btdd.meta 1
 rom sha1=0218a66c6ee9887ec9115213a2f5b64055d79599 prg=262144 mapper=7 banks=8
-source decomp=77e9d47be608 exporter=tools/export_meta.py cdl_logs=17
+source decomp=77e9d47be608 exporter=tools/export_meta.py cdl_logs=58
 conv farcall stub=$FFCB x=slot_lo y=bank_index bank_table=$FFB3 ptr=$13 slot=$8000+x
 conv xycall bank=0 stub=$85CF x=lo y=hi
 conv entity_slots count=15 slot0=player1 slot1=player2
@@ -79,10 +79,10 @@ code 0 $8378 $8388 sub_8378 naming=auto end=jmp src=carve cdl=17/17 conf=verifie
 entry 0 $837A e_837a in=sub_8378 via=jsr@$836B
 farcall 0 $837E bank=3 slot=$8003 target=$8C5E sub_8c5e
 entry 0 $8384 e_8384 in=sub_8378 via=jsr@$8381
-unknown 0 $8389 $8396 cdl_exec=0 cdl_read=13
+unknown 0 $8389 $8396 cdl_exec=0 cdl_read=14
 code 0 $8397 $83EA loc_8397 naming=auto end=jmp src=carve cdl=84/84 conf=verified notes=code_read_as_data
 farcall 0 $83B6 bank=3 slot=$804B target=$CFE1 e_cfe1
-code 0 $83EB $83F9 sub_83eb naming=auto end=rts src=carve cdl=13/15 conf=verified
+code 0 $83EB $83F9 sub_83eb naming=auto end=rts src=carve cdl=15/15 conf=verified
 code 0 $83FA $84A5 loc_83fa naming=auto end=jmp src=carve cdl=172/172 conf=verified notes=code_read_as_data
 farcall 0 $8415 bank=3 slot=$801B target=$8977 sub_8977
 entry 0 $8422 e_8422 in=loc_83fa via=bne@$83D6
@@ -134,7 +134,7 @@ code 0 $8774 $8776 sub_8774 naming=auto end=jmpind src=carve cdl=3/3 conf=verifi
 indirect 0 $8774 ptr=$1F tables=$9A71
 code 0 $8777 $879F sub_8777 naming=auto end=jmp src=carve cdl=41/41 conf=verified
 entry 0 $8793 e_8793 in=sub_8777 via=jsr@$E023
-code 0 $87A0 $88B7 handle_entity_hit naming=reviewed end=rts src=carve cdl=278/280 conf=verified
+code 0 $87A0 $88B7 handle_entity_hit naming=reviewed end=rts src=carve cdl=280/280 conf=verified
 entry 0 $87A2 e_87a2 in=handle_entity_hit via=jsr@$E7A7
 entry 0 $87F9 e_87f9 in=handle_entity_hit via=jmp@$87E1
 entry 0 $87FC e_87fc in=handle_entity_hit via=jmp@$87EB
@@ -144,7 +144,7 @@ unknown 0 $88D1 $88D5 cdl_exec=0 cdl_read=0
 data 0 $88D6 $88F3 data_88d6 kind=unknown naming=auto src=datacarve cdl_read=30/30 cdl_exec=0
 unknown 0 $88F4 $88F8 cdl_exec=0 cdl_read=0
 data 0 $88F9 $8902 data_88f9 kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
-unknown 0 $8903 $890C cdl_exec=0 cdl_read=0
+unknown 0 $8903 $890C cdl_exec=0 cdl_read=5
 data 0 $890D $8925 data_890d kind=unknown naming=auto src=datacarve cdl_read=25/25 cdl_exec=0
 unknown 0 $8926 $892A cdl_exec=0 cdl_read=0
 data 0 $892B $8939 data_892b kind=unknown naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
@@ -167,7 +167,7 @@ unknown 0 $8A5D $8A64 cdl_exec=0 cdl_read=0
 data 0 $8A65 $8A74 data_8a65 kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
 unknown 0 $8A75 $8A75 cdl_exec=0 cdl_read=1
 data 0 $8A76 $8A85 data_8a76 kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
-unknown 0 $8A86 $8A9B cdl_exec=0 cdl_read=20
+unknown 0 $8A86 $8A9B cdl_exec=0 cdl_read=22
 data 0 $8A9C $8AAB data_8a9c kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 proposed=stage4_table_8a9c
 code 0 $8AAC $8B04 sub_8aac naming=auto end=rts src=carve cdl=89/89 conf=verified
 unknown 0 $8B05 $8B5E cdl_exec=0 cdl_read=66
@@ -176,10 +176,10 @@ entry 0 $8B63 e_8b63 in=sub_8b5f via=jmp@$ED47,jsr@$E53F
 entry 0 $8B94 e_8b94 in=sub_8b5f via=bcc@$8BE7,bne@$8BDB,bne@$8BE2,bne@$8BEE,bpl@$8BF5,jmp@$8C38,jmp@$8CE1,jmp@$8D08
 entry 0 $8BAD e_8bad in=sub_8b5f via=beq@$8C07
 code 0 $8BB0 $8BB2 sub_8bb0 naming=auto end=jmp src=carve cdl=3/3 conf=verified
-code 0 $8BB3 $8BD5 loc_8bb3 naming=auto end=jmp src=carve cdl=22/35 conf=verified notes=code_read_as_data
+code 0 $8BB3 $8BD5 loc_8bb3 naming=auto end=jmp src=carve cdl=35/35 conf=verified notes=code_read_as_data
 code 0 $8BD6 $8C0E loc_8bd6 naming=auto end=fall src=carve cdl=57/57 conf=verified notes=code_read_as_data
 code 0 $8C0F $8C34 loc_8c0f naming=auto end=rts src=carve cdl=38/38 conf=verified notes=code_read_as_data
-code 0 $8C35 $8C37 sub_8c35 naming=auto end=jmp src=carve cdl=0/3 conf=static
+code 0 $8C35 $8C37 sub_8c35 naming=auto end=jmp src=carve cdl=3/3 conf=verified
 code 0 $8C38 $8C3A sub_8c38 naming=auto end=jmp src=carve cdl=3/3 conf=verified
 code 0 $8C3B $8CDC loc_8c3b naming=auto end=rts src=carve cdl=162/162 conf=verified notes=code_read_as_data
 entry 0 $8C49 e_8c49 in=loc_8c3b via=jmp@$8BD3
@@ -195,7 +195,7 @@ entry 0 $8D08 e_8d08 in=sub_8cf6 via=beq@$8CDA,bne@$8D16,bne@$8D1D,bne@$8D24
 code 0 $8D0B $8D3B loc_8d0b naming=auto end=rts src=carve cdl=49/49 conf=verified notes=code_read_as_data
 code 0 $8D3C $8D5A sub_8d3c naming=auto end=rts src=carve cdl=31/31 conf=verified
 entry 0 $8D3E e_8d3e in=sub_8d3c via=jmp@$E71F
-code 0 $8D5B $8D92 sub_8d5b naming=auto end=rts src=carve cdl=55/56 conf=verified
+code 0 $8D5B $8D92 sub_8d5b naming=auto end=rts src=carve cdl=56/56 conf=verified
 entry 0 $8D6C e_8d6c in=sub_8d5b via=jmp@$8DA4
 entry 0 $8D7F e_8d7f in=sub_8d5b via=jmp@$8D74
 code 0 $8D93 $8DA6 sub_8d93 naming=auto end=jmp src=carve cdl=20/20 conf=verified
@@ -205,8 +205,9 @@ code 0 $8DD2 $8E02 read_controllers naming=reviewed end=rts src=carve cdl=49/49 
 unknown 0 $8E03 $8E1E cdl_exec=0 cdl_read=8
 code 0 $8E1F $8E1F sub_8e1f naming=auto end=rts src=carve cdl=1/1 conf=verified
 code 0 $8E20 $8E23 loc_8e20 naming=auto end=open_into_unknown src=carve cdl=4/4 conf=suspect notes=code_read_as_data
-unknown 0 $8E24 $8E25 cdl_exec=0 cdl_read=0
-code 0 $8E26 $8E2C sub_8e26 naming=auto end=jmp src=carve cdl=0/7 conf=static
+unknown 0 $8E24 $8E25 cdl_exec=2 cdl_read=0
+xcode 0 $8E24 $8E25 in=unk_8e24 whole=yes
+code 0 $8E26 $8E2C sub_8e26 naming=auto end=jmp src=carve cdl=7/7 conf=verified
 code 0 $8E2D $8EA2 sub_8e2d naming=auto end=fall src=carve cdl=118/118 conf=verified notes=code_read_as_data
 code 0 $8EA3 $8F67 sub_8ea3 naming=auto end=rts src=carve cdl=197/197 conf=verified proposed=process_entity_hit_response
 entry 0 $8EAB e_8eab in=sub_8ea3 via=bcc@$8E63,bcs@$8EA1,beq@$8E6C,bne@$8E35,bne@$8E5F,jmp@$9872,jmp@$DE7B,jsr@$A3FB,jsr@$AA89,jsr@$AAB9,jsr@$AAC6,jsr@$ADCD,jsr@$B059,jsr@$C0F4,jsr@$CF6D,jsr@$E3DB,jsr@$E58B,jsr@$E6B9,jsr@$F291,jsr@$F31D
@@ -231,7 +232,7 @@ code 0 $91A9 $91B9 sub_91a9 naming=auto end=jmp src=carve cdl=17/17 conf=verifie
 entry 0 $91B7 e_91b7 in=sub_91a9 via=bmi@$91BD
 code 0 $91BA $91C5 loc_91ba naming=auto end=bra src=carve cdl=12/12 conf=verified notes=code_read_as_data
 unknown 0 $91C6 $91C7 cdl_exec=0 cdl_read=0
-code 0 $91C8 $9235 sub_91c8 naming=auto end=rts src=carve cdl=89/110 conf=verified
+code 0 $91C8 $9235 sub_91c8 naming=auto end=rts src=carve cdl=110/110 conf=verified
 entry 0 $91CA e_91ca in=sub_91c8 via=jsr@$F46E,jsr@$F477
 data 0 $9236 $926B data_9236 kind=table naming=auto src=datacarve cdl_read=54/54 cdl_exec=0
 code 0 $926C $927F sub_926c naming=auto end=rts src=carve cdl=20/20 conf=verified
@@ -270,8 +271,8 @@ entry 0 $9601 e_9601 in=sub_95e1 via=jmp@$9632
 farcall 0 $961F bank=3 slot=$8030 target=$D063 sub_d063
 farcall 0 $962F bank=5 slot=$8006 target=$A452 sub_a452
 unknown 0 $9635 $9637 cdl_exec=0 cdl_read=3
-code 0 $9638 $96EF sub_9638 naming=auto end=jmp src=carve cdl=181/184 conf=verified
-unknown 0 $96F0 $96F7 cdl_exec=0 cdl_read=1
+code 0 $9638 $96EF sub_9638 naming=auto end=jmp src=carve cdl=184/184 conf=verified
+unknown 0 $96F0 $96F7 cdl_exec=0 cdl_read=2
 code 0 $96F8 $9717 loc_96f8 naming=auto end=jmp src=carve cdl=32/32 conf=verified notes=code_read_as_data
 code 0 $9718 $9725 sub_9718 naming=auto end=rts src=carve cdl=14/14 conf=verified
 code 0 $9726 $97A2 sub_9726 naming=auto end=jmp src=carve cdl=125/125 conf=verified proposed=process_entity_movement
@@ -335,24 +336,26 @@ code 0 $9D96 $9DE3 loc_9d96 naming=auto end=fall src=carve cdl=78/78 conf=verifi
 code 0 $9DE4 $9DF2 sub_9de4 naming=auto end=rts src=carve cdl=15/15 conf=verified
 entry 0 $9DEF e_9def in=sub_9de4 via=bne@$9DBA
 entry 0 $9DF2 e_9df2 in=sub_9de4 via=bne@$9DC0
-data 0 $9DF3 $9E0A data_9df3 kind=table naming=auto src=datacarve cdl_read=24/24 cdl_exec=0
+data 0 $9DF3 $9E0A data_9df3 kind=table naming=auto src=datacarve cdl_read=24/24 cdl_exec=0 fmt=pal_cycle
 code 0 $9E0B $9E17 sub_9e0b naming=auto end=rts src=carve cdl=13/13 conf=verified
 data 0 $9E18 $9E37 data_9e18 kind=table naming=auto src=datacarve cdl_read=32/32 cdl_exec=0
 unknown 0 $9E38 $9E3A cdl_exec=0 cdl_read=0
 code 0 $9E3B $9E43 sub_9e3b naming=auto end=jmp src=carve cdl=9/9 conf=verified
-unknown 0 $9E44 $9E51 cdl_exec=0 cdl_read=4
+unknown 0 $9E44 $9E51 cdl_exec=0 cdl_read=14
 code 0 $9E52 $9E56 sub_9e52 naming=auto end=jmp src=carve cdl=5/5 conf=verified
 entry 0 $9E54 e_9e54 in=sub_9e52 via=jsr@$A021
 code 0 $9E57 $9E5B loc_9e57 naming=auto end=open_into_unknown src=carve cdl=5/5 conf=suspect notes=code_read_as_data
-unknown 0 $9E5C $9E75 cdl_exec=0 cdl_read=0
+unknown 0 $9E5C $9E75 cdl_exec=26 cdl_read=0
+xcode 0 $9E5C $9E75 in=unk_9e5c whole=yes
 code 0 $9E76 $9E76 sub_9e76 naming=auto end=rts src=carve cdl=1/1 conf=verified
 code 0 $9E77 $9E89 sub_9e77 naming=auto end=rts src=carve cdl=19/19 conf=verified
 entry 0 $9E89 e_9e89 in=sub_9e77 via=bcs@$9EE2
 code 0 $9E8A $9EF0 loc_9e8a naming=auto end=fall src=carve cdl=103/103 conf=verified notes=code_read_as_data
-code 0 $9EF1 $9EF3 sub_9ef1 naming=auto end=jmp src=carve cdl=0/3 conf=static
+code 0 $9EF1 $9EF3 sub_9ef1 naming=auto end=jmp src=carve cdl=3/3 conf=verified
 code 0 $9EF4 $9F14 loc_9ef4 naming=auto end=open_into_unknown src=carve cdl=33/33 conf=suspect notes=code_read_as_data
 entry 0 $9EF9 e_9ef9 in=loc_9ef4 via=bcs@$9EEF
-unknown 0 $9F15 $9F27 cdl_exec=0 cdl_read=0
+unknown 0 $9F15 $9F27 cdl_exec=19 cdl_read=0
+xcode 0 $9F15 $9F27 in=unk_9f15 whole=yes
 code 0 $9F28 $9F69 loc_9f28 naming=auto end=jmp src=carve cdl=66/66 conf=verified notes=code_read_as_data
 code 0 $9F6A $9F71 sub_9f6a naming=auto end=rts src=carve cdl=8/8 conf=verified
 farcall 0 $9F6C bank=? slot=? target=? dynamic y=$05 
@@ -381,17 +384,18 @@ entry 0 $A35C e_a35c in=sub_a2e8 via=jmp@$A307
 entry 0 $A35E e_a35e in=sub_a2e8 via=jmp@$A207
 code 0 $A369 $A376 sub_a369 naming=auto end=jmp src=carve cdl=14/14 conf=verified
 code 0 $A377 $A3BB loc_a377 naming=auto end=open_into_unknown src=carve cdl=69/69 conf=suspect notes=code_read_as_data
-unknown 0 $A3BC $A3BE cdl_exec=0 cdl_read=0
+unknown 0 $A3BC $A3BE cdl_exec=3 cdl_read=0
+xcode 0 $A3BC $A3BE in=unk_a3bc whole=yes
 code 0 $A3BF $A3C1 sub_a3bf naming=auto end=jmp src=carve cdl=3/3 conf=verified
-unknown 0 $A3C2 $A3CA cdl_exec=7 cdl_read=0
-xcode 0 $A3C2 $A3C8 in=unk_a3c2 whole=yes
+unknown 0 $A3C2 $A3CA cdl_exec=9 cdl_read=0
+xcode 0 $A3C2 $A3CA in=unk_a3c2 whole=yes
 xref 0 $A3C2 unknown from=$A3B1 in=unk_a3c2
 code 0 $A3CB $A3E7 sub_a3cb naming=auto end=rts src=carve cdl=29/29 conf=verified
-code 0 $A3E8 $A3F7 sub_a3e8 naming=auto end=rts src=carve cdl=14/16 conf=verified
+code 0 $A3E8 $A3F7 sub_a3e8 naming=auto end=rts src=carve cdl=16/16 conf=verified
 entry 0 $A3F1 e_a3f1 in=sub_a3e8 via=jsr@$9F64,jsr@$A0D9
 code 0 $A3F8 $A40F loc_a3f8 naming=auto end=fall src=carve cdl=24/24 conf=verified notes=code_read_as_data
 entry 0 $A406 e_a406 in=loc_a3f8 via=jmp@$CE58
-code 0 $A410 $A421 sub_a410 naming=auto end=jmp src=carve cdl=16/18 conf=verified
+code 0 $A410 $A421 sub_a410 naming=auto end=jmp src=carve cdl=18/18 conf=verified
 unknown 0 $A422 $A422 cdl_exec=1 cdl_read=0
 xcode 0 $A422 $A422 in=unk_a422 whole=yes
 xref 0 $A422 unknown from=$A40E in=unk_a422
@@ -435,7 +439,7 @@ data 0 $A71A $A721 data_a71a kind=table naming=auto src=datacarve cdl_read=8/8 c
 unknown 0 $A722 $A736 cdl_exec=0 cdl_read=8
 code 0 $A737 $A753 sub_a737 naming=auto end=rts src=carve cdl=29/29 conf=verified
 entry 0 $A739 e_a739 in=sub_a737 via=jsr@$E47C,jsr@$E4BB
-code 0 $A754 $A7C6 loc_a754 naming=auto end=fall src=carve cdl=113/115 conf=verified notes=code_read_as_data
+code 0 $A754 $A7C6 loc_a754 naming=auto end=fall src=carve cdl=115/115 conf=verified notes=code_read_as_data
 entry 0 $A761 e_a761 in=loc_a754 via=jsr@$A4D6,jsr@$A98D,jsr@$E47F,jsr@$F0E9
 entry 0 $A7BC e_a7bc in=loc_a754 via=beq@$A7CF,jmp@$C674,jsr@$C96C
 code 0 $A7C7 $A7D8 loc_a7c7 naming=auto end=fall src=carve cdl=18/18 conf=verified notes=code_read_as_data
@@ -447,7 +451,7 @@ unknown 0 $A88A $A88B cdl_exec=0 cdl_read=2
 data 0 $A88C $A89F data_a88c kind=unknown naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
 code 0 $A8A0 $A8BC sub_a8a0 naming=auto end=jmp src=carve cdl=29/29 conf=verified
 unknown 0 $A8BD $A8C8 cdl_exec=0 cdl_read=12
-code 0 $A8C9 $A9AA sub_a8c9 naming=auto end=rts src=carve cdl=225/226 conf=verified proposed=handle_entity_hit_response
+code 0 $A8C9 $A9AA sub_a8c9 naming=auto end=rts src=carve cdl=226/226 conf=verified proposed=handle_entity_hit_response
 entry 0 $A8DE e_a8de in=sub_a8c9 via=jmp@$A8D7
 entry 0 $A99F e_a99f in=sub_a8c9 via=jmp@$A944,jmp@$A94A
 data 0 $A9AB $A9B2 data_a9ab kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
@@ -509,7 +513,7 @@ entry 0 $B169 e_b169 in=sub_b166 via=jsr@$B1C2,jsr@$B1FA
 entry 0 $B16C e_b16c in=sub_b166 via=jsr@$D481
 unknown 0 $B171 $B1A0 cdl_exec=48 cdl_read=1
 xcode 0 $B171 $B1A0 in=unk_b171 whole=yes
-code 0 $B1A1 $B1B3 sub_b1a1 naming=auto end=jmp src=carve cdl=0/19 conf=static
+code 0 $B1A1 $B1B3 sub_b1a1 naming=auto end=jmp src=carve cdl=19/19 conf=verified
 code 0 $B1B4 $B1C1 sub_b1b4 naming=auto end=jmp src=carve cdl=14/14 conf=verified
 code 0 $B1C2 $B1D9 loc_b1c2 naming=auto end=bra src=carve cdl=24/24 conf=verified notes=code_read_as_data
 unknown 0 $B1DA $B1F8 cdl_exec=31 cdl_read=1
@@ -517,13 +521,12 @@ xcode 0 $B1DA $B1F8 in=unk_b1da whole=yes
 xref 0 $B1DA unknown from=$B435 in=unk_b1da
 xref 0 $B1F7 unknown from=$B253 in=unk_b1da
 code 0 $B1F9 $B209 sub_b1f9 naming=auto end=jmp src=carve cdl=17/17 conf=verified
-unknown 0 $B20A $B23E cdl_exec=49 cdl_read=2
-xcode 0 $B20A $B236 in=unk_b20a whole=yes
+unknown 0 $B20A $B23E cdl_exec=53 cdl_read=2
+xcode 0 $B20A $B23E in=unk_b20a whole=yes
 xref 0 $B20A unknown from=$B55C in=unk_b20a
 xref 0 $B213 unknown from=$B24B in=unk_b20a
 xref 0 $B22C unknown from=$B247 in=unk_b20a
 xref 0 $B237 unknown from=$B25B in=unk_b20a
-xcode 0 $B23B $B23E in=unk_b20a whole=yes
 xref 0 $B23B unknown from=$B25F in=unk_b20a
 code 0 $B23F $B241 sub_b23f naming=auto end=jmp src=carve cdl=3/3 conf=verified
 code 0 $B242 $B271 loc_b242 naming=auto end=fall src=carve cdl=48/48 conf=verified notes=code_read_as_data
@@ -567,7 +570,7 @@ unknown 0 $B4BB $B4BD cdl_exec=0 cdl_read=0
 code 0 $B4BE $B4CF loc_b4be naming=auto end=open_into_unknown src=carve cdl=18/18 conf=suspect notes=code_read_as_data
 unknown 0 $B4D0 $B4D1 cdl_exec=0 cdl_read=2
 code 0 $B4D2 $B4D4 sub_b4d2 naming=auto end=jmp src=carve cdl=3/3 conf=verified
-code 0 $B4D5 $B52B loc_b4d5 naming=auto end=fall src=carve cdl=77/87 conf=verified notes=code_read_as_data
+code 0 $B4D5 $B52B loc_b4d5 naming=auto end=fall src=carve cdl=87/87 conf=verified notes=code_read_as_data
 entry 0 $B529 e_b529 in=loc_b4d5 via=jmp@$B472
 code 0 $B52C $B553 loc_b52c naming=auto end=fall src=carve cdl=40/40 conf=verified notes=code_read_as_data
 farcall 0 $B53D bank=2 slot=$8021 target=$FC0B sub_fc0b
@@ -578,7 +581,8 @@ code 0 $B566 $B5D4 loc_b566 naming=auto end=open_into_unknown src=carve cdl=111/
 entry 0 $B56F e_b56f in=loc_b566 via=bne@$B527
 entry 0 $B574 e_b574 in=loc_b566 via=bcs@$B52E
 entry 0 $B5AB e_b5ab in=loc_b566 via=jmp@$B4D2
-unknown 0 $B5D5 $B5DF cdl_exec=0 cdl_read=0
+unknown 0 $B5D5 $B5DF cdl_exec=11 cdl_read=0
+xcode 0 $B5D5 $B5DF in=unk_b5d5 whole=yes
 code 0 $B5E0 $B7B8 loc_b5e0 naming=auto end=jmp src=carve cdl=473/473 conf=verified notes=code_read_as_data
 entry 0 $B5EE e_b5ee in=loc_b5e0 via=jmp@$B563
 entry 0 $B602 e_b602 in=loc_b5e0 via=bcs@$B5A5,beq@$B586,bne@$B58A,bne@$B5A9,bne@$B5BC,bne@$B5CA,bne@$B5D3,jmp@$B28E,jmp@$B395,jmp@$B480,jmp@$B554
@@ -595,7 +599,8 @@ entry 0 $B7D5 e_b7d5 in=loc_b7cf via=beq@$B787
 entry 0 $B7DA e_b7da in=loc_b7cf via=bne@$B7A9
 entry 0 $B7E2 e_b7e2 in=loc_b7cf via=bcs@$B796,bne@$B79A,bne@$B7B1,bpl@$B766
 entry 0 $B842 e_b842 in=loc_b7cf via=jmp@$ABAF,jmp@$B803,jmp@$CB77
-unknown 0 $B8F7 $B8F7 cdl_exec=0 cdl_read=0
+unknown 0 $B8F7 $B8F7 cdl_exec=1 cdl_read=0
+xcode 0 $B8F7 $B8F7 in=unk_b8f7 whole=yes
 code 0 $B8F8 $B961 loc_b8f8 naming=auto end=fall src=carve cdl=106/106 conf=verified notes=code_read_as_data
 code 0 $B962 $B975 sub_b962 naming=auto end=jmp src=carve cdl=20/20 conf=verified
 entry 0 $B968 e_b968 in=sub_b962 via=jmp@$A9C5
@@ -659,9 +664,9 @@ unknown 0 $BD42 $BD4C cdl_exec=0 cdl_read=10
 data 0 $BD4D $BD54 data_bd4d kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
 unknown 0 $BD55 $BD59 cdl_exec=0 cdl_read=2
 data 0 $BD5A $BD61 data_bd5a kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-unknown 0 $BD62 $BD6C cdl_exec=0 cdl_read=10
+unknown 0 $BD62 $BD6C cdl_exec=0 cdl_read=11
 data 0 $BD6D $BD74 data_bd6d kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-unknown 0 $BD75 $BD9F cdl_exec=0 cdl_read=22
+unknown 0 $BD75 $BD9F cdl_exec=0 cdl_read=24
 code 0 $BDA0 $BDB2 sub_bda0 naming=auto end=jmp src=carve cdl=19/19 conf=verified proposed=process_entity_state
 code 0 $BDB3 $BDC8 loc_bdb3 naming=auto end=open_into_unknown src=carve cdl=22/22 conf=suspect notes=code_read_as_data
 unknown 0 $BDC9 $BDF5 cdl_exec=45 cdl_read=0
@@ -750,14 +755,14 @@ code 0 $C488 $C4B2 loc_c488 naming=auto end=open_into_unknown src=carve cdl=43/4
 entry 0 $C495 e_c495 in=loc_c488 via=jmp@$C476
 unknown 0 $C4B3 $C4C6 cdl_exec=20 cdl_read=0
 xcode 0 $C4B3 $C4C6 in=unk_c4b3 whole=yes
-code 0 $C4C7 $C592 sub_c4c7 naming=auto end=jmp src=carve cdl=203/204 conf=verified proposed=process_entity_hit_response
+code 0 $C4C7 $C592 sub_c4c7 naming=auto end=jmp src=carve cdl=204/204 conf=verified proposed=process_entity_hit_response
 entry 0 $C4CF e_c4cf in=sub_c4c7 via=jmp@$C438
 entry 0 $C4DA e_c4da in=sub_c4c7 via=jmp@$C63D
 farcall 0 $C533 bank=5 slot=$800F target=$8077 sub_8077
 entry 0 $C578 e_c578 in=sub_c4c7 via=jsr@$C550,jsr@$CA79
 code 0 $C593 $C5A0 sub_c593 naming=auto end=rts src=carve cdl=14/14 conf=verified
 entry 0 $C595 e_c595 in=sub_c593 via=jmp@$CA80
-code 0 $C5A1 $C63F sub_c5a1 naming=auto end=jmp src=carve cdl=126/159 conf=verified
+code 0 $C5A1 $C63F sub_c5a1 naming=auto end=jmp src=carve cdl=159/159 conf=verified
 entry 0 $C62A e_c62a in=sub_c5a1 via=jmp@$C5A1
 code 0 $C640 $C645 sub_c640 naming=auto end=fall src=carve cdl=6/6 conf=verified
 entry 0 $C642 e_c642 in=sub_c640 via=jsr@$9FA2
@@ -766,7 +771,7 @@ entry 0 $C667 e_c667 in=sub_c646 via=jsr@$A002,jsr@$C5F4
 unknown 0 $C677 $C67A cdl_exec=0 cdl_read=0
 data 0 $C67B $C682 data_c67b kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
 unknown 0 $C683 $C686 cdl_exec=0 cdl_read=4
-code 0 $C687 $C7AA sub_c687 naming=auto end=jmp src=carve cdl=279/292 conf=verified proposed=process_entity_hit_response
+code 0 $C687 $C7AA sub_c687 naming=auto end=jmp src=carve cdl=292/292 conf=verified proposed=process_entity_hit_response
 entry 0 $C691 e_c691 in=sub_c687 via=jsr@$9F08,jsr@$C4DB
 entry 0 $C704 e_c704 in=sub_c687 via=jmp@$C71D
 entry 0 $C79F e_c79f in=sub_c687 via=jmp@$CBB1
@@ -786,7 +791,7 @@ entry 0 $C8F2 e_c8f2 in=sub_c8f0 via=jsr@$CA00
 code 0 $C919 $C924 loc_c919 naming=auto end=open_into_unknown src=carve cdl=12/12 conf=suspect notes=code_read_as_data
 unknown 0 $C925 $C940 cdl_exec=28 cdl_read=0
 xcode 0 $C925 $C940 in=unk_c925 whole=yes
-code 0 $C941 $CAAC sub_c941 naming=auto end=jmp src=carve cdl=332/364 conf=verified proposed=process_entity_hit
+code 0 $C941 $CAAC sub_c941 naming=auto end=jmp src=carve cdl=364/364 conf=verified proposed=process_entity_hit
 entry 0 $C9A6 e_c9a6 in=sub_c941 via=jmp@$CA5F,jmp@$CAAA
 entry 0 $C9CF e_c9cf in=sub_c941 via=jmp@$C997
 entry 0 $C9EA e_c9ea in=sub_c941 via=jmp@$FA54
@@ -795,9 +800,9 @@ unknown 0 $CAAD $CAB0 cdl_exec=3 cdl_read=1
 xcode 0 $CAAD $CAAF in=unk_caad whole=yes
 xref 0 $CAAD unknown from=$CA22 in=unk_caad
 data 0 $CAB1 $CABB data_cab1 kind=unknown naming=auto src=datacarve cdl_read=11/11 cdl_exec=0
-unknown 0 $CABC $CAC7 cdl_exec=0 cdl_read=6
+unknown 0 $CABC $CAC7 cdl_exec=0 cdl_read=7
 data 0 $CAC8 $CAD3 data_cac8 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
-code 0 $CAD4 $CBA8 sub_cad4 naming=auto end=rts src=carve cdl=210/213 conf=static proposed=process_entity_hit_response
+code 0 $CAD4 $CBA8 sub_cad4 naming=auto end=rts src=carve cdl=213/213 conf=verified proposed=process_entity_hit_response
 entry 0 $CAD7 e_cad7 in=sub_cad4 via=jmp@$A9C8
 entry 0 $CB0A e_cb0a in=sub_cad4 via=jmp@$AA73,jmp@$AACC
 entry 0 $CB6A e_cb6a in=sub_cad4 via=jmp@$CAD4
@@ -828,11 +833,11 @@ unknown 0 $CCD0 $CCD5 cdl_exec=0 cdl_read=6
 code 0 $CCD6 $CCF2 loc_ccd6 naming=auto end=rts src=carve cdl=29/29 conf=verified notes=code_read_as_data
 unknown 0 $CCF3 $CCFB cdl_exec=0 cdl_read=3
 code 0 $CCFC $CD29 sub_ccfc naming=auto end=fall src=carve cdl=46/46 conf=verified notes=code_read_as_data
-code 0 $CD2A $CD8C sub_cd2a naming=auto end=rts src=carve cdl=93/99 conf=verified
+code 0 $CD2A $CD8C sub_cd2a naming=auto end=rts src=carve cdl=99/99 conf=verified
 entry 0 $CD34 e_cd34 in=sub_cd2a via=bcs@$CD07
 entry 0 $CD56 e_cd56 in=sub_cd2a via=jsr@$A941
 entry 0 $CD7B e_cd7b in=sub_cd2a via=bcs@$CD1A,bne@$CD18,jmp@$CD70
-code 0 $CD8D $CEBC sub_cd8d naming=auto end=fall src=carve cdl=299/304 conf=verified
+code 0 $CD8D $CEBC sub_cd8d naming=auto end=fall src=carve cdl=304/304 conf=verified
 entry 0 $CEBA e_ceba in=sub_cd8d via=jmp@$CDFB
 code 0 $CEBD $CED0 loc_cebd naming=auto end=fall src=carve cdl=20/20 conf=verified notes=code_read_as_data
 code 0 $CED1 $CEE8 sub_ced1 naming=auto end=rts src=carve cdl=24/24 conf=verified
@@ -906,7 +911,7 @@ code 0 $D304 $D325 sub_d304 naming=auto end=jmp src=carve cdl=34/34 conf=verifie
 entry 0 $D31A e_d31a in=sub_d304 via=jmp@$D40C
 entry 0 $D320 e_d320 in=sub_d304 via=bne@$D329,jmp@$D330,jmp@$D338
 code 0 $D326 $D332 loc_d326 naming=auto end=jmp src=carve cdl=13/13 conf=verified notes=code_read_as_data
-code 0 $D333 $D33A sub_d333 naming=auto end=jmp src=carve cdl=0/8 conf=static
+code 0 $D333 $D33A sub_d333 naming=auto end=jmp src=carve cdl=8/8 conf=verified
 code 0 $D33B $D351 sub_d33b naming=auto end=jmp src=carve cdl=23/23 conf=verified
 unknown 0 $D352 $D35B cdl_exec=10 cdl_read=0
 xcode 0 $D352 $D35B in=unk_d352 whole=yes
@@ -914,7 +919,8 @@ code 0 $D35C $D370 sub_d35c naming=auto end=jmp src=carve cdl=21/21 conf=verifie
 code 0 $D371 $D375 sub_d371 naming=auto end=fall src=carve cdl=5/5 conf=verified
 code 0 $D376 $D379 sub_d376 naming=auto end=jmp src=carve cdl=4/4 conf=verified
 code 0 $D37A $D387 sub_d37a naming=auto end=jmp src=carve cdl=14/14 conf=verified
-unknown 0 $D388 $D393 cdl_exec=0 cdl_read=0
+unknown 0 $D388 $D393 cdl_exec=12 cdl_read=0
+xcode 0 $D388 $D393 in=unk_d388 whole=yes
 code 0 $D394 $D39B sub_d394 naming=auto end=jmp src=carve cdl=8/8 conf=verified
 code 0 $D39C $D3A1 sub_d39c naming=auto end=jmp src=carve cdl=6/6 conf=verified
 code 0 $D3A2 $D3BF loc_d3a2 naming=auto end=jmp src=carve cdl=30/30 conf=verified
@@ -925,7 +931,7 @@ code 0 $D447 $D46B loc_d447 naming=auto end=fall src=carve cdl=37/37 conf=verifi
 code 0 $D46C $D471 sub_d46c naming=auto end=jmp src=carve cdl=6/6 conf=verified
 code 0 $D472 $D49F sub_d472 naming=auto end=rts src=carve cdl=46/46 conf=verified notes=code_read_as_data
 code 0 $D4A0 $D4A8 sub_d4a0 naming=auto end=rts src=carve cdl=9/9 conf=verified
-code 0 $D4A9 $D55D sub_d4a9 naming=auto end=rts src=carve cdl=176/181 conf=verified
+code 0 $D4A9 $D55D sub_d4a9 naming=auto end=rts src=carve cdl=181/181 conf=verified
 entry 0 $D4F2 e_d4f2 in=sub_d4a9 via=jmp@$CBF5
 entry 0 $D555 e_d555 in=sub_d4a9 via=jmp@$E7B7
 code 0 $D55E $D562 sub_d55e naming=auto end=rts src=carve cdl=5/5 conf=verified
@@ -945,11 +951,11 @@ entry 0 $D649 e_d649 in=sub_d61a via=jmp@$D698
 entry 0 $D66D e_d66d in=sub_d61a via=bmi@$D679,jmp@$D6A5,jmp@$D75C
 code 0 $D672 $D69A loc_d672 naming=auto end=jmp src=carve cdl=41/41 conf=verified notes=code_read_as_data
 code 0 $D69B $D6A7 loc_d69b naming=auto end=jmp src=carve cdl=13/13 conf=verified
-code 0 $D6A8 $D6AA sub_d6a8 naming=auto end=jmp src=carve cdl=0/3 conf=static
-code 0 $D6AB $D6E6 sub_d6ab naming=auto end=jmp src=carve cdl=18/60 conf=verified notes=code_read_as_data
+code 0 $D6A8 $D6AA sub_d6a8 naming=auto end=jmp src=carve cdl=3/3 conf=verified
+code 0 $D6AB $D6E6 sub_d6ab naming=auto end=jmp src=carve cdl=60/60 conf=verified notes=code_read_as_data
 code 0 $D6E7 $D73C loc_d6e7 naming=auto end=fall src=carve cdl=86/86 conf=verified notes=code_read_as_data
 code 0 $D73D $D745 sub_d73d naming=auto end=rts src=carve cdl=9/9 conf=verified
-code 0 $D746 $D75E sub_d746 naming=auto end=jmp src=carve cdl=0/25 conf=static
+code 0 $D746 $D75E sub_d746 naming=auto end=jmp src=carve cdl=25/25 conf=verified
 entry 0 $D74C e_d74c in=sub_d746 via=jmp@$D6E4
 code 0 $D75F $D769 sub_d75f naming=auto end=jmp src=carve cdl=11/11 conf=verified
 code 0 $D76A $D788 sub_d76a naming=auto end=jmp src=carve cdl=31/31 conf=verified
@@ -990,8 +996,9 @@ code 0 $DAF6 $DAFB sub_daf6 naming=auto end=rts src=carve cdl=6/6 conf=verified
 unknown 0 $DAFC $DB08 cdl_exec=0 cdl_read=11
 code 0 $DB09 $DB1E sub_db09 naming=auto end=rts src=carve cdl=22/22 conf=verified
 code 0 $DB1F $DB42 loc_db1f naming=auto end=open_into_unknown src=carve cdl=36/36 conf=suspect notes=code_read_as_data
-unknown 0 $DB43 $DB48 cdl_exec=0 cdl_read=0
-code 0 $DB49 $DC10 sub_db49 naming=auto end=jmp src=carve cdl=197/200 conf=verified proposed=handle_entity_hit
+unknown 0 $DB43 $DB48 cdl_exec=6 cdl_read=0
+xcode 0 $DB43 $DB48 in=unk_db43 whole=yes
+code 0 $DB49 $DC10 sub_db49 naming=auto end=jmp src=carve cdl=200/200 conf=verified proposed=handle_entity_hit
 entry 0 $DB51 e_db51 in=sub_db49 via=jmp@$DD3F
 entry 0 $DB6F e_db6f in=sub_db49 via=bcs@$DB32
 entry 0 $DB86 e_db86 in=sub_db49 via=jmp@$DE09
@@ -1004,16 +1011,16 @@ xref 0 $DC6C unknown from=$ADD2 in=unk_dc66
 code 0 $DC6E $DC79 sub_dc6e naming=auto end=rts src=carve cdl=12/12 conf=verified
 code 0 $DC7A $DC80 sub_dc7a naming=auto end=jmp src=carve cdl=7/7 conf=verified
 unknown 0 $DC81 $DC83 cdl_exec=0 cdl_read=0
-code 0 $DC84 $DD24 sub_dc84 naming=auto end=rts src=carve cdl=143/161 conf=verified
+code 0 $DC84 $DD24 sub_dc84 naming=auto end=rts src=carve cdl=161/161 conf=verified
 entry 0 $DD13 e_dd13 in=sub_dc84 via=jsr@$DDF4
-code 0 $DD25 $DE2C sub_dd25 naming=auto end=jmp src=carve cdl=261/264 conf=verified proposed=handle_entity_landing
+code 0 $DD25 $DE2C sub_dd25 naming=auto end=jmp src=carve cdl=264/264 conf=verified proposed=handle_entity_landing
 entry 0 $DE0C e_de0c in=sub_dd25 via=jmp@$DD78
 code 0 $DE2D $DE3C sub_de2d naming=auto end=rts src=carve cdl=16/16 conf=verified
 code 0 $DE3D $DEDE loc_de3d naming=auto end=rts src=carve cdl=162/162 conf=verified
 code 0 $DEDF $DF32 loc_dedf naming=auto end=open_into_unknown src=carve cdl=84/84 conf=suspect notes=code_read_as_data
 unknown 0 $DF33 $DF40 cdl_exec=14 cdl_read=0
 xcode 0 $DF33 $DF40 in=unk_df33 whole=yes
-code 0 $DF41 $DFCE sub_df41 naming=auto end=rts src=carve cdl=136/142 conf=verified
+code 0 $DF41 $DFCE sub_df41 naming=auto end=rts src=carve cdl=142/142 conf=verified
 entry 0 $DF51 e_df51 in=sub_df41 via=bne@$DF16,bne@$DF2C
 entry 0 $DF61 e_df61 in=sub_df41 via=jsr@$DF4C
 entry 0 $DF79 e_df79 in=sub_df41 via=jmp@$DF5E
@@ -1066,7 +1073,7 @@ unknown 0 $E34C $E353 cdl_exec=0 cdl_read=4
 code 0 $E354 $E372 sub_e354 naming=auto end=jmp src=carve cdl=31/31 conf=verified
 unknown 0 $E373 $E374 cdl_exec=0 cdl_read=0
 code 0 $E375 $E37A sub_e375 naming=auto end=rts src=carve cdl=6/6 conf=verified
-code 0 $E37B $E485 loc_e37b naming=auto end=fall src=carve cdl=264/267 conf=verified notes=code_read_as_data
+code 0 $E37B $E485 loc_e37b naming=auto end=fall src=carve cdl=267/267 conf=verified notes=code_read_as_data
 farcall 0 $E39E bank=3 slot=$8003 target=$8C5E sub_8c5e
 code 0 $E486 $E4A8 loc_e486 naming=auto end=fall src=carve cdl=35/35 conf=verified
 code 0 $E4A9 $E4C4 loc_e4a9 naming=auto end=fall src=carve cdl=28/28 conf=verified notes=code_read_as_data
@@ -1087,7 +1094,7 @@ data 0 $E5FD $E616 data_e5fd kind=table naming=auto src=datacarve cdl_read=26/26
 code 0 $E617 $E62D sub_e617 naming=auto end=rts src=carve cdl=23/23 conf=verified
 entry 0 $E62A e_e62a in=sub_e617 via=bmi@$E695
 code 0 $E62E $E638 sub_e62e naming=auto end=rts src=carve cdl=11/11 conf=verified
-code 0 $E639 $E691 sub_e639 naming=auto end=jmp src=carve cdl=86/89 conf=static
+code 0 $E639 $E691 sub_e639 naming=auto end=jmp src=carve cdl=89/89 conf=verified
 code 0 $E692 $E721 loc_e692 naming=auto end=jmp src=carve cdl=144/144 conf=verified notes=code_read_as_data
 entry 0 $E6C8 e_e6c8 in=loc_e692 via=jmp@$E6C2
 unknown 0 $E722 $E723 cdl_exec=0 cdl_read=0
@@ -1296,7 +1303,8 @@ code 0 $FD88 $FD9B loc_fd88 naming=auto end=rts src=carve cdl=20/20 conf=verifie
 code 0 $FD9C $FDA2 sub_fd9c naming=auto end=jmp src=carve cdl=7/7 conf=verified
 farcall 0 $FDA0 bank=3 slot=$801E target=$D0ED e_d0ed tail
 code 0 $FDA3 $FDB5 sub_fda3 naming=auto end=open_into_unknown src=carve cdl=19/19 conf=suspect notes=code_read_as_data
-unknown 0 $FDB6 $FDB7 cdl_exec=0 cdl_read=0
+unknown 0 $FDB6 $FDB7 cdl_exec=2 cdl_read=0
+xcode 0 $FDB6 $FDB7 in=unk_fdb6 whole=yes
 code 0 $FDB8 $FDC2 sub_fdb8 naming=auto end=rts src=carve cdl=11/11 conf=verified
 entry 0 $FDC2 e_fdc2 in=sub_fdb8 via=beq@$FDA6,beq@$FDAF
 code 0 $FDC3 $FDD0 sub_fdc3 naming=auto end=rts src=carve cdl=14/14 conf=verified
@@ -1307,7 +1315,7 @@ code 0 $FDDF $FDDF irq naming=reviewed end=rti src=carve cdl=1/1 conf=verified
 code 0 $FDE0 $FE04 nmi naming=reviewed end=jmp src=carve cdl=37/37 conf=verified
 timing 0 $FDF0 oam_dma reg=$4014 stall=513
 indirect 0 $FDFD ptr=$2A targets=unknown
-code 0 $FE05 $FEC2 sub_fe05 naming=auto end=jmp src=carve cdl=177/190 conf=verified proposed=ppu_frame_setup_for_render
+code 0 $FE05 $FEC2 sub_fe05 naming=auto end=jmp src=carve cdl=190/190 conf=verified proposed=ppu_frame_setup_for_render
 timing 0 $FE0F oam_dma reg=$4014 stall=513
 indirect 0 $FE20 ptr=$2A targets=unknown
 entry 0 $FE70 e_fe70 in=sub_fe05 via=jmp@$FEAC
@@ -1382,9 +1390,9 @@ code 1 $8174 $817D sub_8174 naming=auto end=rts src=carve cdl=10/10 conf=verifie
 unknown 1 $817E $8189 cdl_exec=0 cdl_read=0
 code 1 $818A $8192 sub_818a naming=auto end=rts src=carve cdl=9/9 conf=verified proposed=unknown_818a
 unknown 1 $8193 $81F2 cdl_exec=0 cdl_read=31
-data 1 $81F3 $8228 data_81f3 kind=unknown naming=auto src=datacarve cdl_read=54/54 cdl_exec=0
+data 1 $81F3 $8228 data_81f3 kind=table naming=auto src=datacarve cdl_read=54/54 cdl_exec=0 fmt=chr_list_mode
 unknown 1 $8229 $8264 cdl_exec=0 cdl_read=0
-data 1 $8265 $F512 data_8265 kind=table naming=auto src=datacarve cdl_read=29358/29358 cdl_exec=22 proposed=entity_data_lookup_table
+data 1 $8265 $F512 data_8265 kind=graphics naming=auto src=datacarve cdl_read=29358/29358 cdl_exec=22 proposed=entity_data_lookup_table fmt=chr_rle
 xcode 1 $DE80 $DE83 in=data_8265 whole=yes
 xcode 1 $DEA0 $DEA1 in=data_8265 whole=yes
 xcode 1 $DEA3 $DEA4 in=data_8265 whole=yes
@@ -1398,16 +1406,16 @@ xcode 1 $DEDB $DEDD in=data_8265 whole=yes
 xref 1 $F4AB data from=$8006 in=data_8265
 code 1 $F513 $F53F sub_f513 naming=auto end=rts src=carve cdl=45/45 conf=verified
 entry 1 $F51B e_f51b in=sub_f513 via=jmp@$F527
-data 1 $F540 $F568 data_f540 kind=table naming=auto src=datacarve cdl_read=41/41 cdl_exec=0
-code 1 $F569 $F5FE sub_f569 naming=auto end=rts src=carve cdl=144/150 conf=verified
+data 1 $F540 $F568 data_f540 kind=graphics naming=auto src=datacarve cdl_read=41/41 cdl_exec=0 fmt=chr_rle
+code 1 $F569 $F5FE sub_f569 naming=auto end=rts src=carve cdl=150/150 conf=verified
 code 1 $F5FF $F68B sub_f5ff naming=auto end=rts src=carve cdl=141/141 conf=verified proposed=unknown_f5ff
 farcall 1 $F61C bank=6 slot=$8018 target=$A0FB sub_a0fb
 unknown 1 $F68C $F693 cdl_exec=0 cdl_read=7
 data 1 $F694 $F6A0 data_f694 kind=table naming=auto src=datacarve cdl_read=13/13 cdl_exec=0
 unknown 1 $F6A1 $F6A1 cdl_exec=0 cdl_read=0
-data 1 $F6A2 $FF5B data_f6a2 kind=unknown naming=auto src=datacarve cdl_read=2234/2234 cdl_exec=0
+data 1 $F6A2 $FF5B data_f6a2 kind=graphics naming=auto src=datacarve cdl_read=2234/2234 cdl_exec=0 fmt=chr_rle
 code 1 $FF5C $FF5C irq naming=reviewed end=rti src=carve cdl=1/1 conf=verified
-data 1 $FF5D $FF6B data_ff5d kind=unknown naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
+data 1 $FF5D $FF6B data_ff5d kind=graphics naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=chr_rle
 unknown 1 $FF6C $FF97 cdl_exec=0 cdl_read=0
 code 1 $FF98 $FFA5 nmi naming=reviewed end=jmp src=carve cdl=11/14 conf=verified
 timing 1 $FFA0 bank_switch store=$FFB3 mode=abs
@@ -1453,35 +1461,35 @@ jlist 2 $8024 $FBBA sub_fbba
 code 2 $8027 $8029 sub_8027 naming=auto end=jmp src=carve cdl=3/3 conf=verified
 jlist 2 $8027 $FB50 sub_fb50
 unknown 2 $802A $802F cdl_exec=0 cdl_read=0
-data 2 $8030 $AF8F data_8030 kind=unknown naming=auto src=datacarve cdl_read=12128/12128 cdl_exec=0
-data 2 $AF90 $AFAF data_af90 kind=unknown naming=auto src=datacarve cdl_read=32/32 cdl_exec=0
+data 2 $8030 $AF8F data_8030 kind=graphics naming=auto src=datacarve cdl_read=12128/12128 cdl_exec=0 fmt=chr_raw
+data 2 $AF90 $AFAF data_af90 kind=graphics naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 fmt=chr_tiles_raw
 unknown 2 $AFB0 $B09F cdl_exec=0 cdl_read=240
-data 2 $B0A0 $B5DF data_b0a0 kind=unknown naming=auto src=datacarve cdl_read=1344/1344 cdl_exec=0
+data 2 $B0A0 $B5DF data_b0a0 kind=graphics naming=auto src=datacarve cdl_read=1344/1344 cdl_exec=0 fmt=chr_tiles_raw
 unknown 2 $B5E0 $B5FF cdl_exec=0 cdl_read=32
-data 2 $B600 $B67F data_b600 kind=unknown naming=auto src=datacarve cdl_read=128/128 cdl_exec=0
-data 2 $B680 $BA2F data_b680 kind=unknown naming=auto src=datacarve cdl_read=944/944 cdl_exec=0
+data 2 $B600 $B67F data_b600 kind=graphics naming=auto src=datacarve cdl_read=128/128 cdl_exec=0 fmt=chr_tiles_raw
+data 2 $B680 $BA2F data_b680 kind=graphics naming=auto src=datacarve cdl_read=944/944 cdl_exec=0 fmt=chr_tiles_raw
 unknown 2 $BA30 $BAFF cdl_exec=0 cdl_read=208
-data 2 $BB00 $BB2F data_bb00 kind=unknown naming=auto src=datacarve cdl_read=48/48 cdl_exec=0
+data 2 $BB00 $BB2F data_bb00 kind=graphics naming=auto src=datacarve cdl_read=48/48 cdl_exec=0 fmt=chr_tiles_raw
 unknown 2 $BB30 $BC0C cdl_exec=0 cdl_read=221
-data 2 $BC0D $BC1D data_bc0d kind=unknown naming=auto src=datacarve cdl_read=17/17 cdl_exec=0
+data 2 $BC0D $BC1D data_bc0d kind=graphics naming=auto src=datacarve cdl_read=17/17 cdl_exec=0 fmt=chr_tiles_raw
 unknown 2 $BC1E $BC25 cdl_exec=0 cdl_read=8
-data 2 $BC26 $BC4F data_bc26 kind=unknown naming=auto src=datacarve cdl_read=42/42 cdl_exec=0
+data 2 $BC26 $BC4F data_bc26 kind=graphics naming=auto src=datacarve cdl_read=42/42 cdl_exec=0 fmt=chr_tiles_raw
 unknown 2 $BC50 $BC7D cdl_exec=0 cdl_read=46
-data 2 $BC7E $BCA9 data_bc7e kind=unknown naming=auto src=datacarve cdl_read=44/44 cdl_exec=0
+data 2 $BC7E $BCA9 data_bc7e kind=graphics naming=auto src=datacarve cdl_read=44/44 cdl_exec=0 fmt=chr_tiles_raw
 unknown 2 $BCAA $BCEF cdl_exec=0 cdl_read=70
-data 2 $BCF0 $BF9F data_bcf0 kind=unknown naming=auto src=datacarve cdl_read=688/688 cdl_exec=0
+data 2 $BCF0 $BF9F data_bcf0 kind=graphics naming=auto src=datacarve cdl_read=688/688 cdl_exec=0 fmt=chr_tiles_raw
 unknown 2 $BFA0 $C04F cdl_exec=0 cdl_read=176
-data 2 $C050 $E24F data_c050 kind=unknown naming=auto src=datacarve cdl_read=8704/8704 cdl_exec=0
-data 2 $E250 $E2CF data_e250 kind=unknown naming=auto src=datacarve cdl_read=128/128 cdl_exec=0
-data 2 $E2D0 $ED8F data_e2d0 kind=table naming=auto src=datacarve cdl_read=2752/2752 cdl_exec=0 proposed=entity_movement_data_table
+data 2 $C050 $E24F data_c050 kind=graphics naming=auto src=datacarve cdl_read=8704/8704 cdl_exec=0 fmt=chr_tiles_raw
+data 2 $E250 $E2CF data_e250 kind=graphics naming=auto src=datacarve cdl_read=128/128 cdl_exec=0 fmt=chr_tiles_raw
+data 2 $E2D0 $ED8F data_e2d0 kind=graphics naming=auto src=datacarve cdl_read=2752/2752 cdl_exec=0 proposed=entity_movement_data_table fmt=chr_tiles_raw
 unknown 2 $ED90 $EECF cdl_exec=0 cdl_read=320
 code 2 $EED0 $EFB3 sub_eed0 naming=auto end=rts src=carve cdl=224/228 conf=verified proposed=process_entity_hit_response
 code 2 $EFB4 $EFBF sub_efb4 naming=auto end=rts src=carve cdl=12/12 conf=verified
-code 2 $EFC0 $EFE0 sub_efc0 naming=auto end=rts src=carve cdl=31/33 conf=verified
+code 2 $EFC0 $EFE0 sub_efc0 naming=auto end=rts src=carve cdl=33/33 conf=verified
 code 2 $EFE1 $F130 sub_efe1 naming=auto end=rts src=carve cdl=336/336 conf=verified proposed=process_entity_collision
 entry 2 $F072 e_f072 in=sub_efe1 via=jmp@$F10A
 entry 2 $F0EB e_f0eb in=sub_efe1 via=jmp@$F045
-unknown 2 $F131 $F3DF cdl_exec=0 cdl_read=430
+unknown 2 $F131 $F3DF cdl_exec=0 cdl_read=520
 code 2 $F3E0 $F3FE sub_f3e0 naming=auto end=fall src=carve cdl=31/31 conf=verified
 timing 2 $F3E8 bank_switch store=$FFC5 mode=abs
 timing 2 $F3F0 bank_switch store=$FFB5 mode=abs
@@ -1507,16 +1515,16 @@ code 2 $F66E $F733 sub_f66e naming=auto end=bra src=carve cdl=198/198 conf=verif
 entry 2 $F67E e_f67e in=sub_f66e via=jmp@$800F
 code 2 $F734 $F748 sub_f734 naming=auto end=rts src=carve cdl=21/21 conf=verified
 data 2 $F749 $F770 data_f749 kind=ptrtable naming=auto src=datacarve cdl_read=40/40 cdl_exec=0
-unknown 2 $F771 $F772 cdl_exec=0 cdl_read=0
+unknown 2 $F771 $F772 cdl_exec=0 cdl_read=2
 data 2 $F773 $F79C data_f773 kind=unknown naming=auto src=datacarve cdl_read=42/42 cdl_exec=0 proposed=stage1_table_f773
 data 2 $F79D $F7A8 data_f79d kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
 unknown 2 $F7A9 $F7A9 cdl_exec=0 cdl_read=0
 data 2 $F7AA $F7C3 data_f7aa kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 proposed=stage2_table_f7aa
-unknown 2 $F7C4 $F7E8 cdl_exec=0 cdl_read=0
+unknown 2 $F7C4 $F7E8 cdl_exec=0 cdl_read=8
 data 2 $F7E9 $F7FE data_f7e9 kind=unknown naming=auto src=datacarve cdl_read=22/22 cdl_exec=0 proposed=stage3_table_f7e9
-unknown 2 $F7FF $F84F cdl_exec=0 cdl_read=0
+unknown 2 $F7FF $F84F cdl_exec=0 cdl_read=8
 data 2 $F850 $F871 data_f850 kind=unknown naming=auto src=datacarve cdl_read=34/34 cdl_exec=0 proposed=stage4_table_f850
-unknown 2 $F872 $F882 cdl_exec=0 cdl_read=0
+unknown 2 $F872 $F882 cdl_exec=0 cdl_read=8
 data 2 $F883 $F8AC data_f883 kind=unknown naming=auto src=datacarve cdl_read=42/42 cdl_exec=0
 unknown 2 $F8AD $F8BD cdl_exec=0 cdl_read=4
 data 2 $F8BE $F8D7 data_f8be kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0
@@ -1526,18 +1534,18 @@ unknown 2 $F937 $F957 cdl_exec=0 cdl_read=8
 data 2 $F958 $FA6E data_f958 kind=unknown naming=auto src=datacarve cdl_read=279/279 cdl_exec=0
 unknown 2 $FA6F $FA6F cdl_exec=0 cdl_read=0
 data 2 $FA70 $FB4B data_fa70 kind=unknown naming=auto src=datacarve cdl_read=220/220 cdl_exec=0
-unknown 2 $FB4C $FB4F cdl_exec=0 cdl_read=0
-code 2 $FB50 $FB9D sub_fb50 naming=auto end=rts src=carve cdl=66/78 conf=verified
+unknown 2 $FB4C $FB4F cdl_exec=0 cdl_read=4
+code 2 $FB50 $FB9D sub_fb50 naming=auto end=rts src=carve cdl=78/78 conf=verified
 unknown 2 $FB9E $FBA5 cdl_exec=0 cdl_read=0
 data 2 $FBA6 $FBB9 data_fba6 kind=table naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
-code 2 $FBBA $FC08 sub_fbba naming=auto end=rts src=carve cdl=67/79 conf=verified
+code 2 $FBBA $FC08 sub_fbba naming=auto end=rts src=carve cdl=79/79 conf=verified
 unknown 2 $FC09 $FC0A cdl_exec=0 cdl_read=2
 code 2 $FC0B $FC1F sub_fc0b naming=auto end=fall src=carve cdl=21/21 conf=verified
 code 2 $FC20 $FC56 loc_fc20 naming=auto end=fall src=carve cdl=55/55 conf=verified notes=code_read_as_data
 code 2 $FC57 $FC59 sub_fc57 naming=auto end=rts src=carve cdl=3/3 conf=verified
 code 2 $FC5A $FC8E sub_fc5a naming=auto end=fall src=carve cdl=53/53 conf=verified
 code 2 $FC8F $FC93 loc_fc8f naming=auto end=open_into_data src=carve cdl=5/5 conf=suspect notes=code_read_as_data
-data 2 $FC94 $FD43 data_fc94 kind=table naming=auto src=datacarve cdl_read=176/176 cdl_exec=0 proposed=entity_sprite_data_table
+data 2 $FC94 $FD43 data_fc94 kind=graphics naming=auto src=datacarve cdl_read=176/176 cdl_exec=0 proposed=entity_sprite_data_table fmt=chr_rowfill
 code 2 $FD44 $FD4F sub_fd44 naming=auto end=rts src=carve cdl=12/12 conf=verified
 farcall 2 $FD49 bank=? slot=? target=? dynamic y=$04 
 code 2 $FD50 $FD6B sub_fd50 naming=auto end=rts src=carve cdl=28/28 conf=verified
@@ -1545,33 +1553,33 @@ code 2 $FD6C $FE06 sub_fd6c naming=auto end=rts src=carve cdl=155/155 conf=verif
 entry 2 $FD79 e_fd79 in=sub_fd6c via=jmp@$8003
 entry 2 $FDAF e_fdaf in=sub_fd6c via=jmp@$FD76
 entry 2 $FDF0 e_fdf0 in=sub_fd6c via=jmp@$FDE5
-data 2 $FE07 $FE1E data_fe07 kind=table naming=auto src=datacarve cdl_read=24/24 cdl_exec=0
+data 2 $FE07 $FE1E data_fe07 kind=ptrtable naming=auto src=datacarve cdl_read=24/24 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FE1F $FE20 cdl_exec=0 cdl_read=0
-data 2 $FE21 $FE34 data_fe21 kind=unknown naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
+data 2 $FE21 $FE34 data_fe21 kind=ptrtable naming=auto src=datacarve cdl_read=20/20 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FE35 $FE36 cdl_exec=0 cdl_read=0
-data 2 $FE37 $FE46 data_fe37 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
+data 2 $FE37 $FE46 data_fe37 kind=ptrtable naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FE47 $FE4A cdl_exec=0 cdl_read=0
-data 2 $FE4B $FE5A data_fe4b kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
+data 2 $FE4B $FE5A data_fe4b kind=ptrtable naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FE5B $FE5C cdl_exec=0 cdl_read=0
-data 2 $FE5D $FE6C data_fe5d kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
+data 2 $FE5D $FE6C data_fe5d kind=ptrtable naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FE6D $FE6E cdl_exec=0 cdl_read=0
-data 2 $FE6F $FE8C data_fe6f kind=unknown naming=auto src=datacarve cdl_read=30/30 cdl_exec=0
+data 2 $FE6F $FE8C data_fe6f kind=ptrtable naming=auto src=datacarve cdl_read=30/30 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FE8D $FE90 cdl_exec=0 cdl_read=0
-data 2 $FE91 $FE9A data_fe91 kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
+data 2 $FE91 $FE9A data_fe91 kind=ptrtable naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FE9B $FEA2 cdl_exec=0 cdl_read=6
-data 2 $FEA3 $FEB0 data_fea3 kind=unknown naming=auto src=datacarve cdl_read=14/14 cdl_exec=0
+data 2 $FEA3 $FEB0 data_fea3 kind=ptrtable naming=auto src=datacarve cdl_read=14/14 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FEB1 $FEB4 cdl_exec=0 cdl_read=4
-data 2 $FEB5 $FEC0 data_feb5 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 2 $FEB5 $FEC0 data_feb5 kind=ptrtable naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FEC1 $FECA cdl_exec=0 cdl_read=6
-data 2 $FECB $FED2 data_fecb kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 2 $FECB $FED2 data_fecb kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FED3 $FED6 cdl_exec=0 cdl_read=4
-data 2 $FED7 $FF14 data_fed7 kind=table naming=auto src=datacarve cdl_read=62/62 cdl_exec=0
+data 2 $FED7 $FF14 data_fed7 kind=ptrtable naming=auto src=datacarve cdl_read=62/62 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FF15 $FF16 cdl_exec=0 cdl_read=2
-data 2 $FF17 $FF2C data_ff17 kind=unknown naming=auto src=datacarve cdl_read=22/22 cdl_exec=0
+data 2 $FF17 $FF2C data_ff17 kind=ptrtable naming=auto src=datacarve cdl_read=22/22 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FF2D $FF2E cdl_exec=0 cdl_read=2
-data 2 $FF2F $FF50 data_ff2f kind=unknown naming=auto src=datacarve cdl_read=34/34 cdl_exec=0
+data 2 $FF2F $FF50 data_ff2f kind=ptrtable naming=auto src=datacarve cdl_read=34/34 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FF51 $FF52 cdl_exec=0 cdl_read=0
-data 2 $FF53 $FF5E data_ff53 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 2 $FF53 $FF5E data_ff53 kind=ptrtable naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=chr_player_frame_ptrs
 unknown 2 $FF5F $FF68 cdl_exec=0 cdl_read=6
 code 2 $FF69 $FF69 irq naming=reviewed end=rti src=carve cdl=1/1 conf=verified
 unknown 2 $FF6A $FF7F cdl_exec=0 cdl_read=0
@@ -1672,11 +1680,11 @@ code 3 $89A9 $89D0 sub_89a9 naming=auto end=rts src=carve cdl=40/40 conf=verifie
 timing 3 $89AC pcm_write reg=$4011
 timing 3 $89B1 delay_loop loop=$89B2
 unknown 3 $89D1 $8A14 cdl_exec=0 cdl_read=0
-data 3 $8A15 $8AF3 data_8a15 kind=table naming=auto src=datacarve cdl_read=223/223 cdl_exec=0
+data 3 $8A15 $8AF3 data_8a15 kind=table naming=auto src=datacarve cdl_read=223/223 cdl_exec=0 fmt=snd_sample_gen_b
 unknown 3 $8AF4 $8AF4 cdl_exec=0 cdl_read=0
 code 3 $8AF5 $8AFB sub_8af5 naming=auto end=jmp src=carve cdl=7/7 conf=verified
 code 3 $8AFC $8B8C loc_8afc naming=auto end=fall src=carve cdl=145/145 conf=verified notes=code_read_as_data
-code 3 $8B8D $8BF2 sub_8b8d naming=auto end=jmp src=carve cdl=101/102 conf=verified
+code 3 $8B8D $8BF2 sub_8b8d naming=auto end=jmp src=carve cdl=102/102 conf=verified
 entry 3 $8B90 e_8b90 in=sub_8b8d via=jmp@$898D
 entry 3 $8BA4 e_8ba4 in=sub_8b8d via=jmp@$8BF0
 code 3 $8BF3 $8C49 sub_8bf3 naming=auto end=jmp src=carve cdl=87/87 conf=verified
@@ -1691,7 +1699,7 @@ entry 3 $8D5B e_8d5b in=sub_8d58 via=jmp@$91D4,jmp@$9202
 code 3 $8DBB $8DDE loc_8dbb naming=auto end=open_into_unknown src=carve cdl=36/36 conf=suspect notes=code_read_as_data
 unknown 3 $8DDF $8DE3 cdl_exec=5 cdl_read=0
 xcode 3 $8DDF $8DE3 in=unk_8ddf whole=yes
-code 3 $8DE4 $8EC4 sub_8de4 naming=auto end=open_into_unknown src=carve cdl=200/225 conf=suspect
+code 3 $8DE4 $8EC4 sub_8de4 naming=auto end=open_into_unknown src=carve cdl=225/225 conf=suspect
 entry 3 $8DFC e_8dfc in=sub_8de4 via=jmp@$8DF6
 entry 3 $8E0D e_8e0d in=sub_8de4 via=beq@$8DC3,bne@$8DCD,bne@$8DD2
 entry 3 $8EC2 e_8ec2 in=sub_8de4 via=jmp@$8EA2
@@ -1709,7 +1717,7 @@ entry 3 $8F85 e_8f85 in=sub_8f55 via=jmp@$909F
 entry 3 $8FD0 e_8fd0 in=sub_8f55 via=jtable
 entry 3 $8FDF e_8fdf in=sub_8f55 via=jmp@$8D5F
 indirect 3 $8FEF ptr=$40 tables=$8FF2
-data 3 $8FF2 $9009 data_8ff2 kind=ptrtable naming=auto src=datacarve cdl_read=24/24 cdl_exec=0
+data 3 $8FF2 $9009 data_8ff2 kind=ptrtable naming=auto src=datacarve cdl_read=24/24 cdl_exec=0 fmt=snd_cmd_jumptab
 jtable 3 $8FF2 count=12 ptr=$40 site=$8FE3 jmp=$8FEF conf=strong
 jtarget 3 $8FF2 0 $909A sub_909a
 xref 3 $8FF2 data from=$8024 in=data_8ff2
@@ -1725,11 +1733,11 @@ jtarget 3 $8FF2 9 $9239 sub_9239
 jtarget 3 $8FF2 10 $9247 sub_9247
 jtarget 3 $8FF2 11 $9241 sub_9241
 unknown 3 $900A $902D cdl_exec=0 cdl_read=16
-data 3 $902E $9059 data_902e kind=music naming=auto src=datacarve cdl_read=44/44 cdl_exec=0
+data 3 $902E $9059 data_902e kind=ptrtable naming=auto src=datacarve cdl_read=44/44 cdl_exec=0 fmt=snd_cmd_jumptab
 unknown 3 $905A $905B cdl_exec=0 cdl_read=0
-data 3 $905C $906D data_905c kind=music naming=auto src=datacarve cdl_read=18/18 cdl_exec=0
+data 3 $905C $906D data_905c kind=ptrtable naming=auto src=datacarve cdl_read=18/18 cdl_exec=0 fmt=snd_cmd_jumptab
 unknown 3 $906E $9079 cdl_exec=0 cdl_read=0
-data 3 $907A $9099 data_907a kind=unknown naming=auto src=datacarve cdl_read=32/32 cdl_exec=0
+data 3 $907A $9099 data_907a kind=ptrtable naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 fmt=snd_cmd_jumptab
 code 3 $909A $90A1 sub_909a naming=auto end=jmp src=carve cdl=8/8 conf=verified
 code 3 $90A2 $90AD sub_90a2 naming=auto end=jmp src=carve cdl=12/12 conf=verified
 code 3 $90AE $90B5 sub_90ae naming=auto end=jmp src=carve cdl=8/8 conf=verified
@@ -1739,7 +1747,7 @@ code 3 $90D9 $90F8 sub_90d9 naming=auto end=jmp src=carve cdl=32/32 conf=verifie
 entry 3 $90E8 e_90e8 in=sub_90d9 via=bne@$910D
 code 3 $90F9 $910E loc_90f9 naming=auto end=fall src=carve cdl=22/22 conf=verified notes=code_read_as_data
 code 3 $910F $911F sub_910f naming=auto end=rts src=carve cdl=17/17 conf=verified
-data 3 $9120 $912E data_9120 kind=music naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
+data 3 $9120 $912E data_9120 kind=table naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=snd_lenpreset
 code 3 $912F $913F sub_912f naming=auto end=jmp src=carve cdl=17/17 conf=verified
 code 3 $9140 $917F sub_9140 naming=auto end=fall src=carve cdl=64/64 conf=verified
 code 3 $9180 $918F sub_9180 naming=auto end=jmp src=carve cdl=16/16 conf=verified
@@ -1758,94 +1766,96 @@ code 3 $9277 $929E sub_9277 naming=auto end=jmp src=carve cdl=40/40 conf=verifie
 code 3 $929F $92B7 loc_929f naming=auto end=fall src=carve cdl=25/25 conf=verified notes=code_read_as_data
 code 3 $92B8 $92C9 sub_92b8 naming=auto end=jmp src=carve cdl=18/18 conf=verified
 entry 3 $92C2 e_92c2 in=sub_92b8 via=bpl@$92B6,jmp@$9311
-code 3 $92CA $92D1 sub_92ca naming=auto end=jmp src=carve cdl=0/8 conf=static
+code 3 $92CA $92D1 sub_92ca naming=auto end=jmp src=carve cdl=8/8 conf=verified
 code 3 $92D2 $92E0 loc_92d2 naming=auto end=fall src=carve cdl=15/15 conf=verified notes=code_read_as_data
-code 3 $92E1 $9313 sub_92e1 naming=auto end=jmp src=carve cdl=48/51 conf=static
+code 3 $92E1 $9313 sub_92e1 naming=auto end=jmp src=carve cdl=51/51 conf=verified
 entry 3 $92E4 e_92e4 in=sub_92e1 via=bpl@$92DF
 entry 3 $930E e_930e in=sub_92e1 via=jmp@$9365
-data 3 $9314 $9322 data_9314 kind=music naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
+data 3 $9314 $9322 data_9314 kind=table naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=snd_env_delay
 unknown 3 $9323 $9323 cdl_exec=0 cdl_read=0
-data 3 $9324 $9332 data_9324 kind=music naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
+data 3 $9324 $9332 data_9324 kind=table naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=snd_env_rate
 unknown 3 $9333 $9333 cdl_exec=0 cdl_read=0
-data 3 $9334 $9342 data_9334 kind=table naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
+data 3 $9334 $9342 data_9334 kind=table naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=snd_env_target
 unknown 3 $9343 $9343 cdl_exec=0 cdl_read=0
 code 3 $9344 $9367 sub_9344 naming=auto end=jmp src=carve cdl=36/36 conf=verified
-code 3 $9368 $936F sub_9368 naming=auto end=jmp src=carve cdl=0/8 conf=static
-code 3 $9370 $937A sub_9370 naming=auto end=jmp src=carve cdl=0/11 conf=static
+code 3 $9368 $936F sub_9368 naming=auto end=jmp src=carve cdl=8/8 conf=verified
+code 3 $9370 $937A sub_9370 naming=auto end=jmp src=carve cdl=11/11 conf=verified
 entry 3 $9372 e_9372 in=sub_9370 via=jmp@$937D
-code 3 $937B $937F sub_937b naming=auto end=jmp src=carve cdl=0/5 conf=static
+code 3 $937B $937F sub_937b naming=auto end=jmp src=carve cdl=5/5 conf=verified
 code 3 $9380 $938B sub_9380 naming=auto end=jmp src=carve cdl=12/12 conf=verified
 entry 3 $9382 e_9382 in=sub_9380 via=jmp@$938F
 code 3 $938C $9391 sub_938c naming=auto end=jmp src=carve cdl=6/6 conf=verified
-code 3 $9392 $93A3 sub_9392 naming=auto end=jmp src=carve cdl=0/18 conf=static
+code 3 $9392 $93A3 sub_9392 naming=auto end=jmp src=carve cdl=18/18 conf=verified
 code 3 $93A4 $93AF sub_93a4 naming=auto end=jmp src=carve cdl=12/12 conf=verified
 entry 3 $93A6 e_93a6 in=sub_93a4 via=bne@$93B2,bne@$93BA
 code 3 $93B0 $93B3 loc_93b0 naming=auto end=bra src=carve cdl=4/4 conf=verified notes=code_read_as_data
-unknown 3 $93B4 $93B7 cdl_exec=0 cdl_read=0
+unknown 3 $93B4 $93B7 cdl_exec=4 cdl_read=0
+xcode 3 $93B4 $93B7 in=unk_93b4 whole=yes
 code 3 $93B8 $93BB loc_93b8 naming=auto end=bra src=carve cdl=4/4 conf=verified notes=code_read_as_data
-unknown 3 $93BC $93BF cdl_exec=0 cdl_read=0
+unknown 3 $93BC $93BF cdl_exec=4 cdl_read=0
+xcode 3 $93BC $93BF in=unk_93bc whole=yes
 code 3 $93C0 $93D2 sub_93c0 naming=auto end=jmp src=carve cdl=19/19 conf=verified
-data 3 $93D3 $9432 data_93d3 kind=table naming=auto src=datacarve cdl_read=96/96 cdl_exec=0 proposed=entity_animation_lookup_table
-data 3 $9433 $943A data_9433 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 3 $93D3 $9432 data_93d3 kind=table naming=auto src=datacarve cdl_read=96/96 cdl_exec=0 proposed=entity_animation_lookup_table fmt=snd_period
+data 3 $9433 $943A data_9433 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=snd_period
 unknown 3 $943B $9440 cdl_exec=0 cdl_read=2
-data 3 $9441 $9448 data_9441 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 3 $9441 $9448 data_9441 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=snd_period
 unknown 3 $9449 $944C cdl_exec=0 cdl_read=0
-data 3 $944D $945F data_944d kind=ptrtable naming=auto src=datacarve cdl_read=19/19 cdl_exec=0
+data 3 $944D $945F data_944d kind=ptrtable naming=auto src=datacarve cdl_read=19/19 cdl_exec=0 fmt=snd_sfx_ptrs
 unknown 3 $9460 $9460 cdl_exec=0 cdl_read=0
-data 3 $9461 $946C data_9461 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 3 $9461 $946C data_9461 kind=ptrtable naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=snd_sfx_ptrs
 unknown 3 $946D $946E cdl_exec=0 cdl_read=2
-data 3 $946F $9488 data_946f kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0
+data 3 $946F $9488 data_946f kind=ptrtable naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 fmt=snd_sfx_ptrs
 unknown 3 $9489 $9492 cdl_exec=0 cdl_read=10
-data 3 $9493 $9508 data_9493 kind=music naming=auto src=datacarve cdl_read=118/118 cdl_exec=0
+data 3 $9493 $9508 data_9493 kind=ptrtable naming=auto src=datacarve cdl_read=118/118 cdl_exec=0 fmt=snd_sfx_ptrs
 unknown 3 $9509 $950C cdl_exec=0 cdl_read=4
-data 3 $950D $9524 data_950d kind=unknown naming=auto src=datacarve cdl_read=24/24 cdl_exec=0
-data 3 $9525 $9530 data_9525 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
-data 3 $9531 $953A data_9531 kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
+data 3 $950D $9524 data_950d kind=ptrtable naming=auto src=datacarve cdl_read=24/24 cdl_exec=0 fmt=snd_sfx_ptrs
+data 3 $9525 $9530 data_9525 kind=ptrtable naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=snd_sfx_ptrs
+data 3 $9531 $953A data_9531 kind=ptrtable naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 fmt=snd_sfx_ptrs
 unknown 3 $953B $9540 cdl_exec=0 cdl_read=6
-data 3 $9541 $961E data_9541 kind=unknown naming=auto src=datacarve cdl_read=222/222 cdl_exec=0
+data 3 $9541 $961E data_9541 kind=music naming=auto src=datacarve cdl_read=222/222 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $961F $9639 cdl_exec=0 cdl_read=27
-data 3 $963A $967A data_963a kind=music naming=auto src=datacarve cdl_read=65/65 cdl_exec=0 proposed=stage4_table_963a
+data 3 $963A $967A data_963a kind=music naming=auto src=datacarve cdl_read=65/65 cdl_exec=0 proposed=stage4_table_963a fmt=snd_sfx_stream
 unknown 3 $967B $967B cdl_exec=0 cdl_read=1
-data 3 $967C $969F data_967c kind=unknown naming=auto src=datacarve cdl_read=36/36 cdl_exec=0
+data 3 $967C $969F data_967c kind=music naming=auto src=datacarve cdl_read=36/36 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $96A0 $96A0 cdl_exec=0 cdl_read=1
-data 3 $96A1 $96AF data_96a1 kind=music naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 proposed=stage4_table_96a1
+data 3 $96A1 $96AF data_96a1 kind=music naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 proposed=stage4_table_96a1 fmt=snd_sfx_stream
 unknown 3 $96B0 $96B6 cdl_exec=0 cdl_read=7
-data 3 $96B7 $96D7 data_96b7 kind=music naming=auto src=datacarve cdl_read=33/33 cdl_exec=0
+data 3 $96B7 $96D7 data_96b7 kind=music naming=auto src=datacarve cdl_read=33/33 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $96D8 $96E9 cdl_exec=0 cdl_read=18
-data 3 $96EA $96F8 data_96ea kind=music naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 proposed=stage4_table_96ea
+data 3 $96EA $96F8 data_96ea kind=music naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 proposed=stage4_table_96ea fmt=snd_sfx_stream
 unknown 3 $96F9 $9705 cdl_exec=0 cdl_read=13
-data 3 $9706 $9713 data_9706 kind=music naming=auto src=datacarve cdl_read=14/14 cdl_exec=0
+data 3 $9706 $9713 data_9706 kind=music naming=auto src=datacarve cdl_read=14/14 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $9714 $9720 cdl_exec=0 cdl_read=13
-data 3 $9721 $9755 data_9721 kind=music naming=auto src=datacarve cdl_read=53/53 cdl_exec=0
+data 3 $9721 $9755 data_9721 kind=music naming=auto src=datacarve cdl_read=53/53 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $9756 $976B cdl_exec=0 cdl_read=14
-data 3 $976C $9926 data_976c kind=music naming=auto src=datacarve cdl_read=443/443 cdl_exec=0
+data 3 $976C $9926 data_976c kind=music naming=auto src=datacarve cdl_read=443/443 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $9927 $9932 cdl_exec=0 cdl_read=6
-data 3 $9933 $9A5F data_9933 kind=unknown naming=auto src=datacarve cdl_read=301/301 cdl_exec=0
-unknown 3 $9A60 $9A66 cdl_exec=0 cdl_read=2
-data 3 $9A67 $9B72 data_9a67 kind=music naming=auto src=datacarve cdl_read=268/268 cdl_exec=0
+data 3 $9933 $9A5F data_9933 kind=music naming=auto src=datacarve cdl_read=301/301 cdl_exec=0 fmt=snd_sfx_stream
+unknown 3 $9A60 $9A66 cdl_exec=0 cdl_read=7
+data 3 $9A67 $9B72 data_9a67 kind=music naming=auto src=datacarve cdl_read=268/268 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $9B73 $9BA0 cdl_exec=0 cdl_read=46
-data 3 $9BA1 $9C36 data_9ba1 kind=unknown naming=auto src=datacarve cdl_read=150/150 cdl_exec=0
+data 3 $9BA1 $9C36 data_9ba1 kind=music naming=auto src=datacarve cdl_read=150/150 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $9C37 $9C3F cdl_exec=0 cdl_read=0
-data 3 $9C40 $9C68 data_9c40 kind=unknown naming=auto src=datacarve cdl_read=41/41 cdl_exec=0
-unknown 3 $9C69 $9C9D cdl_exec=0 cdl_read=0
-data 3 $9C9E $9CD3 data_9c9e kind=unknown naming=auto src=datacarve cdl_read=54/54 cdl_exec=0
+data 3 $9C40 $9C68 data_9c40 kind=music naming=auto src=datacarve cdl_read=41/41 cdl_exec=0 fmt=snd_sfx_stream
+unknown 3 $9C69 $9C9D cdl_exec=0 cdl_read=9
+data 3 $9C9E $9CD3 data_9c9e kind=music naming=auto src=datacarve cdl_read=54/54 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $9CD4 $9CF3 cdl_exec=0 cdl_read=32
-data 3 $9CF4 $9CFB data_9cf4 kind=music naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 3 $9CF4 $9CFB data_9cf4 kind=music naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=snd_sfx_stream
 unknown 3 $9CFC $9D00 cdl_exec=0 cdl_read=5
-data 3 $9D01 $9D79 data_9d01 kind=music naming=auto src=datacarve cdl_read=121/121 cdl_exec=0
-unknown 3 $9D7A $9DA8 cdl_exec=1 cdl_read=23
+data 3 $9D01 $9D79 data_9d01 kind=music naming=auto src=datacarve cdl_read=121/121 cdl_exec=0 fmt=snd_sfx_stream
+unknown 3 $9D7A $9DA8 cdl_exec=1 cdl_read=25
 xcode 3 $9D7B $9D7B in=unk_9d7a whole=yes
-data 3 $9DA9 $9DB8 data_9da9 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
+data 3 $9DA9 $9DB8 data_9da9 kind=ptrtable naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=snd_song_ptrs
 unknown 3 $9DB9 $9DC0 cdl_exec=0 cdl_read=0
-data 3 $9DC1 $9DC8 data_9dc1 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 3 $9DC1 $9DC8 data_9dc1 kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=snd_song_ptrs
 unknown 3 $9DC9 $9DD0 cdl_exec=0 cdl_read=0
-data 3 $9DD1 $9DF8 data_9dd1 kind=unknown naming=auto src=datacarve cdl_read=40/40 cdl_exec=0
+data 3 $9DD1 $9DF8 data_9dd1 kind=ptrtable naming=auto src=datacarve cdl_read=40/40 cdl_exec=0 fmt=snd_song_ptrs
 unknown 3 $9DF9 $9E00 cdl_exec=0 cdl_read=0
-data 3 $9E01 $9E28 data_9e01 kind=unknown naming=auto src=datacarve cdl_read=40/40 cdl_exec=0
+data 3 $9E01 $9E28 data_9e01 kind=ptrtable naming=auto src=datacarve cdl_read=40/40 cdl_exec=0 fmt=snd_song_ptrs
 unknown 3 $9E29 $9E30 cdl_exec=0 cdl_read=0
-data 3 $9E31 $A049 data_9e31 kind=unknown naming=auto src=datacarve cdl_read=537/537 cdl_exec=0
+data 3 $9E31 $A049 data_9e31 kind=music naming=auto src=datacarve cdl_read=537/537 cdl_exec=0 fmt=snd_stream
 unknown 3 $A04A $A05A cdl_exec=0 cdl_read=0
-data 3 $A05B $B31F data_a05b kind=music naming=auto src=datacarve cdl_read=4805/4805 cdl_exec=0
+data 3 $A05B $B31F data_a05b kind=music naming=auto src=datacarve cdl_read=4805/4805 cdl_exec=0 fmt=snd_stream
 code 3 $B320 $B35A sub_b320 naming=auto end=rts src=carve cdl=59/59 conf=verified
 data 3 $B35B $B3BA data_b35b kind=table naming=auto src=datacarve cdl_read=96/96 cdl_exec=0 proposed=entity_animation_data_table_b35b
 code 3 $B3BB $B40A sub_b3bb naming=auto end=rts src=carve cdl=80/80 conf=verified proposed=unknown_b3bb
@@ -1853,52 +1863,52 @@ data 3 $B40B $B41E data_b40b kind=table naming=auto src=datacarve cdl_read=20/20
 code 3 $B41F $B47A sub_b41f naming=auto end=rts src=carve cdl=92/92 conf=verified proposed=update_sprite_buffer_for_attack_data
 data 3 $B47B $B4AE data_b47b kind=table naming=auto src=datacarve cdl_read=52/52 cdl_exec=0
 data 3 $B4AF $B509 data_b4af kind=unknown naming=auto src=datacarve cdl_read=91/91 cdl_exec=0
-code 3 $B50A $B57D sub_b50a naming=auto end=rts src=carve cdl=114/116 conf=verified
+code 3 $B50A $B57D sub_b50a naming=auto end=rts src=carve cdl=116/116 conf=verified
 entry 3 $B540 e_b540 in=sub_b50a via=jmp@$B544
 code 3 $B57E $B5A9 sub_b57e naming=auto end=rts src=carve cdl=44/44 conf=verified
 data 3 $B5AA $B693 data_b5aa kind=table naming=auto src=datacarve cdl_read=234/234 cdl_exec=0 proposed=entity_animation_data_table
 unknown 3 $B694 $B695 cdl_exec=0 cdl_read=0
-data 3 $B696 $C01B data_b696 kind=unknown naming=auto src=datacarve cdl_read=2438/2438 cdl_exec=0
+data 3 $B696 $C01B data_b696 kind=text naming=auto src=datacarve cdl_read=2438/2438 cdl_exec=0 fmt=text_huffman
 unknown 3 $C01C $C01C cdl_exec=0 cdl_read=0
-data 3 $C01D $C068 data_c01d kind=music naming=auto src=datacarve cdl_read=76/76 cdl_exec=0
-unknown 3 $C069 $C06B cdl_exec=0 cdl_read=0
-data 3 $C06C $C0AD data_c06c kind=unknown naming=auto src=datacarve cdl_read=66/66 cdl_exec=0
-unknown 3 $C0AE $C0B0 cdl_exec=0 cdl_read=1
-data 3 $C0B1 $C0E7 data_c0b1 kind=unknown naming=auto src=datacarve cdl_read=55/55 cdl_exec=0
-unknown 3 $C0E8 $C0EC cdl_exec=0 cdl_read=0
-data 3 $C0ED $C132 data_c0ed kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
-unknown 3 $C133 $C135 cdl_exec=0 cdl_read=0
-data 3 $C136 $C1A1 data_c136 kind=unknown naming=auto src=datacarve cdl_read=108/108 cdl_exec=0
-data 3 $C1A2 $C1BC data_c1a2 kind=unknown naming=auto src=datacarve cdl_read=27/27 cdl_exec=0
+data 3 $C01D $C068 data_c01d kind=music naming=auto src=datacarve cdl_read=76/76 cdl_exec=0 fmt=snd_stream
+unknown 3 $C069 $C06B cdl_exec=0 cdl_read=3
+data 3 $C06C $C0AD data_c06c kind=music naming=auto src=datacarve cdl_read=66/66 cdl_exec=0 fmt=snd_stream
+unknown 3 $C0AE $C0B0 cdl_exec=0 cdl_read=3
+data 3 $C0B1 $C0E7 data_c0b1 kind=music naming=auto src=datacarve cdl_read=55/55 cdl_exec=0 fmt=snd_stream
+unknown 3 $C0E8 $C0EC cdl_exec=0 cdl_read=5
+data 3 $C0ED $C132 data_c0ed kind=music naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=snd_stream
+unknown 3 $C133 $C135 cdl_exec=0 cdl_read=3
+data 3 $C136 $C1A1 data_c136 kind=music naming=auto src=datacarve cdl_read=108/108 cdl_exec=0 fmt=snd_stream
+data 3 $C1A2 $C1BC data_c1a2 kind=music naming=auto src=datacarve cdl_read=27/27 cdl_exec=0 fmt=snd_stream
 unknown 3 $C1BD $C1BF cdl_exec=0 cdl_read=3
-data 3 $C1C0 $C203 data_c1c0 kind=unknown naming=auto src=datacarve cdl_read=68/68 cdl_exec=0
+data 3 $C1C0 $C203 data_c1c0 kind=music naming=auto src=datacarve cdl_read=68/68 cdl_exec=0 fmt=snd_stream
 unknown 3 $C204 $C205 cdl_exec=0 cdl_read=0
-data 3 $C206 $C333 data_c206 kind=unknown naming=auto src=datacarve cdl_read=302/302 cdl_exec=0
-data 3 $C334 $C34F data_c334 kind=unknown naming=auto src=datacarve cdl_read=28/28 cdl_exec=0
+data 3 $C206 $C333 data_c206 kind=music naming=auto src=datacarve cdl_read=302/302 cdl_exec=0 fmt=snd_stream
+data 3 $C334 $C34F data_c334 kind=music naming=auto src=datacarve cdl_read=28/28 cdl_exec=0 fmt=snd_stream
 unknown 3 $C350 $C352 cdl_exec=0 cdl_read=3
-data 3 $C353 $C38E data_c353 kind=unknown naming=auto src=datacarve cdl_read=60/60 cdl_exec=0
-data 3 $C38F $C3A2 data_c38f kind=unknown naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
-data 3 $C3A3 $C3BA data_c3a3 kind=unknown naming=auto src=datacarve cdl_read=24/24 cdl_exec=0
+data 3 $C353 $C38E data_c353 kind=music naming=auto src=datacarve cdl_read=60/60 cdl_exec=0 fmt=snd_stream
+data 3 $C38F $C3A2 data_c38f kind=music naming=auto src=datacarve cdl_read=20/20 cdl_exec=0 fmt=snd_stream
+data 3 $C3A3 $C3BA data_c3a3 kind=music naming=auto src=datacarve cdl_read=24/24 cdl_exec=0 fmt=snd_stream
 unknown 3 $C3BB $C3C4 cdl_exec=0 cdl_read=10
-data 3 $C3C5 $C4C6 data_c3c5 kind=unknown naming=auto src=datacarve cdl_read=258/258 cdl_exec=0
+data 3 $C3C5 $C4C6 data_c3c5 kind=music naming=auto src=datacarve cdl_read=258/258 cdl_exec=0 fmt=snd_stream
 unknown 3 $C4C7 $C4CD cdl_exec=0 cdl_read=7
-data 3 $C4CE $C522 data_c4ce kind=unknown naming=auto src=datacarve cdl_read=85/85 cdl_exec=0
+data 3 $C4CE $C522 data_c4ce kind=music naming=auto src=datacarve cdl_read=85/85 cdl_exec=0 fmt=snd_stream
 unknown 3 $C523 $C525 cdl_exec=0 cdl_read=0
-data 3 $C526 $C554 data_c526 kind=unknown naming=auto src=datacarve cdl_read=47/47 cdl_exec=0
+data 3 $C526 $C554 data_c526 kind=music naming=auto src=datacarve cdl_read=47/47 cdl_exec=0 fmt=snd_stream
 unknown 3 $C555 $C564 cdl_exec=0 cdl_read=0
-data 3 $C565 $C57A data_c565 kind=unknown naming=auto src=datacarve cdl_read=22/22 cdl_exec=0
+data 3 $C565 $C57A data_c565 kind=music naming=auto src=datacarve cdl_read=22/22 cdl_exec=0 fmt=snd_stream
 unknown 3 $C57B $C57F cdl_exec=0 cdl_read=0
-data 3 $C580 $C5C5 data_c580 kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
+data 3 $C580 $C5C5 data_c580 kind=music naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=snd_stream
 unknown 3 $C5C6 $C5D0 cdl_exec=0 cdl_read=0
-data 3 $C5D1 $C605 data_c5d1 kind=unknown naming=auto src=datacarve cdl_read=53/53 cdl_exec=0
+data 3 $C5D1 $C605 data_c5d1 kind=music naming=auto src=datacarve cdl_read=53/53 cdl_exec=0 fmt=snd_stream
 unknown 3 $C606 $C61B cdl_exec=0 cdl_read=0
-data 3 $C61C $C63B data_c61c kind=unknown naming=auto src=datacarve cdl_read=32/32 cdl_exec=0
+data 3 $C61C $C63B data_c61c kind=music naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 fmt=snd_stream
 code 3 $C63C $C68B sub_c63c naming=auto end=rts src=carve cdl=80/80 conf=verified
-data 3 $C68C $C7A1 data_c68c kind=music naming=auto src=datacarve cdl_read=278/278 cdl_exec=0
+data 3 $C68C $C7A1 data_c68c kind=music naming=auto src=datacarve cdl_read=278/278 cdl_exec=0 fmt=snd_stream
 unknown 3 $C7A2 $C7AE cdl_exec=0 cdl_read=0
-data 3 $C7AF $CE92 data_c7af kind=music naming=auto src=datacarve cdl_read=1764/1764 cdl_exec=0
+data 3 $C7AF $CE92 data_c7af kind=music naming=auto src=datacarve cdl_read=1764/1764 cdl_exec=0 fmt=snd_stream
 unknown 3 $CE93 $CEDA cdl_exec=0 cdl_read=0
-data 3 $CEDB $CF9F data_cedb kind=music naming=auto src=datacarve cdl_read=197/197 cdl_exec=0 proposed=entity_hit_data_table
+data 3 $CEDB $CF9F data_cedb kind=music naming=auto src=datacarve cdl_read=197/197 cdl_exec=0 proposed=entity_hit_data_table fmt=snd_stream
 unknown 3 $CFA0 $CFA6 cdl_exec=0 cdl_read=2
 code 3 $CFA7 $D05C sub_cfa7 naming=auto end=rts src=carve cdl=182/182 conf=verified
 entry 3 $CFDD e_cfdd in=sub_cfa7 via=jmp@$8048,jsr@$D06A
@@ -1906,8 +1916,8 @@ entry 3 $CFE1 e_cfe1 in=sub_cfa7 via=jmp@$804B
 unknown 3 $D05D $D062 cdl_exec=0 cdl_read=6
 code 3 $D063 $D072 sub_d063 naming=auto end=rts src=carve cdl=16/16 conf=verified proposed=update_attack_sound
 code 3 $D073 $D0C1 sub_d073 naming=auto end=rts src=carve cdl=79/79 conf=verified
-unknown 3 $D0C2 $D0EB cdl_exec=0 cdl_read=25
-code 3 $D0EC $D1C0 sub_d0ec naming=auto end=rts src=carve cdl=186/213 conf=verified proposed=process_entity_data
+unknown 3 $D0C2 $D0EB cdl_exec=0 cdl_read=28
+code 3 $D0EC $D1C0 sub_d0ec naming=auto end=rts src=carve cdl=213/213 conf=verified proposed=process_entity_data
 entry 3 $D0ED e_d0ed in=sub_d0ec via=jmp@$801E,jsr@$D07F,jsr@$D082,jsr@$D090
 entry 3 $D148 e_d148 in=sub_d0ec via=jmp@$D12F
 entry 3 $D153 e_d153 in=sub_d0ec via=jmp@$D12C,jmp@$D13C
@@ -2088,38 +2098,38 @@ code 4 $802A $802A sub_802a naming=auto end=rts src=carve cdl=1/1 conf=verified
 code 4 $802B $80C8 sub_802b naming=auto end=bra src=carve cdl=158/158 conf=verified proposed=update_ppu_registers_for_rendering_entity notes=code_read_as_data
 entry 4 $804A e_804a in=sub_802b via=jmp@$80A6
 unknown 4 $80C9 $80CA cdl_exec=0 cdl_read=0
-data 4 $80CB $80D6 data_80cb kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 4 $80CB $80D6 data_80cb kind=ptrtable naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=chr_list_ptrs
 unknown 4 $80D7 $80E6 cdl_exec=0 cdl_read=10
-data 4 $80E7 $80F0 data_80e7 kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
+data 4 $80E7 $80F0 data_80e7 kind=ptrtable naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 fmt=chr_list_ptrs
 unknown 4 $80F1 $80F6 cdl_exec=0 cdl_read=0
-data 4 $80F7 $8149 data_80f7 kind=unknown naming=auto src=datacarve cdl_read=83/83 cdl_exec=0
+data 4 $80F7 $8149 data_80f7 kind=table naming=auto src=datacarve cdl_read=83/83 cdl_exec=0 fmt=chr_list_rle
 unknown 4 $814A $814F cdl_exec=0 cdl_read=0
-data 4 $8150 $8161 data_8150 kind=unknown naming=auto src=datacarve cdl_read=18/18 cdl_exec=0
+data 4 $8150 $8161 data_8150 kind=table naming=auto src=datacarve cdl_read=18/18 cdl_exec=0 fmt=chr_list_rle
 unknown 4 $8162 $8173 cdl_exec=0 cdl_read=6
-data 4 $8174 $AB2D data_8174 kind=unknown naming=auto src=datacarve cdl_read=10682/10682 cdl_exec=0
+data 4 $8174 $AB2D data_8174 kind=graphics naming=auto src=datacarve cdl_read=10682/10682 cdl_exec=0 fmt=chr_rle
 code 4 $AB2E $AB61 loc_ab2e naming=auto end=rts src=carve cdl=52/52 conf=verified notes=code_read_as_data
 entry 4 $AB4D e_ab4d in=loc_ab2e via=jsr@$AB3E
 code 4 $AB62 $AB76 sub_ab62 naming=auto end=rts src=carve cdl=21/21 conf=verified
 code 4 $AB77 $ABA8 sub_ab77 naming=auto end=jmp src=carve cdl=50/50 conf=verified
-data 4 $ABA9 $ABB4 data_aba9 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 4 $ABA9 $ABB4 data_aba9 kind=graphics naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=chr_rle
 code 4 $ABB5 $ABC2 sub_abb5 naming=auto end=rts src=carve cdl=14/14 conf=verified
 entry 4 $ABB7 e_abb7 in=sub_abb5 via=jsr@$B571
 farcall 4 $ABB9 bank=? slot=? target=? dynamic y=$03 
 code 4 $ABC3 $ACEB sub_abc3 naming=auto end=rts src=carve cdl=297/297 conf=verified proposed=entity_interaction_handler
 entry 4 $AC33 e_ac33 in=sub_abc3 via=jsr@$B5D2
-data 4 $ACEC $AD66 data_acec kind=table naming=auto src=datacarve cdl_read=123/123 cdl_exec=0 proposed=entity_state_data_table
+data 4 $ACEC $AD66 data_acec kind=graphics naming=auto src=datacarve cdl_read=123/123 cdl_exec=0 proposed=entity_state_data_table fmt=chr_rle
 code 4 $AD67 $ADFF sub_ad67 naming=auto end=rts src=carve cdl=153/153 conf=verified
 entry 4 $ADA2 e_ada2 in=sub_ad67 via=jsr@$AB98
-data 4 $AE00 $AEDB data_ae00 kind=table naming=auto src=datacarve cdl_read=220/220 cdl_exec=0 proposed=entity_state_transition_table
+data 4 $AE00 $AEDB data_ae00 kind=graphics naming=auto src=datacarve cdl_read=220/220 cdl_exec=0 proposed=entity_state_transition_table fmt=chr_rle
 unknown 4 $AEDC $AEEF cdl_exec=0 cdl_read=0
-data 4 $AEF0 $AF53 data_aef0 kind=unknown naming=auto src=datacarve cdl_read=100/100 cdl_exec=0
+data 4 $AEF0 $AF53 data_aef0 kind=graphics naming=auto src=datacarve cdl_read=100/100 cdl_exec=0 fmt=chr_rle
 unknown 4 $AF54 $AF7B cdl_exec=0 cdl_read=40
 code 4 $AF7C $B053 sub_af7c naming=auto end=rts src=carve cdl=216/216 conf=verified proposed=entity_render_update
-data 4 $B054 $B066 data_b054 kind=table naming=auto src=datacarve cdl_read=19/19 cdl_exec=0
+data 4 $B054 $B066 data_b054 kind=graphics naming=auto src=datacarve cdl_read=19/19 cdl_exec=0 fmt=chr_rle
 unknown 4 $B067 $B067 cdl_exec=0 cdl_read=0
-data 4 $B068 $B072 data_b068 kind=table naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 proposed=stage1_table_b068
+data 4 $B068 $B072 data_b068 kind=graphics naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 proposed=stage1_table_b068 fmt=chr_rle
 unknown 4 $B073 $B073 cdl_exec=0 cdl_read=0
-data 4 $B074 $B339 data_b074 kind=table naming=auto src=datacarve cdl_read=710/710 cdl_exec=0 proposed=metasprite_render_data_table
+data 4 $B074 $B339 data_b074 kind=graphics naming=auto src=datacarve cdl_read=710/710 cdl_exec=0 proposed=metasprite_render_data_table fmt=chr_rle
 data 4 $B33A $B352 data_b33a kind=unknown naming=auto src=datacarve cdl_read=25/25 cdl_exec=0
 unknown 4 $B353 $B353 cdl_exec=0 cdl_read=0
 data 4 $B354 $B396 data_b354 kind=table naming=auto src=datacarve cdl_read=67/67 cdl_exec=0
@@ -2139,20 +2149,21 @@ code 4 $B4A8 $B50E sub_b4a8 naming=auto end=jmp src=carve cdl=103/103 conf=verif
 entry 4 $B4BB e_b4bb in=sub_b4a8 via=bne@$B44C,jmp@$B434,jmp@$B45F
 code 4 $B50F $B50F loc_b50f naming=auto end=rts src=carve cdl=1/1 conf=verified
 code 4 $B510 $B617 loc_b510 naming=auto end=fall src=carve cdl=264/264 conf=verified notes=code_read_as_data
-code 4 $B618 $B713 sub_b618 naming=auto end=rts src=carve cdl=239/252 conf=verified proposed=entity_position_calculation
+code 4 $B618 $B713 sub_b618 naming=auto end=rts src=carve cdl=252/252 conf=verified proposed=entity_position_calculation
 entry 4 $B622 e_b622 in=sub_b618 via=jmp@$B7D0,jsr@$B3C9,jsr@$B3D8,jsr@$B4A2,jsr@$B510
 entry 4 $B6D7 e_b6d7 in=sub_b618 via=jmp@$B677
 entry 4 $B6FE e_b6fe in=sub_b618 via=jmp@$B61F,jsr@$B7C3
 entry 4 $B6FF e_b6ff in=sub_b618 via=jmp@$B50C
 entry 4 $B70D e_b70d in=sub_b618 via=jmp@$B67A
 code 4 $B714 $B72E loc_b714 naming=auto end=open_into_unknown src=carve cdl=27/27 conf=suspect notes=code_read_as_data
-unknown 4 $B72F $B736 cdl_exec=0 cdl_read=0
+unknown 4 $B72F $B736 cdl_exec=8 cdl_read=0
+xcode 4 $B72F $B736 in=unk_b72f whole=yes
 code 4 $B737 $B75C sub_b737 naming=auto end=rts src=carve cdl=38/38 conf=verified
 entry 4 $B749 e_b749 in=sub_b737 via=bpl@$B728,bpl@$B72D
 code 4 $B75D $B76D sub_b75d naming=auto end=fall src=carve cdl=17/17 conf=verified
 code 4 $B76E $B789 sub_b76e naming=auto end=rts src=carve cdl=28/28 conf=verified
 entry 4 $B76F e_b76f in=sub_b76e via=jsr@$B7B2
-code 4 $B78A $B856 sub_b78a naming=auto end=rts src=carve cdl=203/205 conf=verified proposed=process_entity_combat_state
+code 4 $B78A $B856 sub_b78a naming=auto end=rts src=carve cdl=205/205 conf=verified proposed=process_entity_combat_state
 entry 4 $B7E4 e_b7e4 in=sub_b78a via=jmp@$800F
 entry 4 $B84C e_b84c in=sub_b78a via=jmp@$B846
 code 4 $B857 $B880 sub_b857 naming=auto end=rts src=carve cdl=42/42 conf=verified
@@ -2170,36 +2181,36 @@ data 4 $B97A $B986 data_b97a kind=table naming=auto src=datacarve cdl_read=13/13
 code 4 $B987 $B9C6 load_metasprite_b987 naming=reviewed end=rts src=carve cdl=64/64 conf=verified
 data 4 $B9C7 $BCA9 metasprite_defs kind=table naming=reviewed src=datacarve cdl_read=739/739 cdl_exec=0
 unknown 4 $BCAA $BCC7 cdl_exec=0 cdl_read=14
-data 4 $BCC8 $BCCF data_bcc8 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-data 4 $BCD0 $BCD7 data_bcd0 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-unknown 4 $BCD8 $BCE9 cdl_exec=0 cdl_read=6
-data 4 $BCEA $BCF9 data_bcea kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
+data 4 $BCC8 $BCCF data_bcc8 kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr4_frame_ptrs
+data 4 $BCD0 $BCD7 data_bcd0 kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr4_frame_ptrs
+unknown 4 $BCD8 $BCE9 cdl_exec=0 cdl_read=8
+data 4 $BCEA $BCF9 data_bcea kind=ptrtable naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=spr4_frame_ptrs
 unknown 4 $BCFA $BCFF cdl_exec=0 cdl_read=0
-data 4 $BD00 $BD08 data_bd00 kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
-unknown 4 $BD09 $BD17 cdl_exec=0 cdl_read=8
-data 4 $BD18 $BD41 data_bd18 kind=unknown naming=auto src=datacarve cdl_read=42/42 cdl_exec=0
-unknown 4 $BD42 $BD43 cdl_exec=0 cdl_read=0
-data 4 $BD44 $BD73 data_bd44 kind=unknown naming=auto src=datacarve cdl_read=48/48 cdl_exec=0
-data 4 $BD74 $BD83 data_bd74 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
-data 4 $BD84 $BDA9 data_bd84 kind=unknown naming=auto src=datacarve cdl_read=38/38 cdl_exec=0
+data 4 $BD00 $BD08 data_bd00 kind=ptrtable naming=auto src=datacarve cdl_read=9/9 cdl_exec=0 fmt=spr4_frame_ptrs
+unknown 4 $BD09 $BD17 cdl_exec=0 cdl_read=11
+data 4 $BD18 $BD41 data_bd18 kind=ptrtable naming=auto src=datacarve cdl_read=42/42 cdl_exec=0 fmt=spr4_frame_ptrs
+unknown 4 $BD42 $BD43 cdl_exec=0 cdl_read=2
+data 4 $BD44 $BD73 data_bd44 kind=table naming=auto src=datacarve cdl_read=48/48 cdl_exec=0 fmt=spr4_frame
+data 4 $BD74 $BD83 data_bd74 kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=spr4_frame
+data 4 $BD84 $BDA9 data_bd84 kind=table naming=auto src=datacarve cdl_read=38/38 cdl_exec=0 fmt=spr4_frame
 unknown 4 $BDAA $BDB5 cdl_exec=0 cdl_read=12
-data 4 $BDB6 $BDD3 data_bdb6 kind=unknown naming=auto src=datacarve cdl_read=30/30 cdl_exec=0
-unknown 4 $BDD4 $BE51 cdl_exec=0 cdl_read=16
-data 4 $BE52 $BEBE data_be52 kind=unknown naming=auto src=datacarve cdl_read=109/109 cdl_exec=0
-unknown 4 $BEBF $BF07 cdl_exec=0 cdl_read=3
-data 4 $BF08 $BF31 data_bf08 kind=unknown naming=auto src=datacarve cdl_read=42/42 cdl_exec=0
-unknown 4 $BF32 $BF9D cdl_exec=0 cdl_read=92
-data 4 $BF9E $C042 data_bf9e kind=unknown naming=auto src=datacarve cdl_read=165/165 cdl_exec=0
+data 4 $BDB6 $BDD3 data_bdb6 kind=table naming=auto src=datacarve cdl_read=30/30 cdl_exec=0 fmt=spr4_frame
+unknown 4 $BDD4 $BE51 cdl_exec=0 cdl_read=34
+data 4 $BE52 $BEBE data_be52 kind=table naming=auto src=datacarve cdl_read=109/109 cdl_exec=0 fmt=spr4_frame
+unknown 4 $BEBF $BF07 cdl_exec=0 cdl_read=9
+data 4 $BF08 $BF31 data_bf08 kind=table naming=auto src=datacarve cdl_read=42/42 cdl_exec=0 fmt=spr4_frame
+unknown 4 $BF32 $BF9D cdl_exec=0 cdl_read=100
+data 4 $BF9E $C042 data_bf9e kind=table naming=auto src=datacarve cdl_read=165/165 cdl_exec=0 fmt=spr4_frame
 unknown 4 $C043 $C07D cdl_exec=0 cdl_read=0
-data 4 $C07E $C0B2 data_c07e kind=unknown naming=auto src=datacarve cdl_read=53/53 cdl_exec=0
+data 4 $C07E $C0B2 data_c07e kind=table naming=auto src=datacarve cdl_read=53/53 cdl_exec=0 fmt=spr4_frame
 unknown 4 $C0B3 $C0F3 cdl_exec=0 cdl_read=0
-data 4 $C0F4 $C124 data_c0f4 kind=unknown naming=auto src=datacarve cdl_read=49/49 cdl_exec=0
+data 4 $C0F4 $C124 data_c0f4 kind=table naming=auto src=datacarve cdl_read=49/49 cdl_exec=0 fmt=spr4_frame
 unknown 4 $C125 $C163 cdl_exec=0 cdl_read=0
-data 4 $C164 $C16C data_c164 kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
+data 4 $C164 $C16C data_c164 kind=table naming=auto src=datacarve cdl_read=9/9 cdl_exec=0 fmt=spr4_frame
 unknown 4 $C16D $C20C cdl_exec=0 cdl_read=0
-data 4 $C20D $C3DA data_c20d kind=unknown naming=auto src=datacarve cdl_read=462/462 cdl_exec=0
-unknown 4 $C3DB $C3FA cdl_exec=0 cdl_read=0
-data 4 $C3FB $C4C0 data_c3fb kind=unknown naming=auto src=datacarve cdl_read=198/198 cdl_exec=0 proposed=stage_title_table_c3fb
+data 4 $C20D $C3DA data_c20d kind=table naming=auto src=datacarve cdl_read=462/462 cdl_exec=0 fmt=spr4_frame
+unknown 4 $C3DB $C3FA cdl_exec=0 cdl_read=32
+data 4 $C3FB $C4C0 data_c3fb kind=table naming=auto src=datacarve cdl_read=198/198 cdl_exec=0 proposed=stage_title_table_c3fb fmt=spr4_frame
 code 4 $C4C1 $C596 sub_c4c1 naming=auto end=rts src=carve cdl=214/214 conf=verified proposed=process_entity_render_data
 timing 4 $C4F9 bank_switch store=$FFB3 mode=absx
 code 4 $C597 $C59B sub_c597 naming=auto end=jmp src=carve cdl=5/5 conf=verified
@@ -2226,23 +2237,23 @@ code 4 $C7B0 $C8C8 draw_metasprite naming=reviewed end=rts src=carve cdl=281/281
 entry 4 $C88F e_c88f in=draw_metasprite via=jmp@$8024
 entry 4 $C896 e_c896 in=draw_metasprite via=jsr@$C891
 unknown 4 $C8C9 $C8DC cdl_exec=0 cdl_read=14
-data 4 $C8DD $C90C data_c8dd kind=unknown naming=auto src=datacarve cdl_read=48/48 cdl_exec=0
-unknown 4 $C90D $C90E cdl_exec=0 cdl_read=0
-data 4 $C90F $CB46 data_c90f kind=unknown naming=auto src=datacarve cdl_read=568/568 cdl_exec=0
-unknown 4 $CB47 $CB63 cdl_exec=0 cdl_read=0
+data 4 $C8DD $C90C data_c8dd kind=ptrtable naming=auto src=datacarve cdl_read=48/48 cdl_exec=0 fmt=screen_desc_ptrs
+unknown 4 $C90D $C90E cdl_exec=0 cdl_read=2
+data 4 $C90F $CB46 data_c90f kind=table naming=auto src=datacarve cdl_read=568/568 cdl_exec=0 fmt=screen_desc
+unknown 4 $CB47 $CB63 cdl_exec=0 cdl_read=29
 data 4 $CB64 $CBEF data_cb64 kind=unknown naming=auto src=datacarve cdl_read=140/140 cdl_exec=0
 unknown 4 $CBF0 $CDFF cdl_exec=0 cdl_read=0
 data 4 $CE00 $CE0B data_ce00 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
 unknown 4 $CE0C $CE2F cdl_exec=0 cdl_read=0
 data 4 $CE30 $DE2B data_ce30 kind=unknown naming=auto src=datacarve cdl_read=4092/4092 cdl_exec=0
 unknown 4 $DE2C $DE2F cdl_exec=0 cdl_read=0
-data 4 $DE30 $DEAF data_de30 kind=unknown naming=auto src=datacarve cdl_read=128/128 cdl_exec=0 proposed=stage2_table_de30
+data 4 $DE30 $DEAF data_de30 kind=table naming=auto src=datacarve cdl_read=128/128 cdl_exec=0 proposed=stage2_table_de30 fmt=pal_screen
 unknown 4 $DEB0 $DEB7 cdl_exec=0 cdl_read=0
-data 4 $DEB8 $DFA3 data_deb8 kind=unknown naming=auto src=datacarve cdl_read=236/236 cdl_exec=0
-unknown 4 $DFA4 $DFAF cdl_exec=0 cdl_read=0
+data 4 $DEB8 $DFA3 data_deb8 kind=table naming=auto src=datacarve cdl_read=236/236 cdl_exec=0 fmt=pal_screen
+unknown 4 $DFA4 $DFAF cdl_exec=0 cdl_read=12
 data 4 $DFB0 $E089 data_dfb0 kind=unknown naming=auto src=datacarve cdl_read=218/218 cdl_exec=0
-unknown 4 $E08A $E0AC cdl_exec=0 cdl_read=0
-data 4 $E0AD $FF71 data_e0ad kind=unknown naming=auto src=datacarve cdl_read=7877/7877 cdl_exec=0
+unknown 4 $E08A $E0AC cdl_exec=0 cdl_read=35
+data 4 $E0AD $FF71 data_e0ad kind=graphics naming=auto src=datacarve cdl_read=7877/7877 cdl_exec=0 fmt=chr_rle
 code 4 $FF72 $FF72 irq naming=reviewed end=rti src=carve cdl=1/1 conf=verified
 unknown 4 $FF73 $FF97 cdl_exec=0 cdl_read=0
 code 4 $FF98 $FFA5 nmi naming=reviewed end=jmp src=carve cdl=11/14 conf=verified
@@ -2313,7 +2324,8 @@ entry 5 $821C e_821c in=loc_812a via=jmp@$82CD
 timing 5 $825C bank_switch store=$FFC8 mode=abs
 entry 5 $8299 e_8299 in=loc_812a via=jmp@$81E8,jmp@$820C
 timing 5 $8299 delay_loop loop=$829A
-unknown 5 $82AA $82B9 cdl_exec=0 cdl_read=0
+unknown 5 $82AA $82B9 cdl_exec=16 cdl_read=0
+xcode 5 $82AA $82B9 in=unk_82aa whole=yes
 code 5 $82BA $82CF sub_82ba naming=auto end=jmp src=carve cdl=22/22 conf=verified proposed=update_ppu_data
 timing 5 $82CA delay_loop loop=$82CB
 code 5 $82D0 $8301 sub_82d0 naming=auto end=rts src=carve cdl=50/50 conf=verified proposed=update_ppu_pattern_data
@@ -2326,42 +2338,44 @@ entry 5 $8384 e_8384 in=loc_8323 via=beq@$83BF
 code 5 $839E $83A0 sub_839e naming=auto end=jmp src=carve cdl=3/3 conf=verified
 code 5 $83A1 $83AD loc_83a1 naming=auto end=open_into_unknown src=carve cdl=13/13 conf=suspect notes=code_read_as_data
 entry 5 $83A5 e_83a5 in=loc_83a1 via=beq@$838D
-unknown 5 $83AE $83AF cdl_exec=0 cdl_read=0
+unknown 5 $83AE $83AF cdl_exec=2 cdl_read=0
+xcode 5 $83AE $83AF in=unk_83ae whole=yes
 code 5 $83B0 $83C0 loc_83b0 naming=auto end=bra src=carve cdl=17/17 conf=verified notes=code_read_as_data
-data 5 $83C1 $8400 data_83c1 kind=ptrtable naming=auto src=datacarve cdl_read=64/64 cdl_exec=0
+data 5 $83C1 $8400 data_83c1 kind=table naming=auto src=datacarve cdl_read=64/64 cdl_exec=0 fmt=chr_list_rle
 data 5 $8401 $840D data_8401 kind=unknown naming=auto src=datacarve cdl_read=13/13 cdl_exec=0
 unknown 5 $840E $8414 cdl_exec=0 cdl_read=0
-code 5 $8415 $8448 sub_8415 naming=auto end=rts src=carve cdl=50/52 conf=verified
+code 5 $8415 $8448 sub_8415 naming=auto end=rts src=carve cdl=52/52 conf=verified
 data 5 $8449 $8450 data_8449 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
 unknown 5 $8451 $8469 cdl_exec=0 cdl_read=13
 data 5 $846A $84D8 data_846a kind=ptrtable naming=auto src=datacarve cdl_read=111/111 cdl_exec=0 proposed=attack_animation_data_table
 unknown 5 $84D9 $84D9 cdl_exec=0 cdl_read=0
 data 5 $84DA $850D data_84da kind=table naming=auto src=datacarve cdl_read=52/52 cdl_exec=0
 code 5 $850E $8599 sub_850e naming=auto end=rts src=carve cdl=140/140 conf=verified notes=code_read_as_data
-data 5 $859A $9D67 data_859a kind=unknown naming=auto src=datacarve cdl_read=6094/6094 cdl_exec=0 proposed=stage1_table_859a
+data 5 $859A $9D67 data_859a kind=graphics naming=auto src=datacarve cdl_read=6094/6094 cdl_exec=0 proposed=stage1_table_859a fmt=chr_rle
 unknown 5 $9D68 $9D7B cdl_exec=20 cdl_read=20
 xcode 5 $9D68 $9D7B in=unk_9d68 whole=yes
 xref 5 $9D68 unknown from=$9DB8 in=unk_9d68
 xref 5 $9D6A unknown from=$9D9C in=unk_9d68
 code 5 $9D7C $9DA0 loc_9d7c naming=auto end=jmp src=carve cdl=37/37 conf=verified notes=code_read_as_data
 code 5 $9DA1 $9DFB loc_9da1 naming=auto end=open_into_data src=carve cdl=91/91 conf=suspect notes=code_read_as_data
-data 5 $9DFC $9E05 data_9dfc kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=10
+data 5 $9DFC $9E05 data_9dfc kind=graphics naming=auto src=datacarve cdl_read=10/10 cdl_exec=10 fmt=chr_rle
 xcode 5 $9DFC $9E05 in=data_9dfc whole=yes
 code 5 $9E06 $9E14 loc_9e06 naming=auto end=open_into_unknown src=carve cdl=15/15 conf=suspect notes=code_read_as_data
 unknown 5 $9E15 $9E18 cdl_exec=4 cdl_read=4
 xcode 5 $9E15 $9E18 in=unk_9e15 whole=yes
 code 5 $9E19 $9E32 sub_9e19 naming=auto end=rts src=carve cdl=26/26 conf=verified
 entry 5 $9E32 e_9e32 in=sub_9e19 via=bcs@$9DE7,bcs@$9DF4,beq@$9DC5,beq@$9DCA,beq@$9DCF,bne@$9DDA
-data 5 $9E33 $9EDF data_9e33 kind=table naming=auto src=datacarve cdl_read=173/173 cdl_exec=18 proposed=entity_behavior_lookup_table
+data 5 $9E33 $9EDF data_9e33 kind=graphics naming=auto src=datacarve cdl_read=173/173 cdl_exec=18 proposed=entity_behavior_lookup_table fmt=chr_rle
 xcode 5 $9E33 $9E44 in=data_9e33 whole=yes
 code 5 $9EE0 $9F07 sub_9ee0 naming=auto end=rts src=carve cdl=40/40 conf=verified
-code 5 $9F08 $A003 sub_9f08 naming=auto end=fall src=carve cdl=250/252 conf=verified
+code 5 $9F08 $A003 sub_9f08 naming=auto end=fall src=carve cdl=252/252 conf=verified
 entry 5 $9F0C e_9f0c in=sub_9f08 via=jmp@$8003
-code 5 $A004 $A14F loc_a004 naming=auto end=open_into_unknown src=carve cdl=330/332 conf=suspect notes=code_read_as_data
+code 5 $A004 $A14F loc_a004 naming=auto end=open_into_unknown src=carve cdl=332/332 conf=suspect notes=code_read_as_data
 entry 5 $A06C e_a06c in=loc_a004 via=jmp@$A046
 entry 5 $A0DF e_a0df in=loc_a004 via=jmp@$A18B
-unknown 5 $A150 $A158 cdl_exec=0 cdl_read=0
-code 5 $A159 $A18D sub_a159 naming=auto end=jmp src=carve cdl=51/53 conf=verified
+unknown 5 $A150 $A158 cdl_exec=9 cdl_read=0
+xcode 5 $A150 $A158 in=unk_a150 whole=yes
+code 5 $A159 $A18D sub_a159 naming=auto end=jmp src=carve cdl=53/53 conf=verified
 entry 5 $A164 e_a164 in=sub_a159 via=jmp@$A092
 entry 5 $A189 e_a189 in=sub_a159 via=bne@$A13E
 code 5 $A18E $A1DA loc_a18e naming=auto end=bra src=carve cdl=77/77 conf=verified notes=code_read_as_data
@@ -2378,40 +2392,40 @@ code 5 $A2E1 $A304 sub_a2e1 naming=auto end=rts src=carve cdl=36/36 conf=verifie
 entry 5 $A2E3 e_a2e3 in=sub_a2e1 via=jsr@$A1B9
 code 5 $A305 $A35D sub_a305 naming=auto end=rts src=carve cdl=89/89 conf=verified
 code 5 $A35E $A38C sub_a35e naming=auto end=rts src=carve cdl=47/47 conf=verified
-unknown 5 $A38D $A3BF cdl_exec=0 cdl_read=37
-data 5 $A3C0 $A3CB data_a3c0 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
-unknown 5 $A3CC $A3EF cdl_exec=0 cdl_read=18
+unknown 5 $A38D $A3BF cdl_exec=0 cdl_read=50
+data 5 $A3C0 $A3CB data_a3c0 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=start_pos
+unknown 5 $A3CC $A3EF cdl_exec=0 cdl_read=36
 code 5 $A3F0 $A451 sub_a3f0 naming=auto end=rts src=carve cdl=98/98 conf=verified
 farcall 5 $A3F7 bank=3 slot=$802A target=$D073 sub_d073
 code 5 $A452 $A4A0 sub_a452 naming=auto end=rts src=carve cdl=79/79 conf=verified
 unknown 5 $A4A1 $A4AE cdl_exec=0 cdl_read=10
-data 5 $A4AF $A4DB data_a4af kind=table naming=auto src=datacarve cdl_read=45/45 cdl_exec=0
+data 5 $A4AF $A4DB data_a4af kind=table naming=auto src=datacarve cdl_read=45/45 cdl_exec=0 fmt=lvl_ptrs
 unknown 5 $A4DC $A4E9 cdl_exec=0 cdl_read=11
 data 5 $A4EA $A506 data_a4ea kind=unknown naming=auto src=datacarve cdl_read=29/29 cdl_exec=0
 data 5 $A507 $A51E data_a507 kind=unknown naming=auto src=datacarve cdl_read=24/24 cdl_exec=0
 unknown 5 $A51F $A526 cdl_exec=0 cdl_read=0
 data 5 $A527 $A52E data_a527 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-data 5 $A52F $A566 data_a52f kind=unknown naming=auto src=datacarve cdl_read=56/56 cdl_exec=0
-data 5 $A567 $A56E data_a567 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-data 5 $A56F $A5A6 data_a56f kind=unknown naming=auto src=datacarve cdl_read=56/56 cdl_exec=0
-data 5 $A5A7 $A5AE data_a5a7 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-data 5 $A5AF $A5E6 data_a5af kind=unknown naming=auto src=datacarve cdl_read=56/56 cdl_exec=0
+data 5 $A52F $A566 data_a52f kind=table naming=auto src=datacarve cdl_read=56/56 cdl_exec=0 fmt=lvl_map
+data 5 $A567 $A56E data_a567 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=lvl_map
+data 5 $A56F $A5A6 data_a56f kind=table naming=auto src=datacarve cdl_read=56/56 cdl_exec=0 fmt=lvl_map
+data 5 $A5A7 $A5AE data_a5a7 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=lvl_map
+data 5 $A5AF $A5E6 data_a5af kind=table naming=auto src=datacarve cdl_read=56/56 cdl_exec=0 fmt=lvl_map
 unknown 5 $A5E7 $A5EE cdl_exec=0 cdl_read=0
-data 5 $A5EF $A83E data_a5ef kind=unknown naming=auto src=datacarve cdl_read=592/592 cdl_exec=0
+data 5 $A5EF $A83E data_a5ef kind=table naming=auto src=datacarve cdl_read=592/592 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $A83F $A85E cdl_exec=0 cdl_read=0
-data 5 $A85F $ABB6 data_a85f kind=unknown naming=auto src=datacarve cdl_read=856/856 cdl_exec=0
+data 5 $A85F $ABB6 data_a85f kind=table naming=auto src=datacarve cdl_read=856/856 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $ABB7 $ABBE cdl_exec=0 cdl_read=0
-data 5 $ABBF $ABC6 data_abbf kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-data 5 $ABC7 $ABCE data_abc7 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-data 5 $ABCF $ABD6 data_abcf kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 5 $ABBF $ABC6 data_abbf kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=lvl_blocks
+data 5 $ABC7 $ABCE data_abc7 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=lvl_blocks
+data 5 $ABCF $ABD6 data_abcf kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $ABD7 $ABDE cdl_exec=0 cdl_read=1
-data 5 $ABDF $ABE6 data_abdf kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 5 $ABDF $ABE6 data_abdf kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $ABE7 $ABEE cdl_exec=0 cdl_read=0
-data 5 $ABEF $ABF6 data_abef kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 5 $ABEF $ABF6 data_abef kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $ABF7 $ABFE cdl_exec=0 cdl_read=0
-data 5 $ABFF $AC15 data_abff kind=unknown naming=auto src=datacarve cdl_read=23/23 cdl_exec=0
+data 5 $ABFF $AC15 data_abff kind=table naming=auto src=datacarve cdl_read=23/23 cdl_exec=0 fmt=lvl_block_attr
 unknown 5 $AC16 $AC17 cdl_exec=0 cdl_read=0
-data 5 $AC18 $AC51 data_ac18 kind=unknown naming=auto src=datacarve cdl_read=58/58 cdl_exec=0
+data 5 $AC18 $AC51 data_ac18 kind=table naming=auto src=datacarve cdl_read=58/58 cdl_exec=0 fmt=lvl_block_attr
 code 5 $AC52 $ACD9 sub_ac52 naming=auto end=jmp src=carve cdl=136/136 conf=verified
 entry 5 $AC6C e_ac6c in=sub_ac52 via=jmp@$B7B8,jmp@$B859
 unknown 5 $ACDA $ACE0 cdl_exec=0 cdl_read=6
@@ -2424,8 +2438,8 @@ entry 5 $AD44 e_ad44 in=sub_acfb via=jmp@$ACD7,jsr@$AFA4
 code 5 $AD52 $AD6A sub_ad52 naming=auto end=rts src=carve cdl=25/25 conf=verified
 entry 5 $AD55 e_ad55 in=sub_ad52 via=jsr@$ACE9
 code 5 $AD6B $AD7F loc_ad6b naming=auto end=open_into_unknown src=carve cdl=21/21 conf=suspect notes=code_read_as_data
-unknown 5 $AD80 $ADA3 cdl_exec=20 cdl_read=0
-xcode 5 $AD80 $AD93 in=unk_ad80 whole=yes
+unknown 5 $AD80 $ADA3 cdl_exec=36 cdl_read=0
+xcode 5 $AD80 $ADA3 in=unk_ad80 whole=yes
 code 5 $ADA4 $AE2E sub_ada4 naming=auto end=rts src=carve cdl=139/139 conf=verified
 entry 5 $ADAF e_adaf in=sub_ada4 via=bcs@$AD6D
 code 5 $AE2F $AE60 sub_ae2f naming=auto end=jmp src=carve cdl=50/50 conf=verified
@@ -2439,7 +2453,7 @@ entry 5 $AF2C e_af2c in=loc_aed1 via=jmp@$AF17
 entry 5 $AF42 e_af42 in=loc_aed1 via=jmp@$AE5E
 unknown 5 $AF49 $AF5D cdl_exec=21 cdl_read=0
 xcode 5 $AF49 $AF5D in=unk_af49 whole=yes
-code 5 $AF5E $B09A sub_af5e naming=auto end=jmp src=carve cdl=314/317 conf=verified proposed=player_entity_hit_handler
+code 5 $AF5E $B09A sub_af5e naming=auto end=jmp src=carve cdl=317/317 conf=verified proposed=player_entity_hit_handler
 entry 5 $AF5F e_af5f in=sub_af5e via=beq@$AF47
 entry 5 $AF78 e_af78 in=sub_af5e via=jsr@$AF70
 entry 5 $AF97 e_af97 in=sub_af5e via=jsr@$AE2B,jsr@$AF5F
@@ -2454,7 +2468,8 @@ entry 5 $B0EF e_b0ef in=sub_b0e9 via=jmp@$B02F,jmp@$B086,jmp@$B1CD,jmp@$B25E
 entry 5 $B0F0 e_b0f0 in=sub_b0e9 via=jmp@$B195
 code 5 $B0F4 $B11F sub_b0f4 naming=auto end=rts src=carve cdl=44/44 conf=verified
 code 5 $B120 $B130 loc_b120 naming=auto end=open_into_data src=carve cdl=17/17 conf=suspect notes=code_read_as_data
-data 5 $B131 $B13C data_b131 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 5 $B131 $B13C data_b131 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=9
+xcode 5 $B131 $B139 in=data_b131 whole=yes
 code 5 $B13D $B142 sub_b13d naming=auto end=jmp src=carve cdl=6/6 conf=verified
 code 5 $B143 $B150 sub_b143 naming=auto end=rts src=carve cdl=14/14 conf=verified
 entry 5 $B147 e_b147 in=sub_b143 via=jsr@$B095
@@ -2485,7 +2500,7 @@ data 5 $B37F $B38E data_b37f kind=unknown naming=auto src=datacarve cdl_read=16/
 unknown 5 $B38F $B3CE cdl_exec=0 cdl_read=0
 data 5 $B3CF $B3DE data_b3cf kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
 unknown 5 $B3DF $B411 cdl_exec=0 cdl_read=0
-code 5 $B412 $B46A sub_b412 naming=auto end=rts src=carve cdl=70/89 conf=verified
+code 5 $B412 $B46A sub_b412 naming=auto end=rts src=carve cdl=89/89 conf=verified
 unknown 5 $B46B $B46F cdl_exec=0 cdl_read=4
 data 5 $B470 $B477 data_b470 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
 unknown 5 $B478 $B478 cdl_exec=0 cdl_read=1
@@ -2511,7 +2526,7 @@ entry 5 $B7BB e_b7bb in=sub_b7b8 via=jmp@$B872
 code 5 $B7C3 $B83B sub_b7c3 naming=auto end=fall src=carve cdl=121/121 conf=verified
 entry 5 $B7C6 e_b7c6 in=sub_b7c3 via=jmp@$B862
 code 5 $B83C $B855 sub_b83c naming=auto end=jmp src=carve cdl=26/26 conf=verified notes=code_read_as_data
-code 5 $B856 $BA35 sub_b856 naming=auto end=rts src=carve cdl=477/480 conf=verified proposed=player_entity_update
+code 5 $B856 $BA35 sub_b856 naming=auto end=rts src=carve cdl=480/480 conf=verified proposed=player_entity_update
 entry 5 $B865 e_b865 in=sub_b856 via=bne@$B841
 entry 5 $B875 e_b875 in=sub_b856 via=jmp@$AC69
 entry 5 $B886 e_b886 in=sub_b856 via=jmp@$8012
@@ -2526,7 +2541,8 @@ entry 5 $BA27 e_ba27 in=sub_b856 via=jmp@$B982
 unknown 5 $BA36 $BA59 cdl_exec=0 cdl_read=6
 code 5 $BA5A $BA8B sub_ba5a naming=auto end=open_into_unknown src=carve cdl=50/50 conf=suspect notes=code_read_as_data
 entry 5 $BA7F e_ba7f in=sub_ba5a via=jmp@$BA79
-unknown 5 $BA8C $BA8D cdl_exec=0 cdl_read=0
+unknown 5 $BA8C $BA8D cdl_exec=2 cdl_read=0
+xcode 5 $BA8C $BA8D in=unk_ba8c whole=yes
 code 5 $BA8E $BB48 sub_ba8e naming=auto end=rts src=carve cdl=187/187 conf=verified
 entry 5 $BA99 e_ba99 in=sub_ba8e via=jmp@$8018,jmp@$B85F
 unknown 5 $BB49 $BB52 cdl_exec=0 cdl_read=8
@@ -2536,155 +2552,155 @@ data 5 $BB6F $BB82 data_bb6f kind=unknown naming=auto src=datacarve cdl_read=20/
 unknown 5 $BB83 $BB92 cdl_exec=0 cdl_read=16
 data 5 $BB93 $BBB2 data_bb93 kind=unknown naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 proposed=stage5_level_enemy_layout_data
 unknown 5 $BBB3 $BBCE cdl_exec=0 cdl_read=28
-data 5 $BBCF $BBE6 data_bbcf kind=unknown naming=auto src=datacarve cdl_read=24/24 cdl_exec=0
+data 5 $BBCF $BBE6 data_bbcf kind=table naming=auto src=datacarve cdl_read=24/24 cdl_exec=0 fmt=lvl_map
 unknown 5 $BBE7 $BBE7 cdl_exec=0 cdl_read=1
-data 5 $BBE8 $BC06 data_bbe8 kind=unknown naming=auto src=datacarve cdl_read=31/31 cdl_exec=0
+data 5 $BBE8 $BC06 data_bbe8 kind=table naming=auto src=datacarve cdl_read=31/31 cdl_exec=0 fmt=lvl_map
 unknown 5 $BC07 $BC0B cdl_exec=0 cdl_read=5
-data 5 $BC0C $BC1D data_bc0c kind=unknown naming=auto src=datacarve cdl_read=18/18 cdl_exec=0
+data 5 $BC0C $BC1D data_bc0c kind=table naming=auto src=datacarve cdl_read=18/18 cdl_exec=0 fmt=lvl_map
 unknown 5 $BC1E $BC24 cdl_exec=0 cdl_read=7
-data 5 $BC25 $BC4F data_bc25 kind=unknown naming=auto src=datacarve cdl_read=43/43 cdl_exec=0
+data 5 $BC25 $BC4F data_bc25 kind=table naming=auto src=datacarve cdl_read=43/43 cdl_exec=0 fmt=lvl_map
 unknown 5 $BC50 $BC50 cdl_exec=0 cdl_read=1
-data 5 $BC51 $BC5B data_bc51 kind=unknown naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 proposed=stage5_table_bc51
+data 5 $BC51 $BC5B data_bc51 kind=table naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 proposed=stage5_table_bc51 fmt=lvl_map
 unknown 5 $BC5C $BC5E cdl_exec=0 cdl_read=3
-data 5 $BC5F $BCEB data_bc5f kind=unknown naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 proposed=stage5_level_data_table
+data 5 $BC5F $BCEB data_bc5f kind=table naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 proposed=stage5_level_data_table fmt=lvl_map
 unknown 5 $BCEC $BCEE cdl_exec=0 cdl_read=3
-data 5 $BCEF $BD7B data_bcef kind=unknown naming=auto src=datacarve cdl_read=141/141 cdl_exec=0
+data 5 $BCEF $BD7B data_bcef kind=table naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 fmt=lvl_map
 unknown 5 $BD7C $BD7E cdl_exec=0 cdl_read=3
-data 5 $BD7F $BE0B data_bd7f kind=unknown naming=auto src=datacarve cdl_read=141/141 cdl_exec=0
+data 5 $BD7F $BE0B data_bd7f kind=table naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 fmt=lvl_map
 unknown 5 $BE0C $BE0E cdl_exec=0 cdl_read=3
-data 5 $BE0F $BE9B data_be0f kind=unknown naming=auto src=datacarve cdl_read=141/141 cdl_exec=0
+data 5 $BE0F $BE9B data_be0f kind=table naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 fmt=lvl_map
 unknown 5 $BE9C $BE9E cdl_exec=0 cdl_read=3
-data 5 $BE9F $BF2B data_be9f kind=unknown naming=auto src=datacarve cdl_read=141/141 cdl_exec=0
+data 5 $BE9F $BF2B data_be9f kind=table naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 fmt=lvl_map
 unknown 5 $BF2C $BF2E cdl_exec=0 cdl_read=3
-data 5 $BF2F $BFBB data_bf2f kind=unknown naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 proposed=stage5_table_bf2f
+data 5 $BF2F $BFBB data_bf2f kind=table naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 proposed=stage5_table_bf2f fmt=lvl_map
 unknown 5 $BFBC $BFBE cdl_exec=0 cdl_read=3
-data 5 $BFBF $C04B data_bfbf kind=unknown naming=auto src=datacarve cdl_read=141/141 cdl_exec=0
+data 5 $BFBF $C04B data_bfbf kind=table naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 fmt=lvl_map
 unknown 5 $C04C $C04E cdl_exec=0 cdl_read=3
-data 5 $C04F $C08D data_c04f kind=unknown naming=auto src=datacarve cdl_read=63/63 cdl_exec=0
+data 5 $C04F $C08D data_c04f kind=table naming=auto src=datacarve cdl_read=63/63 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $C08E $C09A cdl_exec=0 cdl_read=12
-data 5 $C09B $C1AE data_c09b kind=unknown naming=auto src=datacarve cdl_read=276/276 cdl_exec=0 proposed=stage5_table_c09b
+data 5 $C09B $C1AE data_c09b kind=table naming=auto src=datacarve cdl_read=276/276 cdl_exec=0 proposed=stage5_table_c09b fmt=lvl_blocks
 unknown 5 $C1AF $C1BE cdl_exec=0 cdl_read=8
-data 5 $C1BF $C32E data_c1bf kind=unknown naming=auto src=datacarve cdl_read=368/368 cdl_exec=0
+data 5 $C1BF $C32E data_c1bf kind=table naming=auto src=datacarve cdl_read=368/368 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $C32F $C336 cdl_exec=0 cdl_read=0
-data 5 $C337 $C72E data_c337 kind=unknown naming=auto src=datacarve cdl_read=1016/1016 cdl_exec=0 proposed=stage5_table_c337
+data 5 $C337 $C72E data_c337 kind=table naming=auto src=datacarve cdl_read=1016/1016 cdl_exec=0 proposed=stage5_table_c337 fmt=lvl_blocks
 unknown 5 $C72F $C73E cdl_exec=0 cdl_read=16
-data 5 $C73F $C80E data_c73f kind=unknown naming=auto src=datacarve cdl_read=208/208 cdl_exec=0 proposed=stage5_table_c73f
+data 5 $C73F $C80E data_c73f kind=table naming=auto src=datacarve cdl_read=208/208 cdl_exec=0 proposed=stage5_table_c73f fmt=lvl_blocks
 unknown 5 $C80F $C853 cdl_exec=0 cdl_read=5
-data 5 $C854 $C864 data_c854 kind=unknown naming=auto src=datacarve cdl_read=17/17 cdl_exec=0 proposed=stage5_table_c854
+data 5 $C854 $C864 data_c854 kind=table naming=auto src=datacarve cdl_read=17/17 cdl_exec=0 proposed=stage5_table_c854 fmt=lvl_block_attr
 unknown 5 $C865 $C865 cdl_exec=0 cdl_read=1
-data 5 $C866 $C8BC data_c866 kind=unknown naming=auto src=datacarve cdl_read=87/87 cdl_exec=0
+data 5 $C866 $C8BC data_c866 kind=table naming=auto src=datacarve cdl_read=87/87 cdl_exec=0 fmt=lvl_block_attr
 unknown 5 $C8BD $C8BD cdl_exec=0 cdl_read=1
-data 5 $C8BE $C8CC data_c8be kind=unknown naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
+data 5 $C8BE $C8CC data_c8be kind=table naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=lvl_block_attr
 unknown 5 $C8CD $C8D8 cdl_exec=0 cdl_read=0
-data 5 $C8D9 $C8ED data_c8d9 kind=unknown naming=auto src=datacarve cdl_read=21/21 cdl_exec=0
+data 5 $C8D9 $C8ED data_c8d9 kind=table naming=auto src=datacarve cdl_read=21/21 cdl_exec=0 fmt=lvl_map
 unknown 5 $C8EE $C8F6 cdl_exec=0 cdl_read=8
-data 5 $C8F7 $C914 data_c8f7 kind=unknown naming=auto src=datacarve cdl_read=30/30 cdl_exec=0
+data 5 $C8F7 $C914 data_c8f7 kind=table naming=auto src=datacarve cdl_read=30/30 cdl_exec=0 fmt=lvl_map
 unknown 5 $C915 $C916 cdl_exec=0 cdl_read=2
-data 5 $C917 $C95C data_c917 kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
+data 5 $C917 $C95C data_c917 kind=table naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=lvl_map
 unknown 5 $C95D $C95E cdl_exec=0 cdl_read=0
-data 5 $C95F $C9A4 data_c95f kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
+data 5 $C95F $C9A4 data_c95f kind=table naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=lvl_map
 unknown 5 $C9A5 $C9A6 cdl_exec=0 cdl_read=0
-data 5 $C9A7 $C9EC data_c9a7 kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
+data 5 $C9A7 $C9EC data_c9a7 kind=table naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=lvl_map
 unknown 5 $C9ED $C9EE cdl_exec=0 cdl_read=0
-data 5 $C9EF $CA34 data_c9ef kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
+data 5 $C9EF $CA34 data_c9ef kind=table naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=lvl_map
 unknown 5 $CA35 $CA36 cdl_exec=0 cdl_read=0
-data 5 $CA37 $CA7C data_ca37 kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
+data 5 $CA37 $CA7C data_ca37 kind=table naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=lvl_map
 unknown 5 $CA7D $CA7E cdl_exec=0 cdl_read=0
-data 5 $CA7F $CAC4 data_ca7f kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
+data 5 $CA7F $CAC4 data_ca7f kind=table naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=lvl_map
 unknown 5 $CAC5 $CAC6 cdl_exec=0 cdl_read=0
-data 5 $CAC7 $CB0C data_cac7 kind=unknown naming=auto src=datacarve cdl_read=70/70 cdl_exec=0
+data 5 $CAC7 $CB0C data_cac7 kind=table naming=auto src=datacarve cdl_read=70/70 cdl_exec=0 fmt=lvl_map
 unknown 5 $CB0D $CB0E cdl_exec=0 cdl_read=0
-data 5 $CB0F $CB4D data_cb0f kind=unknown naming=auto src=datacarve cdl_read=63/63 cdl_exec=0 proposed=stage1_level_enemy_layout_data
+data 5 $CB0F $CB4D data_cb0f kind=table naming=auto src=datacarve cdl_read=63/63 cdl_exec=0 proposed=stage1_level_enemy_layout_data fmt=lvl_map
 unknown 5 $CB4E $CB56 cdl_exec=0 cdl_read=0
-data 5 $CB57 $CB66 data_cb57 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 proposed=stage1_table_cb57
+data 5 $CB57 $CB66 data_cb57 kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 proposed=stage1_table_cb57 fmt=lvl_blocks
 unknown 5 $CB67 $CB6D cdl_exec=0 cdl_read=0
-data 5 $CB6E $CC79 data_cb6e kind=unknown naming=auto src=datacarve cdl_read=268/268 cdl_exec=0
+data 5 $CB6E $CC79 data_cb6e kind=table naming=auto src=datacarve cdl_read=268/268 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $CC7A $CC96 cdl_exec=0 cdl_read=21
-data 5 $CC97 $CDB6 data_cc97 kind=unknown naming=auto src=datacarve cdl_read=288/288 cdl_exec=0 proposed=stage1_table_cc97
+data 5 $CC97 $CDB6 data_cc97 kind=table naming=auto src=datacarve cdl_read=288/288 cdl_exec=0 proposed=stage1_table_cc97 fmt=lvl_blocks
 unknown 5 $CDB7 $CDC6 cdl_exec=0 cdl_read=0
-data 5 $CDC7 $CF06 data_cdc7 kind=unknown naming=auto src=datacarve cdl_read=320/320 cdl_exec=0 proposed=stage1_table_cdc7
-unknown 5 $CF07 $CF16 cdl_exec=0 cdl_read=0
-data 5 $CF17 $D17A data_cf17 kind=unknown naming=auto src=datacarve cdl_read=612/612 cdl_exec=0 proposed=stage1_table_cf17
+data 5 $CDC7 $CF06 data_cdc7 kind=table naming=auto src=datacarve cdl_read=320/320 cdl_exec=0 proposed=stage1_table_cdc7 fmt=lvl_blocks
+unknown 5 $CF07 $CF16 cdl_exec=0 cdl_read=4
+data 5 $CF17 $D17A data_cf17 kind=table naming=auto src=datacarve cdl_read=612/612 cdl_exec=0 proposed=stage1_table_cf17 fmt=lvl_blocks
 unknown 5 $D17B $D186 cdl_exec=0 cdl_read=0
-data 5 $D187 $D507 data_d187 kind=unknown naming=auto src=datacarve cdl_read=897/897 cdl_exec=0
+data 5 $D187 $D507 data_d187 kind=table naming=auto src=datacarve cdl_read=897/897 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $D508 $D508 cdl_exec=0 cdl_read=0
-data 5 $D509 $D52C data_d509 kind=unknown naming=auto src=datacarve cdl_read=36/36 cdl_exec=0
+data 5 $D509 $D52C data_d509 kind=table naming=auto src=datacarve cdl_read=36/36 cdl_exec=0 fmt=lvl_block_attr
 unknown 5 $D52D $D52D cdl_exec=0 cdl_read=0
-data 5 $D52E $D541 data_d52e kind=unknown naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
-unknown 5 $D542 $D542 cdl_exec=0 cdl_read=0
-data 5 $D543 $D5BB data_d543 kind=unknown naming=auto src=datacarve cdl_read=121/121 cdl_exec=0
+data 5 $D52E $D541 data_d52e kind=table naming=auto src=datacarve cdl_read=20/20 cdl_exec=0 fmt=lvl_block_attr
+unknown 5 $D542 $D542 cdl_exec=0 cdl_read=1
+data 5 $D543 $D5BB data_d543 kind=table naming=auto src=datacarve cdl_read=121/121 cdl_exec=0 fmt=lvl_block_attr
 unknown 5 $D5BC $D5C1 cdl_exec=0 cdl_read=6
-data 5 $D5C2 $D5DB data_d5c2 kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 proposed=stage5_table_d5c2
+data 5 $D5C2 $D5DB data_d5c2 kind=table naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 proposed=stage5_table_d5c2 fmt=lvl_map
 unknown 5 $D5DC $D5E1 cdl_exec=0 cdl_read=6
-data 5 $D5E2 $D5FC data_d5e2 kind=unknown naming=auto src=datacarve cdl_read=27/27 cdl_exec=0
+data 5 $D5E2 $D5FC data_d5e2 kind=table naming=auto src=datacarve cdl_read=27/27 cdl_exec=0 fmt=lvl_map
 unknown 5 $D5FD $D601 cdl_exec=0 cdl_read=5
-data 5 $D602 $D61B data_d602 kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0
+data 5 $D602 $D61B data_d602 kind=table naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 fmt=lvl_map
 unknown 5 $D61C $D621 cdl_exec=0 cdl_read=6
-data 5 $D622 $D63B data_d622 kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 proposed=stage5_table_d622
+data 5 $D622 $D63B data_d622 kind=table naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 proposed=stage5_table_d622 fmt=lvl_map
 unknown 5 $D63C $D641 cdl_exec=0 cdl_read=6
-data 5 $D642 $D65B data_d642 kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0
+data 5 $D642 $D65B data_d642 kind=table naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 fmt=lvl_map
 unknown 5 $D65C $D661 cdl_exec=0 cdl_read=6
-data 5 $D662 $D67B data_d662 kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0
+data 5 $D662 $D67B data_d662 kind=table naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 fmt=lvl_map
 unknown 5 $D67C $D681 cdl_exec=0 cdl_read=6
-data 5 $D682 $D69B data_d682 kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0
+data 5 $D682 $D69B data_d682 kind=table naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 fmt=lvl_map
 unknown 5 $D69C $D6A2 cdl_exec=0 cdl_read=7
-data 5 $D6A3 $D6B2 data_d6a3 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
+data 5 $D6A3 $D6B2 data_d6a3 kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $D6B3 $D6B5 cdl_exec=0 cdl_read=3
-data 5 $D6B6 $D6C1 data_d6b6 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 proposed=stage5_table_d6b6
+data 5 $D6B6 $D6C1 data_d6b6 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 proposed=stage5_table_d6b6 fmt=lvl_blocks
 unknown 5 $D6C2 $D6C5 cdl_exec=0 cdl_read=1
-data 5 $D6C6 $D6D1 data_d6c6 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 proposed=stage5_table_d6c6
+data 5 $D6C6 $D6D1 data_d6c6 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 proposed=stage5_table_d6c6 fmt=lvl_blocks
 unknown 5 $D6D2 $D6D5 cdl_exec=0 cdl_read=4
-data 5 $D6D6 $D751 data_d6d6 kind=unknown naming=auto src=datacarve cdl_read=124/124 cdl_exec=0
+data 5 $D6D6 $D751 data_d6d6 kind=table naming=auto src=datacarve cdl_read=124/124 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $D752 $D761 cdl_exec=0 cdl_read=16
-data 5 $D762 $D7C1 data_d762 kind=unknown naming=auto src=datacarve cdl_read=96/96 cdl_exec=0
+data 5 $D762 $D7C1 data_d762 kind=table naming=auto src=datacarve cdl_read=96/96 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $D7C2 $D7D1 cdl_exec=0 cdl_read=16
-data 5 $D7D2 $DA4D data_d7d2 kind=unknown naming=auto src=datacarve cdl_read=636/636 cdl_exec=0
+data 5 $D7D2 $DA4D data_d7d2 kind=table naming=auto src=datacarve cdl_read=636/636 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $DA4E $DA51 cdl_exec=0 cdl_read=4
-data 5 $DA52 $DA5D data_da52 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 proposed=stage5_table_da52
+data 5 $DA52 $DA5D data_da52 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 proposed=stage5_table_da52 fmt=lvl_blocks
 unknown 5 $DA5E $DA61 cdl_exec=0 cdl_read=4
-data 5 $DA62 $DA6D data_da62 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 5 $DA62 $DA6D data_da62 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $DA6E $DA71 cdl_exec=0 cdl_read=0
-data 5 $DA72 $DA8C data_da72 kind=unknown naming=auto src=datacarve cdl_read=27/27 cdl_exec=0
+data 5 $DA72 $DA8C data_da72 kind=table naming=auto src=datacarve cdl_read=27/27 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $DA8D $DA94 cdl_exec=0 cdl_read=8
-data 5 $DA95 $DABF data_da95 kind=unknown naming=auto src=datacarve cdl_read=43/43 cdl_exec=0 proposed=stage5_table_da95
+data 5 $DA95 $DABF data_da95 kind=table naming=auto src=datacarve cdl_read=43/43 cdl_exec=0 proposed=stage5_table_da95 fmt=lvl_block_attr
 unknown 5 $DAC0 $DAC1 cdl_exec=0 cdl_read=0
-data 5 $DAC2 $DF01 data_dac2 kind=unknown naming=auto src=datacarve cdl_read=1088/1088 cdl_exec=0 proposed=stage6_table_dac2
+data 5 $DAC2 $DF01 data_dac2 kind=table naming=auto src=datacarve cdl_read=1088/1088 cdl_exec=0 proposed=stage6_table_dac2 fmt=lvl_blocks
 unknown 5 $DF02 $DF21 cdl_exec=0 cdl_read=0
-data 5 $DF22 $DF57 data_df22 kind=unknown naming=auto src=datacarve cdl_read=54/54 cdl_exec=0 proposed=stage6_table_df22
+data 5 $DF22 $DF57 data_df22 kind=table naming=auto src=datacarve cdl_read=54/54 cdl_exec=0 proposed=stage6_table_df22 fmt=lvl_block_attr
 unknown 5 $DF58 $DF59 cdl_exec=0 cdl_read=0
-data 5 $DF5A $E162 data_df5a kind=unknown naming=auto src=datacarve cdl_read=521/521 cdl_exec=0
-unknown 5 $E163 $E199 cdl_exec=0 cdl_read=51
-data 5 $E19A $E299 data_e19a kind=unknown naming=auto src=datacarve cdl_read=256/256 cdl_exec=0 proposed=stage3_table_e19a
-unknown 5 $E29A $E2D9 cdl_exec=0 cdl_read=0
-data 5 $E2DA $E419 data_e2da kind=unknown naming=auto src=datacarve cdl_read=320/320 cdl_exec=0 proposed=stage3_table_e2da
+data 5 $DF5A $E162 data_df5a kind=table naming=auto src=datacarve cdl_read=521/521 cdl_exec=0 fmt=lvl_map
+unknown 5 $E163 $E199 cdl_exec=0 cdl_read=55
+data 5 $E19A $E299 data_e19a kind=table naming=auto src=datacarve cdl_read=256/256 cdl_exec=0 proposed=stage3_table_e19a fmt=lvl_map
+unknown 5 $E29A $E2D9 cdl_exec=0 cdl_read=4
+data 5 $E2DA $E419 data_e2da kind=table naming=auto src=datacarve cdl_read=320/320 cdl_exec=0 proposed=stage3_table_e2da fmt=lvl_map
 unknown 5 $E41A $E459 cdl_exec=0 cdl_read=0
-data 5 $E45A $E719 data_e45a kind=unknown naming=auto src=datacarve cdl_read=704/704 cdl_exec=0
+data 5 $E45A $E719 data_e45a kind=table naming=auto src=datacarve cdl_read=704/704 cdl_exec=0 fmt=lvl_map
 unknown 5 $E71A $E729 cdl_exec=0 cdl_read=0
-data 5 $E72A $E8F9 data_e72a kind=unknown naming=auto src=datacarve cdl_read=464/464 cdl_exec=0 proposed=unknown_table_e72a
+data 5 $E72A $E8F9 data_e72a kind=table naming=auto src=datacarve cdl_read=464/464 cdl_exec=0 proposed=unknown_table_e72a fmt=lvl_blocks
 unknown 5 $E8FA $E909 cdl_exec=0 cdl_read=7
-data 5 $E90A $EA49 data_e90a kind=unknown naming=auto src=datacarve cdl_read=320/320 cdl_exec=0
+data 5 $E90A $EA49 data_e90a kind=table naming=auto src=datacarve cdl_read=320/320 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $EA4A $EA59 cdl_exec=0 cdl_read=0
-data 5 $EA5A $F051 data_ea5a kind=unknown naming=auto src=datacarve cdl_read=1528/1528 cdl_exec=0
+data 5 $EA5A $F051 data_ea5a kind=table naming=auto src=datacarve cdl_read=1528/1528 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $F052 $F052 cdl_exec=0 cdl_read=0
-data 5 $F053 $F06F data_f053 kind=unknown naming=auto src=datacarve cdl_read=29/29 cdl_exec=0
+data 5 $F053 $F06F data_f053 kind=table naming=auto src=datacarve cdl_read=29/29 cdl_exec=0 fmt=lvl_block_attr
 unknown 5 $F070 $F070 cdl_exec=0 cdl_read=0
-data 5 $F071 $F084 data_f071 kind=unknown naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
+data 5 $F071 $F084 data_f071 kind=table naming=auto src=datacarve cdl_read=20/20 cdl_exec=0 fmt=lvl_block_attr
 unknown 5 $F085 $F085 cdl_exec=0 cdl_read=0
-data 5 $F086 $F0E4 data_f086 kind=unknown naming=auto src=datacarve cdl_read=95/95 cdl_exec=0 proposed=stage3_table_f086
+data 5 $F086 $F0E4 data_f086 kind=table naming=auto src=datacarve cdl_read=95/95 cdl_exec=0 proposed=stage3_table_f086 fmt=lvl_block_attr
 unknown 5 $F0E5 $F104 cdl_exec=0 cdl_read=7
 data 5 $F105 $F114 data_f105 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
 unknown 5 $F115 $F127 cdl_exec=0 cdl_read=13
 data 5 $F128 $F12F data_f128 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-unknown 5 $F130 $F142 cdl_exec=0 cdl_read=6
+unknown 5 $F130 $F142 cdl_exec=0 cdl_read=7
 data 5 $F143 $F14F data_f143 kind=unknown naming=auto src=datacarve cdl_read=13/13 cdl_exec=0 proposed=stage3_table_f143
-unknown 5 $F150 $F174 cdl_exec=0 cdl_read=15
+unknown 5 $F150 $F174 cdl_exec=0 cdl_read=23
 data 5 $F175 $F184 data_f175 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 proposed=stage3_table_f175
-unknown 5 $F185 $F1F4 cdl_exec=0 cdl_read=32
-data 5 $F1F5 $F9E0 data_f1f5 kind=unknown naming=auto src=datacarve cdl_read=2028/2028 cdl_exec=0 proposed=stage4_table_f1f5
+unknown 5 $F185 $F1F4 cdl_exec=0 cdl_read=34
+data 5 $F1F5 $F9E0 data_f1f5 kind=table naming=auto src=datacarve cdl_read=2028/2028 cdl_exec=0 proposed=stage4_table_f1f5 fmt=lvl_blocks
 unknown 5 $F9E1 $F9E3 cdl_exec=0 cdl_read=0
-data 5 $F9E4 $F9EF data_f9e4 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 5 $F9E4 $F9EF data_f9e4 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=lvl_blocks
 unknown 5 $F9F0 $F9F5 cdl_exec=0 cdl_read=1
-data 5 $F9F6 $FD11 data_f9f6 kind=table naming=auto src=datacarve cdl_read=796/796 cdl_exec=0 proposed=entity_state_lookup_table
+data 5 $F9F6 $FD11 data_f9f6 kind=graphics naming=auto src=datacarve cdl_read=796/796 cdl_exec=0 proposed=entity_state_lookup_table fmt=chr_rle
 unknown 5 $FD12 $FD12 cdl_exec=0 cdl_read=0
 data 5 $FD13 $FD1C data_fd13 kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 proposed=stage3_table_fd13
 unknown 5 $FD1D $FD1D cdl_exec=0 cdl_read=1
@@ -2707,7 +2723,7 @@ code 5 $FE26 $FF2B sub_fe26 naming=auto end=rts src=carve cdl=262/262 conf=verif
 entry 5 $FF1B e_ff1b in=sub_fe26 via=jmp@$FE48
 unknown 5 $FF2C $FF30 cdl_exec=0 cdl_read=2
 code 5 $FF31 $FF31 irq naming=reviewed end=rti src=carve cdl=1/1 conf=verified
-unknown 5 $FF32 $FF7A cdl_exec=0 cdl_read=0
+unknown 5 $FF32 $FF7A cdl_exec=0 cdl_read=2
 code 5 $FF7B $FF83 sub_ff7b naming=auto end=rts src=carve cdl=9/9 conf=verified
 timing 5 $FF80 bank_switch store=$FFB3 mode=abs
 data 5 $FF84 $FF97 data_ff84 kind=unknown naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
@@ -2799,10 +2815,10 @@ entry 6 $84BA e_84ba in=enemy_attack_handler via=jmp@$83D3
 data 6 $84C1 $84D3 data_84c1 kind=table naming=auto src=datacarve cdl_read=19/19 cdl_exec=0
 unknown 6 $84D4 $84D4 cdl_exec=0 cdl_read=0
 code 6 $84D5 $84F8 sub_84d5 naming=auto end=rts src=carve cdl=36/36 conf=verified proposed=update_attack_sprite_buffer
-code 6 $84F9 $8557 sub_84f9 naming=auto end=rts src=carve cdl=92/95 conf=static
+code 6 $84F9 $8557 sub_84f9 naming=auto end=rts src=carve cdl=95/95 conf=verified
 entry 6 $84FC e_84fc in=sub_84f9 via=jmp@$80C2
 data 6 $8558 $8562 data_8558 kind=table naming=auto src=datacarve cdl_read=11/11 cdl_exec=0
-unknown 6 $8563 $8566 cdl_exec=0 cdl_read=2
+unknown 6 $8563 $8566 cdl_exec=0 cdl_read=4
 code 6 $8567 $85D7 sub_8567 naming=auto end=rts src=carve cdl=113/113 conf=verified
 entry 6 $85D7 e_85d7 in=sub_8567 via=beq@$8636
 code 6 $85D8 $85DA sub_85d8 naming=auto end=jmp src=carve cdl=3/3 conf=verified
@@ -2811,7 +2827,7 @@ code 6 $8651 $869C sub_8651 naming=auto end=rts src=carve cdl=76/76 conf=verifie
 entry 6 $8682 e_8682 in=sub_8651 via=jsr@$8585
 entry 6 $869C e_869c in=sub_8651 via=beq@$86DC
 code 6 $869D $8714 loc_869d naming=auto end=jmp src=carve cdl=120/120 conf=verified notes=code_read_as_data
-code 6 $8715 $87C1 sub_8715 naming=auto end=rts src=carve cdl=169/173 conf=static proposed=update_sprite_buffer_data
+code 6 $8715 $87C1 sub_8715 naming=auto end=rts src=carve cdl=173/173 conf=verified proposed=update_sprite_buffer_data
 entry 6 $8718 e_8718 in=sub_8715 via=bne@$8710
 entry 6 $8741 e_8741 in=sub_8715 via=jmp@$87B3
 entry 6 $8768 e_8768 in=sub_8715 via=jmp@$8760
@@ -2824,7 +2840,8 @@ entry 6 $883F e_883f in=loc_8824 via=jmp@$884F
 code 6 $8852 $886B sub_8852 naming=auto end=rts src=carve cdl=26/26 conf=verified proposed=update_stage3_sprite_data
 entry 6 $886B e_886b in=sub_8852 via=bne@$8873
 code 6 $886C $8896 loc_886c naming=auto end=jmp src=carve cdl=43/43 conf=verified notes=code_read_as_data
-unknown 6 $8897 $8899 cdl_exec=0 cdl_read=0
+unknown 6 $8897 $8899 cdl_exec=3 cdl_read=0
+xcode 6 $8897 $8899 in=unk_8897 whole=yes
 xref 6 $8897 unknown from=$88A8 in=unk_8897
 code 6 $889A $889C sub_889a naming=auto end=jmp src=carve cdl=3/3 conf=verified
 code 6 $889D $894C loc_889d naming=auto end=jmp src=carve cdl=176/176 conf=verified notes=code_read_as_data
@@ -2832,7 +2849,7 @@ code 6 $894D $8AFA sub_894d naming=auto end=jmp src=carve cdl=430/430 conf=verif
 entry 6 $8950 e_8950 in=sub_894d via=jmp@$889A
 entry 6 $8AF6 e_8af6 in=sub_894d via=jmp@$8A3A
 code 6 $8AFB $8B25 sub_8afb naming=auto end=jmp src=carve cdl=43/43 conf=verified
-data 6 $8B26 $8B36 data_8b26 kind=table naming=auto src=datacarve cdl_read=17/17 cdl_exec=0
+data 6 $8B26 $8B36 data_8b26 kind=table naming=auto src=datacarve cdl_read=17/17 cdl_exec=0 fmt=spr_burst_tiles
 code 6 $8B37 $8C12 draw_entity_sprite naming=reviewed end=rts src=carve cdl=220/220 conf=verified
 entry 6 $8C0E e_8c0e in=draw_entity_sprite via=bcc@$8C21,beq@$8C28
 entry 6 $8C12 e_8c12 in=draw_entity_sprite via=beq@$8C69
@@ -2846,7 +2863,7 @@ entry 6 $8D38 e_8d38 in=sub_8c15 via=jmp@$8894,jsr@$8912,jsr@$8B1D
 entry 6 $8D44 e_8d44 in=sub_8c15 via=jsr@$8C65
 entry 6 $8D72 e_8d72 in=sub_8c15 via=jmp@$8D6A
 entry 6 $8D94 e_8d94 in=sub_8c15 via=jmp@$8D18
-data 6 $8E9F $8EC3 data_8e9f kind=table naming=auto src=datacarve cdl_read=37/37 cdl_exec=0
+data 6 $8E9F $8EC3 data_8e9f kind=table naming=auto src=datacarve cdl_read=37/37 cdl_exec=0 fmt=spr_burst_offsets
 code 6 $8EC4 $8EF9 sub_8ec4 naming=auto end=rts src=carve cdl=54/54 conf=verified
 code 6 $8EFA $8EFC sub_8efa naming=auto end=jmpind src=carve cdl=3/3 conf=verified
 indirect 6 $8EFA ptr=$06A9 tables=$9002,$9C4E
@@ -2870,7 +2887,7 @@ jtarget 6 $9002 8 $F5DC sub_f5dc
 jtarget 6 $9002 9 $F12E sub_f12e
 jtarget 6 $9002 10 $F5D0 loc_f5d0
 jtarget 6 $9002 11 $F5D4 sub_f5d4
-unknown 6 $901A $901D cdl_exec=0 cdl_read=0
+unknown 6 $901A $901D cdl_exec=0 cdl_read=2
 data 6 $901E $9035 data_901e kind=ptrtable naming=auto src=datacarve cdl_read=24/24 cdl_exec=0
 jtable 6 $901E count=12 ptr=$26 site=$8FF5 jmp=$8FFF conf=strong
 jtarget 6 $901E 0 $9291 ppu_frame_setup
@@ -2885,16 +2902,16 @@ jtarget 6 $901E 8 $F76D sub_f76d
 jtarget 6 $901E 9 $F1A1 sub_f1a1
 jtarget 6 $901E 10 $F78C sub_f78c
 jtarget 6 $901E 11 $F78C sub_f78c
-unknown 6 $9036 $904A cdl_exec=0 cdl_read=14
+unknown 6 $9036 $904A cdl_exec=0 cdl_read=16
 data 6 $904B $9056 data_904b kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
-unknown 6 $9057 $9058 cdl_exec=0 cdl_read=0
+unknown 6 $9057 $9058 cdl_exec=0 cdl_read=1
 code 6 $9059 $907E sub_9059 naming=auto end=jmp src=carve cdl=38/38 conf=verified
 timing 6 $9069 bank_switch store=$FFC9 mode=abs
 code 6 $907F $90A3 sub_907f naming=auto end=jmp src=carve cdl=37/37 conf=verified
-code 6 $90A4 $9114 sub_90a4 naming=auto end=jmp src=carve cdl=104/113 conf=verified
+code 6 $90A4 $9114 sub_90a4 naming=auto end=jmp src=carve cdl=113/113 conf=verified
 code 6 $9115 $9130 sub_9115 naming=auto end=rts src=carve cdl=28/28 conf=verified
 unknown 6 $9131 $9140 cdl_exec=0 cdl_read=14
-code 6 $9141 $9236 update_lives_display naming=reviewed end=jmp src=carve cdl=239/246 conf=verified
+code 6 $9141 $9236 update_lives_display naming=reviewed end=jmp src=carve cdl=246/246 conf=verified
 timing 6 $9182 bank_switch store=$FFC9 mode=abs
 farcall 6 $9227 bank=2 slot=$8027 target=$FB50 sub_fb50
 entry 6 $922A e_922a in=update_lives_display via=jmp@$91EF,jmp@$91F9,jmp@$9205
@@ -2908,16 +2925,16 @@ timing 6 $9401 ppustatus_poll bit=sprite0 loop=$9404
 code 6 $9432 $946F sub_9432 naming=auto end=rts src=carve cdl=62/62 conf=verified proposed=update_sprite_buffer_data
 entry 6 $9457 e_9457 in=sub_9432 via=jmp@$944A
 unknown 6 $9470 $9472 cdl_exec=0 cdl_read=3
-code 6 $9473 $950F sub_9473 naming=auto end=jmp src=carve cdl=152/157 conf=verified proposed=update_intro_cast_text_data
+code 6 $9473 $950F sub_9473 naming=auto end=jmp src=carve cdl=157/157 conf=verified proposed=update_intro_cast_text_data
 timing 6 $94AB ppustatus_poll bit=sprite0 loop=$94AE
 farcall 6 $94E4 bank=4 slot=$8021 target=$C691 sub_c691
 code 6 $9510 $9551 sub_9510 naming=auto end=rts src=carve cdl=66/66 conf=verified proposed=update_sprite_buffer_data
 data 6 $9552 $9561 data_9552 kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
-code 6 $9562 $9636 update_intro_cast_text naming=reviewed end=rts src=carve cdl=202/213 conf=verified
+code 6 $9562 $9636 update_intro_cast_text naming=reviewed end=rts src=carve cdl=213/213 conf=verified
 entry 6 $9584 e_9584 in=update_intro_cast_text via=jmp@$9603
 entry 6 $959F e_959f in=update_intro_cast_text via=jmp@$95E2
 code 6 $9637 $964C sub_9637 naming=auto end=rts src=carve cdl=22/22 conf=verified
-code 6 $964D $9744 set_scroll_and_ppu_frame naming=reviewed end=jmp src=carve cdl=246/248 conf=verified notes=code_read_as_data
+code 6 $964D $9744 set_scroll_and_ppu_frame naming=reviewed end=jmp src=carve cdl=248/248 conf=verified notes=code_read_as_data
 farcall 6 $96A7 bank=4 slot=$8021 target=$C691 sub_c691
 farcall 6 $96C7 bank=4 slot=$801E target=$C756 load_metasprite_c756
 farcall 6 $96CE bank=4 slot=$8021 target=$C691 sub_c691
@@ -2926,14 +2943,14 @@ farcall 6 $96DF bank=4 slot=$801E target=$C756 load_metasprite_c756
 entry 6 $96E2 e_96e2 in=set_scroll_and_ppu_frame via=jmp@$96D1
 entry 6 $96E5 e_96e5 in=set_scroll_and_ppu_frame via=jmp@$96B6
 unknown 6 $9745 $974F cdl_exec=0 cdl_read=8
-code 6 $9750 $9808 sub_9750 naming=auto end=jmp src=carve cdl=177/185 conf=verified
+code 6 $9750 $9808 sub_9750 naming=auto end=jmp src=carve cdl=185/185 conf=verified
 farcall 6 $97B8 bank=4 slot=$8024 target=$C88F e_c88f
 timing 6 $97D8 ppustatus_poll bit=sprite0 loop=$97DB
-code 6 $9809 $9871 sub_9809 naming=auto end=rts src=carve cdl=88/105 conf=verified proposed=draw_title_screen_text_handler
+code 6 $9809 $9871 sub_9809 naming=auto end=rts src=carve cdl=105/105 conf=verified proposed=draw_title_screen_text_handler
 entry 6 $986C e_986c in=sub_9809 via=jsr@$9835
-unknown 6 $9872 $9887 cdl_exec=0 cdl_read=5
-code 6 $9888 $989B sub_9888 naming=auto end=rts src=carve cdl=16/20 conf=verified
-code 6 $989C $98AD sub_989c naming=auto end=jmp src=carve cdl=12/18 conf=verified
+unknown 6 $9872 $9887 cdl_exec=0 cdl_read=16
+code 6 $9888 $989B sub_9888 naming=auto end=rts src=carve cdl=20/20 conf=verified
+code 6 $989C $98AD sub_989c naming=auto end=jmp src=carve cdl=18/18 conf=verified
 code 6 $98AE $9924 sub_98ae naming=auto end=rts src=carve cdl=119/119 conf=verified
 code 6 $9925 $9964 clear_game_ram naming=reviewed end=rts src=carve cdl=64/64 conf=verified
 entry 6 $9950 e_9950 in=clear_game_ram via=jsr@$ED23,jsr@$F11B,jsr@$F1CF,jsr@$F4F3
@@ -2945,7 +2962,7 @@ jtarget 6 $997E 0 $999B sub_999b
 jtarget 6 $997E 1 $8F0C sub_8f0c
 jtarget 6 $997E 2 $9A94 e_9a94
 jtarget 6 $997E 3 $9A8E loc_9a8e
-unknown 6 $9986 $9987 cdl_exec=0 cdl_read=0
+unknown 6 $9986 $9987 cdl_exec=0 cdl_read=2
 data 6 $9988 $998F data_9988 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
 unknown 6 $9990 $9991 cdl_exec=0 cdl_read=2
 code 6 $9992 $9994 sub_9992 naming=auto end=jmpind src=carve cdl=3/3 conf=verified
@@ -2967,7 +2984,8 @@ code 6 $9A98 $9B51 sub_9a98 naming=auto end=rts src=carve cdl=186/186 conf=verif
 entry 6 $9AA1 e_9aa1 in=sub_9a98 via=jsr@$92D4
 timing 6 $9B16 bank_switch store=$FFB3 mode=absy
 timing 6 $9B38 bank_switch store=$FFB3 mode=absx
-unknown 6 $9B52 $9BB1 cdl_exec=0 cdl_read=0
+unknown 6 $9B52 $9BB1 cdl_exec=96 cdl_read=0
+xcode 6 $9B52 $9BB1 in=unk_9b52 whole=yes
 code 6 $9BB2 $9BD8 sub_9bb2 naming=auto end=jmp src=carve cdl=39/39 conf=verified proposed=update_ppu_frame_setup
 code 6 $9BD9 $9C18 sub_9bd9 naming=auto end=jmp src=carve cdl=64/64 conf=verified
 unknown 6 $9C19 $9C28 cdl_exec=0 cdl_read=9
@@ -2979,9 +2997,9 @@ jtarget 6 $9C4E 1 $9CEA sub_9cea
 jtarget 6 $9C4E 2 $9CED e_9ced
 jtarget 6 $9C4E 3 $9E08 sub_9e08
 jtarget 6 $9C4E 4 $9E2D sub_9e2d
-unknown 6 $9C58 $9C59 cdl_exec=0 cdl_read=0
+unknown 6 $9C58 $9C59 cdl_exec=0 cdl_read=2
 data 6 $9C5A $9C95 data_9c5a kind=unknown naming=auto src=datacarve cdl_read=60/60 cdl_exec=0
-unknown 6 $9C96 $9C97 cdl_exec=0 cdl_read=0
+unknown 6 $9C96 $9C97 cdl_exec=0 cdl_read=2
 data 6 $9C98 $9C9F data_9c98 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
 code 6 $9CA0 $9CA0 sub_9ca0 naming=auto end=rts src=carve cdl=1/1 conf=verified
 code 6 $9CA1 $9CA6 sub_9ca1 naming=auto end=jmp src=carve cdl=6/6 conf=verified
@@ -2993,24 +3011,24 @@ unknown 6 $9D2F $9D32 cdl_exec=0 cdl_read=0
 data 6 $9D33 $9D3E data_9d33 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
 data 6 $9D3F $9D47 data_9d3f kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
 data 6 $9D48 $9D4F data_9d48 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-unknown 6 $9D50 $9D71 cdl_exec=0 cdl_read=8
+unknown 6 $9D50 $9D71 cdl_exec=0 cdl_read=12
 data 6 $9D72 $9D79 data_9d72 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-unknown 6 $9D7A $9DA8 cdl_exec=0 cdl_read=22
+unknown 6 $9D7A $9DA8 cdl_exec=0 cdl_read=28
 data 6 $9DA9 $9DB8 data_9da9 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
 unknown 6 $9DB9 $9DBE cdl_exec=0 cdl_read=0
 data 6 $9DBF $9DC8 data_9dbf kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
-unknown 6 $9DC9 $9DD0 cdl_exec=0 cdl_read=0
+unknown 6 $9DC9 $9DD0 cdl_exec=0 cdl_read=6
 data 6 $9DD1 $9DF8 data_9dd1 kind=unknown naming=auto src=datacarve cdl_read=40/40 cdl_exec=0
 unknown 6 $9DF9 $9DFF cdl_exec=0 cdl_read=0
 data 6 $9E00 $9E07 data_9e00 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-code 6 $9E08 $9E2C sub_9e08 naming=auto end=rts src=carve cdl=32/37 conf=verified
+code 6 $9E08 $9E2C sub_9e08 naming=auto end=rts src=carve cdl=37/37 conf=verified
 code 6 $9E2D $9E3D sub_9e2d naming=auto end=jmp src=carve cdl=17/17 conf=verified
-code 6 $9E3E $9E6C sub_9e3e naming=auto end=rts src=carve cdl=0/47 conf=static
+code 6 $9E3E $9E6C sub_9e3e naming=auto end=rts src=carve cdl=47/47 conf=verified
 code 6 $9E6D $9E82 sub_9e6d naming=auto end=jmp src=carve cdl=22/22 conf=verified
-code 6 $9E83 $9E96 sub_9e83 naming=auto end=rts src=carve cdl=19/20 conf=verified
+code 6 $9E83 $9E96 sub_9e83 naming=auto end=rts src=carve cdl=20/20 conf=verified
 farcall 6 $9E87 bank=3 slot=$8036 target=$B41F sub_b41f
 code 6 $9E97 $9EE2 sub_9e97 naming=auto end=jmp src=carve cdl=76/76 conf=verified
-code 6 $9EE3 $9F30 sub_9ee3 naming=auto end=rts src=carve cdl=69/78 conf=verified
+code 6 $9EE3 $9F30 sub_9ee3 naming=auto end=rts src=carve cdl=78/78 conf=verified
 entry 6 $9F02 e_9f02 in=sub_9ee3 via=jmp@$9EF6
 unknown 6 $9F31 $9F3D cdl_exec=0 cdl_read=0
 data 6 $9F3E $9F49 data_9f3e kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
@@ -3021,17 +3039,17 @@ code 6 $9FDC $9FF0 sub_9fdc naming=auto end=rts src=carve cdl=21/21 conf=verifie
 code 6 $9FF1 $A030 sub_9ff1 naming=auto end=rts src=carve cdl=64/64 conf=verified
 unknown 6 $A031 $A034 cdl_exec=0 cdl_read=0
 data 6 $A035 $A03E data_a035 kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
-unknown 6 $A03F $A04B cdl_exec=0 cdl_read=4
+unknown 6 $A03F $A04B cdl_exec=0 cdl_read=8
 data 6 $A04C $A05F data_a04c kind=unknown naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
-unknown 6 $A060 $A099 cdl_exec=0 cdl_read=22
+unknown 6 $A060 $A099 cdl_exec=0 cdl_read=35
 data 6 $A09A $A0A2 data_a09a kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
 code 6 $A0A3 $A0B6 sub_a0a3 naming=auto end=rts src=carve cdl=20/20 conf=verified
-code 6 $A0B7 $A0BF sub_a0b7 naming=auto end=jmp src=carve cdl=0/9 conf=static
+code 6 $A0B7 $A0BF sub_a0b7 naming=auto end=jmp src=carve cdl=9/9 conf=verified
 farcall 6 $A0BD bank=2 slot=$8006 target=$EFB4 sub_efb4 tail
 code 6 $A0C0 $A0DF sub_a0c0 naming=auto end=rts src=carve cdl=32/32 conf=verified proposed=update_ppu_registers
-data 6 $A0E0 $A0E8 data_a0e0 kind=table naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
-unknown 6 $A0E9 $A0FA cdl_exec=0 cdl_read=15
-code 6 $A0FB $A187 sub_a0fb naming=auto end=rts src=carve cdl=117/141 conf=verified
+data 6 $A0E0 $A0E8 data_a0e0 kind=table naming=auto src=datacarve cdl_read=9/9 cdl_exec=0 fmt=sec_first
+unknown 6 $A0E9 $A0FA cdl_exec=0 cdl_read=16
+code 6 $A0FB $A187 sub_a0fb naming=auto end=rts src=carve cdl=141/141 conf=verified
 entry 6 $A105 e_a105 in=sub_a0fb via=jmp@$8009,jmp@$A251
 code 6 $A188 $A190 sub_a188 naming=auto end=jmp src=carve cdl=9/9 conf=verified
 entry 6 $A18A e_a18a in=sub_a188 via=jsr@$A155,jsr@$A16B
@@ -3039,9 +3057,9 @@ farcall 6 $A18E bank=1 slot=$8003 target=$8015 loc_8015 tail
 code 6 $A191 $A199 sub_a191 naming=auto end=jmp src=carve cdl=9/9 conf=verified
 farcall 6 $A197 bank=7 slot=$8012 target=$80E2 loc_80e2 tail
 unknown 6 $A19A $A1AB cdl_exec=0 cdl_read=18
-data 6 $A1AC $A1E1 data_a1ac kind=unknown naming=auto src=datacarve cdl_read=54/54 cdl_exec=0
+data 6 $A1AC $A1E1 data_a1ac kind=table naming=auto src=datacarve cdl_read=54/54 cdl_exec=0 fmt=sec_record
 unknown 6 $A1E2 $A1EA cdl_exec=0 cdl_read=9
-data 6 $A1EB $A217 data_a1eb kind=unknown naming=auto src=datacarve cdl_read=45/45 cdl_exec=0
+data 6 $A1EB $A217 data_a1eb kind=table naming=auto src=datacarve cdl_read=45/45 cdl_exec=0 fmt=sec_record
 code 6 $A218 $A24D sub_a218 naming=auto end=rts src=carve cdl=54/54 conf=verified
 timing 6 $A220 bank_switch store=$FFC9 mode=abs
 code 6 $A24E $A253 sub_a24e naming=auto end=jmp src=carve cdl=6/6 conf=verified
@@ -3060,194 +3078,194 @@ timing 6 $A3BC ppustatus_poll bit=vblank loop=$A3BF
 code 6 $A3C2 $A3F9 sub_a3c2 naming=auto end=rts src=carve cdl=56/56 conf=verified proposed=update_ppu_registers
 timing 6 $A3CE delay_loop loop=$A3CF
 entry 6 $A3E0 e_a3e0 in=sub_a3c2 via=jsr@$A3DB
-data 6 $A3FA $A40D data_a3fa kind=ptrtable naming=auto src=datacarve cdl_read=20/20 cdl_exec=0
+data 6 $A3FA $A40D data_a3fa kind=ptrtable naming=auto src=datacarve cdl_read=20/20 cdl_exec=0 fmt=pal_ptrs
 unknown 6 $A40E $A411 cdl_exec=0 cdl_read=4
-data 6 $A412 $A4F5 data_a412 kind=table naming=auto src=datacarve cdl_read=228/228 cdl_exec=0 proposed=entity_state_table
+data 6 $A412 $A4F5 data_a412 kind=table naming=auto src=datacarve cdl_read=228/228 cdl_exec=0 proposed=entity_state_table fmt=pal_16
 unknown 6 $A4F6 $A4F9 cdl_exec=0 cdl_read=4
 xref 6 $A4F6 unknown from=$800C in=unk_a4f6
-data 6 $A4FA $A525 data_a4fa kind=unknown naming=auto src=datacarve cdl_read=44/44 cdl_exec=0
+data 6 $A4FA $A525 data_a4fa kind=table naming=auto src=datacarve cdl_read=44/44 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A526 $A56B cdl_exec=0 cdl_read=14
-data 6 $A56C $A575 data_a56c kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
+data 6 $A56C $A575 data_a56c kind=table naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A576 $A60D cdl_exec=0 cdl_read=20
-data 6 $A60E $A61D data_a60e kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
+data 6 $A60E $A61D data_a60e kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A61E $A635 cdl_exec=0 cdl_read=2
-data 6 $A636 $A641 data_a636 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 6 $A636 $A641 data_a636 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A642 $A655 cdl_exec=0 cdl_read=0
-data 6 $A656 $A65D data_a656 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $A656 $A65D data_a656 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A65E $A695 cdl_exec=0 cdl_read=2
-data 6 $A696 $A6B5 data_a696 kind=unknown naming=auto src=datacarve cdl_read=32/32 cdl_exec=0
+data 6 $A696 $A6B5 data_a696 kind=table naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A6B6 $A6E1 cdl_exec=0 cdl_read=20
-data 6 $A6E2 $A6E9 data_a6e2 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $A6E2 $A6E9 data_a6e2 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A6EA $A6F1 cdl_exec=0 cdl_read=0
-data 6 $A6F2 $A6FD data_a6f2 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 6 $A6F2 $A6FD data_a6f2 kind=table naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A6FE $A78D cdl_exec=0 cdl_read=24
-data 6 $A78E $A79D data_a78e kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
+data 6 $A78E $A79D data_a78e kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=spr_overlay_pairs
 unknown 6 $A79E $A7B2 cdl_exec=0 cdl_read=0
-data 6 $A7B3 $A84F data_a7b3 kind=unknown naming=auto src=datacarve cdl_read=157/157 cdl_exec=0
+data 6 $A7B3 $A84F data_a7b3 kind=table naming=auto src=datacarve cdl_read=157/157 cdl_exec=0 fmt=spr_frame
 unknown 6 $A850 $A885 cdl_exec=0 cdl_read=54
-data 6 $A886 $ACC6 data_a886 kind=unknown naming=auto src=datacarve cdl_read=1089/1089 cdl_exec=0
+data 6 $A886 $ACC6 data_a886 kind=table naming=auto src=datacarve cdl_read=1089/1089 cdl_exec=0 fmt=spr_frame
 unknown 6 $ACC7 $AD00 cdl_exec=0 cdl_read=56
-data 6 $AD01 $AEB8 data_ad01 kind=unknown naming=auto src=datacarve cdl_read=440/440 cdl_exec=0
+data 6 $AD01 $AEB8 data_ad01 kind=table naming=auto src=datacarve cdl_read=440/440 cdl_exec=0 fmt=spr_frame
 unknown 6 $AEB9 $AEFF cdl_exec=0 cdl_read=71
-data 6 $AF00 $AF18 data_af00 kind=unknown naming=auto src=datacarve cdl_read=25/25 cdl_exec=0
-data 6 $AF19 $B423 data_af19 kind=unknown naming=auto src=datacarve cdl_read=1291/1291 cdl_exec=0
+data 6 $AF00 $AF18 data_af00 kind=table naming=auto src=datacarve cdl_read=25/25 cdl_exec=0 fmt=spr_frame
+data 6 $AF19 $B423 data_af19 kind=table naming=auto src=datacarve cdl_read=1291/1291 cdl_exec=0 fmt=spr_frame
 unknown 6 $B424 $B457 cdl_exec=0 cdl_read=52
-data 6 $B458 $B4B8 data_b458 kind=unknown naming=auto src=datacarve cdl_read=97/97 cdl_exec=0
-data 6 $B4B9 $B4D5 data_b4b9 kind=unknown naming=auto src=datacarve cdl_read=29/29 cdl_exec=0
-data 6 $B4D6 $B9A5 data_b4d6 kind=unknown naming=auto src=datacarve cdl_read=1232/1232 cdl_exec=0
+data 6 $B458 $B4B8 data_b458 kind=table naming=auto src=datacarve cdl_read=97/97 cdl_exec=0 fmt=spr_frame
+data 6 $B4B9 $B4D5 data_b4b9 kind=table naming=auto src=datacarve cdl_read=29/29 cdl_exec=0 fmt=spr_frame
+data 6 $B4D6 $B9A5 data_b4d6 kind=table naming=auto src=datacarve cdl_read=1232/1232 cdl_exec=0 fmt=spr_frame
 unknown 6 $B9A6 $B9AC cdl_exec=0 cdl_read=7
-data 6 $B9AD $B9F6 data_b9ad kind=unknown naming=auto src=datacarve cdl_read=74/74 cdl_exec=0
+data 6 $B9AD $B9F6 data_b9ad kind=table naming=auto src=datacarve cdl_read=74/74 cdl_exec=0 fmt=spr_frame
 unknown 6 $B9F7 $B9FF cdl_exec=0 cdl_read=9
-data 6 $BA00 $BA0F data_ba00 kind=unknown naming=auto src=datacarve cdl_read=16/16 cdl_exec=0
-data 6 $BA10 $BA42 data_ba10 kind=unknown naming=auto src=datacarve cdl_read=51/51 cdl_exec=0
+data 6 $BA00 $BA0F data_ba00 kind=table naming=auto src=datacarve cdl_read=16/16 cdl_exec=0 fmt=spr_frame
+data 6 $BA10 $BA42 data_ba10 kind=table naming=auto src=datacarve cdl_read=51/51 cdl_exec=0 fmt=spr_frame
 unknown 6 $BA43 $BA55 cdl_exec=0 cdl_read=0
-data 6 $BA56 $BAA1 data_ba56 kind=unknown naming=auto src=datacarve cdl_read=76/76 cdl_exec=0
-data 6 $BAA2 $BAB8 data_baa2 kind=unknown naming=auto src=datacarve cdl_read=23/23 cdl_exec=0
-data 6 $BAB9 $BCAB data_bab9 kind=unknown naming=auto src=datacarve cdl_read=499/499 cdl_exec=0 proposed=stage3_table_bab9
+data 6 $BA56 $BAA1 data_ba56 kind=table naming=auto src=datacarve cdl_read=76/76 cdl_exec=0 fmt=spr_frame
+data 6 $BAA2 $BAB8 data_baa2 kind=table naming=auto src=datacarve cdl_read=23/23 cdl_exec=0 fmt=spr_frame
+data 6 $BAB9 $BCAB data_bab9 kind=table naming=auto src=datacarve cdl_read=499/499 cdl_exec=0 proposed=stage3_table_bab9 fmt=spr_frame
 unknown 6 $BCAC $BCC6 cdl_exec=0 cdl_read=27
-data 6 $BCC7 $BD08 data_bcc7 kind=unknown naming=auto src=datacarve cdl_read=66/66 cdl_exec=0
+data 6 $BCC7 $BD08 data_bcc7 kind=table naming=auto src=datacarve cdl_read=66/66 cdl_exec=0 fmt=spr_frame
 unknown 6 $BD09 $BD46 cdl_exec=0 cdl_read=62
-data 6 $BD47 $BDA7 data_bd47 kind=unknown naming=auto src=datacarve cdl_read=97/97 cdl_exec=0
+data 6 $BD47 $BDA7 data_bd47 kind=table naming=auto src=datacarve cdl_read=97/97 cdl_exec=0 fmt=spr_frame
 unknown 6 $BDA8 $BDC6 cdl_exec=0 cdl_read=31
-data 6 $BDC7 $BECF data_bdc7 kind=unknown naming=auto src=datacarve cdl_read=265/265 cdl_exec=0 proposed=stage2_level_layout_data
+data 6 $BDC7 $BECF data_bdc7 kind=table naming=auto src=datacarve cdl_read=265/265 cdl_exec=0 proposed=stage2_level_layout_data fmt=spr_frame
 unknown 6 $BED0 $BED0 cdl_exec=0 cdl_read=0
-data 6 $BED1 $BFE0 data_bed1 kind=unknown naming=auto src=datacarve cdl_read=272/272 cdl_exec=0
+data 6 $BED1 $BFE0 data_bed1 kind=table naming=auto src=datacarve cdl_read=272/272 cdl_exec=0 fmt=spr_frame
 unknown 6 $BFE1 $BFE1 cdl_exec=0 cdl_read=0
-data 6 $BFE2 $BFEC data_bfe2 kind=unknown naming=auto src=datacarve cdl_read=11/11 cdl_exec=0
+data 6 $BFE2 $BFEC data_bfe2 kind=ptrtable naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $BFED $BFED cdl_exec=0 cdl_read=0
-data 6 $BFEE $BFF7 data_bfee kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
+data 6 $BFEE $BFF7 data_bfee kind=ptrtable naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $BFF8 $BFF8 cdl_exec=0 cdl_read=0
-data 6 $BFF9 $C000 data_bff9 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $BFF9 $C000 data_bff9 kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $C001 $C002 cdl_exec=0 cdl_read=1
-data 6 $C003 $C00A data_c003 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $C003 $C00A data_c003 kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $C00B $C00B cdl_exec=0 cdl_read=1
-data 6 $C00C $C013 data_c00c kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $C00C $C013 data_c00c kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $C014 $C014 cdl_exec=0 cdl_read=0
-data 6 $C015 $C023 data_c015 kind=unknown naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
-data 6 $C024 $C03E data_c024 kind=unknown naming=auto src=datacarve cdl_read=27/27 cdl_exec=0
+data 6 $C015 $C023 data_c015 kind=ptrtable naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=spr_frame_ptr_lo_player
+data 6 $C024 $C03E data_c024 kind=ptrtable naming=auto src=datacarve cdl_read=27/27 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $C03F $C048 cdl_exec=0 cdl_read=10
-data 6 $C049 $C067 data_c049 kind=unknown naming=auto src=datacarve cdl_read=31/31 cdl_exec=0
+data 6 $C049 $C067 data_c049 kind=ptrtable naming=auto src=datacarve cdl_read=31/31 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $C068 $C068 cdl_exec=0 cdl_read=1
-data 6 $C069 $C073 data_c069 kind=unknown naming=auto src=datacarve cdl_read=11/11 cdl_exec=0
+data 6 $C069 $C073 data_c069 kind=ptrtable naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $C074 $C074 cdl_exec=0 cdl_read=1
-data 6 $C075 $C085 data_c075 kind=unknown naming=auto src=datacarve cdl_read=17/17 cdl_exec=0
+data 6 $C075 $C085 data_c075 kind=ptrtable naming=auto src=datacarve cdl_read=17/17 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $C086 $C086 cdl_exec=0 cdl_read=0
-data 6 $C087 $C091 data_c087 kind=unknown naming=auto src=datacarve cdl_read=11/11 cdl_exec=0
+data 6 $C087 $C091 data_c087 kind=ptrtable naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 fmt=spr_frame_ptr_lo_player
 unknown 6 $C092 $C093 cdl_exec=0 cdl_read=0
-data 6 $C094 $C0C8 data_c094 kind=unknown naming=auto src=datacarve cdl_read=53/53 cdl_exec=0
+data 6 $C094 $C0C8 data_c094 kind=ptrtable naming=auto src=datacarve cdl_read=53/53 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
 unknown 6 $C0C9 $C0CD cdl_exec=0 cdl_read=4
-data 6 $C0CE $C0F1 data_c0ce kind=unknown naming=auto src=datacarve cdl_read=36/36 cdl_exec=0
-unknown 6 $C0F2 $C0F9 cdl_exec=0 cdl_read=6
-data 6 $C0FA $C101 data_c0fa kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-unknown 6 $C102 $C102 cdl_exec=0 cdl_read=0
-data 6 $C103 $C113 data_c103 kind=unknown naming=auto src=datacarve cdl_read=17/17 cdl_exec=0
-unknown 6 $C114 $C114 cdl_exec=0 cdl_read=0
-data 6 $C115 $C11D data_c115 kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
-data 6 $C11E $C125 data_c11e kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $C0CE $C0F1 data_c0ce kind=ptrtable naming=auto src=datacarve cdl_read=36/36 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
+unknown 6 $C0F2 $C0F9 cdl_exec=0 cdl_read=8
+data 6 $C0FA $C101 data_c0fa kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
+unknown 6 $C102 $C102 cdl_exec=0 cdl_read=1
+data 6 $C103 $C113 data_c103 kind=ptrtable naming=auto src=datacarve cdl_read=17/17 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
+unknown 6 $C114 $C114 cdl_exec=0 cdl_read=1
+data 6 $C115 $C11D data_c115 kind=ptrtable naming=auto src=datacarve cdl_read=9/9 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
+data 6 $C11E $C125 data_c11e kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
 unknown 6 $C126 $C12A cdl_exec=0 cdl_read=5
-data 6 $C12B $C134 data_c12b kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
+data 6 $C12B $C134 data_c12b kind=ptrtable naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
 unknown 6 $C135 $C135 cdl_exec=0 cdl_read=1
-data 6 $C136 $C13E data_c136 kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
+data 6 $C136 $C13E data_c136 kind=ptrtable naming=auto src=datacarve cdl_read=9/9 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
 unknown 6 $C13F $C147 cdl_exec=0 cdl_read=9
-data 6 $C148 $C156 data_c148 kind=unknown naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
-data 6 $C157 $C168 data_c157 kind=unknown naming=auto src=datacarve cdl_read=18/18 cdl_exec=0
+data 6 $C148 $C156 data_c148 kind=ptrtable naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
+data 6 $C157 $C168 data_c157 kind=ptrtable naming=auto src=datacarve cdl_read=18/18 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
 unknown 6 $C169 $C169 cdl_exec=0 cdl_read=1
-data 6 $C16A $C17C data_c16a kind=unknown naming=auto src=datacarve cdl_read=19/19 cdl_exec=0
+data 6 $C16A $C17C data_c16a kind=ptrtable naming=auto src=datacarve cdl_read=19/19 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
 unknown 6 $C17D $C17F cdl_exec=0 cdl_read=3
-data 6 $C180 $C191 data_c180 kind=unknown naming=auto src=datacarve cdl_read=18/18 cdl_exec=0
+data 6 $C180 $C191 data_c180 kind=ptrtable naming=auto src=datacarve cdl_read=18/18 cdl_exec=0 fmt=spr_frame_ptr_lo_enemy
 unknown 6 $C192 $C192 cdl_exec=0 cdl_read=0
-data 6 $C193 $C19D data_c193 kind=unknown naming=auto src=datacarve cdl_read=11/11 cdl_exec=0
+data 6 $C193 $C19D data_c193 kind=ptrtable naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C19E $C19E cdl_exec=0 cdl_read=0
-data 6 $C19F $C1A8 data_c19f kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
+data 6 $C19F $C1A8 data_c19f kind=ptrtable naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C1A9 $C1A9 cdl_exec=0 cdl_read=0
-data 6 $C1AA $C1B1 data_c1aa kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $C1AA $C1B1 data_c1aa kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C1B2 $C1B3 cdl_exec=0 cdl_read=0
-data 6 $C1B4 $C1BB data_c1b4 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $C1B4 $C1BB data_c1b4 kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C1BC $C1BC cdl_exec=0 cdl_read=0
-data 6 $C1BD $C1C4 data_c1bd kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $C1BD $C1C4 data_c1bd kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C1C5 $C1C5 cdl_exec=0 cdl_read=0
-data 6 $C1C6 $C1D4 data_c1c6 kind=unknown naming=auto src=datacarve cdl_read=15/15 cdl_exec=0
+data 6 $C1C6 $C1D4 data_c1c6 kind=ptrtable naming=auto src=datacarve cdl_read=15/15 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C1D5 $C1F9 cdl_exec=0 cdl_read=32
-data 6 $C1FA $C218 data_c1fa kind=unknown naming=auto src=datacarve cdl_read=31/31 cdl_exec=0
+data 6 $C1FA $C218 data_c1fa kind=ptrtable naming=auto src=datacarve cdl_read=31/31 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C219 $C219 cdl_exec=0 cdl_read=1
-data 6 $C21A $C224 data_c21a kind=unknown naming=auto src=datacarve cdl_read=11/11 cdl_exec=0
+data 6 $C21A $C224 data_c21a kind=ptrtable naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C225 $C225 cdl_exec=0 cdl_read=1
-data 6 $C226 $C236 data_c226 kind=unknown naming=auto src=datacarve cdl_read=17/17 cdl_exec=0
+data 6 $C226 $C236 data_c226 kind=ptrtable naming=auto src=datacarve cdl_read=17/17 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C237 $C237 cdl_exec=0 cdl_read=0
-data 6 $C238 $C242 data_c238 kind=unknown naming=auto src=datacarve cdl_read=11/11 cdl_exec=0
+data 6 $C238 $C242 data_c238 kind=ptrtable naming=auto src=datacarve cdl_read=11/11 cdl_exec=0 fmt=spr_frame_ptr_hi_player
 unknown 6 $C243 $C244 cdl_exec=0 cdl_read=0
-data 6 $C245 $C279 data_c245 kind=unknown naming=auto src=datacarve cdl_read=53/53 cdl_exec=0
+data 6 $C245 $C279 data_c245 kind=ptrtable naming=auto src=datacarve cdl_read=53/53 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
 unknown 6 $C27A $C27E cdl_exec=0 cdl_read=4
-data 6 $C27F $C2A2 data_c27f kind=unknown naming=auto src=datacarve cdl_read=36/36 cdl_exec=0
-unknown 6 $C2A3 $C2AA cdl_exec=0 cdl_read=6
-data 6 $C2AB $C2B2 data_c2ab kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
-unknown 6 $C2B3 $C2CE cdl_exec=0 cdl_read=20
-data 6 $C2CF $C2D6 data_c2cf kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $C27F $C2A2 data_c27f kind=ptrtable naming=auto src=datacarve cdl_read=36/36 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
+unknown 6 $C2A3 $C2AA cdl_exec=0 cdl_read=8
+data 6 $C2AB $C2B2 data_c2ab kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
+unknown 6 $C2B3 $C2CE cdl_exec=0 cdl_read=27
+data 6 $C2CF $C2D6 data_c2cf kind=ptrtable naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
 unknown 6 $C2D7 $C2DB cdl_exec=0 cdl_read=3
-data 6 $C2DC $C2E5 data_c2dc kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 proposed=stage2_table_c2dc
+data 6 $C2DC $C2E5 data_c2dc kind=ptrtable naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 proposed=stage2_table_c2dc fmt=spr_frame_ptr_hi_enemy
 unknown 6 $C2E6 $C2E6 cdl_exec=0 cdl_read=1
-data 6 $C2E7 $C2EF data_c2e7 kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
+data 6 $C2E7 $C2EF data_c2e7 kind=ptrtable naming=auto src=datacarve cdl_read=9/9 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
 unknown 6 $C2F0 $C2FE cdl_exec=0 cdl_read=15
-data 6 $C2FF $C307 data_c2ff kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
-data 6 $C308 $C319 data_c308 kind=table naming=auto src=datacarve cdl_read=18/18 cdl_exec=0
+data 6 $C2FF $C307 data_c2ff kind=ptrtable naming=auto src=datacarve cdl_read=9/9 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
+data 6 $C308 $C319 data_c308 kind=ptrtable naming=auto src=datacarve cdl_read=18/18 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
 unknown 6 $C31A $C31A cdl_exec=0 cdl_read=1
-data 6 $C31B $C32D data_c31b kind=unknown naming=auto src=datacarve cdl_read=19/19 cdl_exec=0
+data 6 $C31B $C32D data_c31b kind=ptrtable naming=auto src=datacarve cdl_read=19/19 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
 unknown 6 $C32E $C330 cdl_exec=0 cdl_read=3
-data 6 $C331 $C342 data_c331 kind=unknown naming=auto src=datacarve cdl_read=18/18 cdl_exec=0
+data 6 $C331 $C342 data_c331 kind=ptrtable naming=auto src=datacarve cdl_read=18/18 cdl_exec=0 fmt=spr_frame_ptr_hi_enemy
 unknown 6 $C343 $C345 cdl_exec=0 cdl_read=3
-data 6 $C346 $C351 data_c346 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 6 $C346 $C351 data_c346 kind=ptrtable naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=spr_frame_ptr_lo_special
 unknown 6 $C352 $C368 cdl_exec=0 cdl_read=21
-data 6 $C369 $C374 data_c369 kind=unknown naming=auto src=datacarve cdl_read=12/12 cdl_exec=0
+data 6 $C369 $C374 data_c369 kind=ptrtable naming=auto src=datacarve cdl_read=12/12 cdl_exec=0 fmt=spr_frame_ptr_hi_special
 unknown 6 $C375 $C387 cdl_exec=0 cdl_read=17
-data 6 $C388 $C38F data_c388 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $C388 $C38F data_c388 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=spr_frame
 unknown 6 $C390 $C391 cdl_exec=0 cdl_read=0
-data 6 $C392 $C4B4 data_c392 kind=unknown naming=auto src=datacarve cdl_read=291/291 cdl_exec=0
+data 6 $C392 $C4B4 data_c392 kind=table naming=auto src=datacarve cdl_read=291/291 cdl_exec=0 fmt=spr_frame
 unknown 6 $C4B5 $C4B5 cdl_exec=0 cdl_read=0
-data 6 $C4B6 $CA0D data_c4b6 kind=unknown naming=auto src=datacarve cdl_read=1368/1368 cdl_exec=0
+data 6 $C4B6 $CA0D data_c4b6 kind=table naming=auto src=datacarve cdl_read=1368/1368 cdl_exec=0 fmt=spr_frame
 unknown 6 $CA0E $CA25 cdl_exec=0 cdl_read=4
-data 6 $CA26 $CAA8 data_ca26 kind=unknown naming=auto src=datacarve cdl_read=131/131 cdl_exec=0
+data 6 $CA26 $CAA8 data_ca26 kind=table naming=auto src=datacarve cdl_read=131/131 cdl_exec=0 fmt=spr_frame
 unknown 6 $CAA9 $CACB cdl_exec=0 cdl_read=0
-data 6 $CACC $CBA4 data_cacc kind=unknown naming=auto src=datacarve cdl_read=217/217 cdl_exec=0
+data 6 $CACC $CBA4 data_cacc kind=table naming=auto src=datacarve cdl_read=217/217 cdl_exec=0 fmt=spr_frame
 unknown 6 $CBA5 $CBC8 cdl_exec=0 cdl_read=36
-data 6 $CBC9 $CC2D data_cbc9 kind=unknown naming=auto src=datacarve cdl_read=101/101 cdl_exec=0
+data 6 $CBC9 $CC2D data_cbc9 kind=table naming=auto src=datacarve cdl_read=101/101 cdl_exec=0 fmt=spr_frame
 unknown 6 $CC2E $CC4E cdl_exec=0 cdl_read=0
-data 6 $CC4F $CC65 data_cc4f kind=unknown naming=auto src=datacarve cdl_read=23/23 cdl_exec=0
-unknown 6 $CC66 $CC79 cdl_exec=0 cdl_read=0
-data 6 $CC7A $CE2F data_cc7a kind=unknown naming=auto src=datacarve cdl_read=438/438 cdl_exec=0
-unknown 6 $CE30 $CE5F cdl_exec=0 cdl_read=0
-data 6 $CE60 $CF32 data_ce60 kind=unknown naming=auto src=datacarve cdl_read=211/211 cdl_exec=0
-unknown 6 $CF33 $CF55 cdl_exec=0 cdl_read=33
-data 6 $CF56 $D3F3 data_cf56 kind=unknown naming=auto src=datacarve cdl_read=1182/1182 cdl_exec=0
+data 6 $CC4F $CC65 data_cc4f kind=table naming=auto src=datacarve cdl_read=23/23 cdl_exec=0 fmt=spr_frame
+unknown 6 $CC66 $CC79 cdl_exec=0 cdl_read=20
+data 6 $CC7A $CE2F data_cc7a kind=table naming=auto src=datacarve cdl_read=438/438 cdl_exec=0 fmt=spr_frame
+unknown 6 $CE30 $CE5F cdl_exec=0 cdl_read=48
+data 6 $CE60 $CF32 data_ce60 kind=table naming=auto src=datacarve cdl_read=211/211 cdl_exec=0 fmt=spr_frame
+unknown 6 $CF33 $CF55 cdl_exec=0 cdl_read=34
+data 6 $CF56 $D3F3 data_cf56 kind=table naming=auto src=datacarve cdl_read=1182/1182 cdl_exec=0 fmt=spr_frame
 unknown 6 $D3F4 $D58B cdl_exec=0 cdl_read=408
-data 6 $D58C $D5DF data_d58c kind=unknown naming=auto src=datacarve cdl_read=84/84 cdl_exec=0 proposed=stage6_table_d58c
+data 6 $D58C $D5DF data_d58c kind=table naming=auto src=datacarve cdl_read=84/84 cdl_exec=0 proposed=stage6_table_d58c fmt=spr_frame
 unknown 6 $D5E0 $D5FB cdl_exec=0 cdl_read=0
-data 6 $D5FC $D688 data_d5fc kind=unknown naming=auto src=datacarve cdl_read=141/141 cdl_exec=0
+data 6 $D5FC $D688 data_d5fc kind=table naming=auto src=datacarve cdl_read=141/141 cdl_exec=0 fmt=spr_frame
 unknown 6 $D689 $D6AC cdl_exec=0 cdl_read=13
-data 6 $D6AD $D70C data_d6ad kind=unknown naming=auto src=datacarve cdl_read=96/96 cdl_exec=0
-data 6 $D70D $D729 data_d70d kind=unknown naming=auto src=datacarve cdl_read=29/29 cdl_exec=0
-data 6 $D72A $D93E data_d72a kind=unknown naming=auto src=datacarve cdl_read=533/533 cdl_exec=0
+data 6 $D6AD $D70C data_d6ad kind=table naming=auto src=datacarve cdl_read=96/96 cdl_exec=0 fmt=spr_frame
+data 6 $D70D $D729 data_d70d kind=table naming=auto src=datacarve cdl_read=29/29 cdl_exec=0 fmt=spr_frame
+data 6 $D72A $D93E data_d72a kind=table naming=auto src=datacarve cdl_read=533/533 cdl_exec=0 fmt=spr_frame
 unknown 6 $D93F $D961 cdl_exec=0 cdl_read=35
-data 6 $D962 $D9B3 data_d962 kind=unknown naming=auto src=datacarve cdl_read=82/82 cdl_exec=0 proposed=stage5_table_d962
+data 6 $D962 $D9B3 data_d962 kind=table naming=auto src=datacarve cdl_read=82/82 cdl_exec=0 proposed=stage5_table_d962 fmt=spr_frame
 unknown 6 $D9B4 $D9C3 cdl_exec=0 cdl_read=0
-data 6 $D9C4 $D9E3 data_d9c4 kind=unknown naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 proposed=stage5_table_d9c4
+data 6 $D9C4 $D9E3 data_d9c4 kind=table naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 proposed=stage5_table_d9c4 fmt=spr_frame
 unknown 6 $D9E4 $D9FF cdl_exec=0 cdl_read=28
-data 6 $DA00 $DA1C data_da00 kind=unknown naming=auto src=datacarve cdl_read=29/29 cdl_exec=0
+data 6 $DA00 $DA1C data_da00 kind=table naming=auto src=datacarve cdl_read=29/29 cdl_exec=0 fmt=spr_frame
 unknown 6 $DA1D $DA3E cdl_exec=0 cdl_read=34
-data 6 $DA3F $DA5E data_da3f kind=unknown naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 proposed=stage5_table_da3f
+data 6 $DA3F $DA5E data_da3f kind=table naming=auto src=datacarve cdl_read=32/32 cdl_exec=0 proposed=stage5_table_da3f fmt=spr_frame
 unknown 6 $DA5F $DA6C cdl_exec=0 cdl_read=14
-data 6 $DA6D $DB4A data_da6d kind=unknown naming=auto src=datacarve cdl_read=222/222 cdl_exec=0
+data 6 $DA6D $DB4A data_da6d kind=table naming=auto src=datacarve cdl_read=222/222 cdl_exec=0 fmt=spr_frame
 unknown 6 $DB4B $DB78 cdl_exec=0 cdl_read=46
-data 6 $DB79 $DD81 data_db79 kind=unknown naming=auto src=datacarve cdl_read=521/521 cdl_exec=0
+data 6 $DB79 $DD81 data_db79 kind=table naming=auto src=datacarve cdl_read=521/521 cdl_exec=0 fmt=spr_frame
 unknown 6 $DD82 $DDC5 cdl_exec=0 cdl_read=68
-data 6 $DDC6 $DE51 data_ddc6 kind=unknown naming=auto src=datacarve cdl_read=140/140 cdl_exec=0
+data 6 $DDC6 $DE51 data_ddc6 kind=table naming=auto src=datacarve cdl_read=140/140 cdl_exec=0 fmt=spr_frame
 unknown 6 $DE52 $DE7F cdl_exec=0 cdl_read=46
-data 6 $DE80 $DF90 data_de80 kind=unknown naming=auto src=datacarve cdl_read=273/273 cdl_exec=0
+data 6 $DE80 $DF90 data_de80 kind=table naming=auto src=datacarve cdl_read=273/273 cdl_exec=0 fmt=spr_frame
 unknown 6 $DF91 $DFE0 cdl_exec=0 cdl_read=80
-data 6 $DFE1 $E050 data_dfe1 kind=unknown naming=auto src=datacarve cdl_read=112/112 cdl_exec=0 proposed=stage3_level_enemy_data
+data 6 $DFE1 $E050 data_dfe1 kind=table naming=auto src=datacarve cdl_read=112/112 cdl_exec=0 proposed=stage3_level_enemy_data fmt=spr_frame
 unknown 6 $E051 $E091 cdl_exec=0 cdl_read=65
-data 6 $E092 $E34B data_e092 kind=unknown naming=auto src=datacarve cdl_read=698/698 cdl_exec=0
+data 6 $E092 $E34B data_e092 kind=table naming=auto src=datacarve cdl_read=698/698 cdl_exec=0 fmt=spr_frame
 unknown 6 $E34C $E393 cdl_exec=0 cdl_read=72
-data 6 $E394 $E45D data_e394 kind=unknown naming=auto src=datacarve cdl_read=202/202 cdl_exec=0 proposed=stage1_table_e394
+data 6 $E394 $E45D data_e394 kind=table naming=auto src=datacarve cdl_read=202/202 cdl_exec=0 proposed=stage1_table_e394 fmt=spr_frame
 code 6 $E45E $E470 sub_e45e naming=auto end=rts src=carve cdl=19/19 conf=verified
 code 6 $E471 $E479 sub_e471 naming=auto end=jmp src=carve cdl=9/9 conf=verified
 farcall 6 $E477 bank=5 slot=$800C target=$8323 loc_8323 tail
@@ -3256,7 +3274,7 @@ farcall 6 $E480 bank=2 slot=$800C target=$F66E sub_f66e tail
 code 6 $E483 $E496 sub_e483 naming=auto end=rts src=carve cdl=20/20 conf=verified
 code 6 $E497 $E49F sub_e497 naming=auto end=jmp src=carve cdl=9/9 conf=verified
 farcall 6 $E49D bank=2 slot=$8012 target=$F4AD sub_f4ad tail
-code 6 $E4A0 $E599 sub_e4a0 naming=auto end=rts src=carve cdl=248/250 conf=verified proposed=entity_render_update
+code 6 $E4A0 $E599 sub_e4a0 naming=auto end=rts src=carve cdl=250/250 conf=verified proposed=entity_render_update
 timing 6 $E4FE ppustatus_poll bit=sprite0 loop=$E501
 entry 6 $E544 e_e544 in=sub_e4a0 via=jmp@$E52B
 timing 6 $E54F bank_switch store=$FFC9 mode=abs
@@ -3268,16 +3286,16 @@ farcall 6 $E66C bank=4 slot=$8021 target=$C691 sub_c691
 timing 6 $E6B4 ppustatus_poll bit=sprite0 loop=$E6B7
 code 6 $E6D3 $E707 display_player_status_text naming=reviewed end=rts src=carve cdl=53/53 conf=verified
 entry 6 $E6F3 e_e6f3 in=display_player_status_text via=jsr@$E6D5
-data 6 $E708 $E756 player_status_text kind=text naming=reviewed src=datacarve cdl_read=79/79 cdl_exec=0
+data 6 $E708 $E756 player_status_text kind=text naming=reviewed src=datacarve cdl_read=79/79 cdl_exec=0 fmt=text_string_list
 code 6 $E757 $E75D sub_e757 naming=auto end=jmp src=carve cdl=7/7 conf=verified
 farcall 6 $E75B bank=2 slot=$801E target=$F465 sub_f465 tail
 code 6 $E75E $E7E5 sub_e75e naming=auto end=rts src=carve cdl=136/136 conf=verified proposed=update_ppu_registers
 entry 6 $E7CF e_e7cf in=sub_e75e via=jsr@$E7C6,jsr@$E7C9,jsr@$E7CC
 code 6 $E7E6 $E7EF draw_title_screen_text naming=reviewed end=jmp src=carve cdl=10/10 conf=verified
 farcall 6 $E7ED bank=? slot=? target=? dynamic y=$03 tail
-data 6 $E7F0 $E885 title_screen_text kind=text naming=reviewed src=datacarve cdl_read=150/150 cdl_exec=0
-unknown 6 $E886 $E8B5 cdl_exec=0 cdl_read=0
-data 6 $E8B6 $E8E5 data_e8b6 kind=table naming=auto src=datacarve cdl_read=48/48 cdl_exec=0
+data 6 $E7F0 $E885 title_screen_text kind=text naming=reviewed src=datacarve cdl_read=150/150 cdl_exec=0 fmt=text_string_list
+unknown 6 $E886 $E8B5 cdl_exec=0 cdl_read=18
+data 6 $E8B6 $E8E5 data_e8b6 kind=table naming=auto src=datacarve cdl_read=48/48 cdl_exec=0 fmt=pal_char_sprite
 unknown 6 $E8E6 $E8F9 cdl_exec=0 cdl_read=15
 code 6 $E8FA $E902 sub_e8fa naming=auto end=jmp src=carve cdl=9/9 conf=verified
 data 6 $E903 $E90F data_e903 kind=unknown naming=auto src=datacarve cdl_read=13/13 cdl_exec=0
@@ -3287,21 +3305,21 @@ code 6 $E99B $E9A7 sub_e99b naming=auto end=rts src=carve cdl=13/13 conf=verifie
 code 6 $E9A8 $EA33 sub_e9a8 naming=auto end=rts src=carve cdl=140/140 conf=verified proposed=update_lives_display_data
 farcall 6 $E9AC bank=2 slot=$8006 target=$EFB4 sub_efb4
 entry 6 $E9C8 e_e9c8 in=sub_e9a8 via=jsr@$E99F
-code 6 $EA34 $EAA8 sub_ea34 naming=auto end=jmp src=carve cdl=115/117 conf=verified
+code 6 $EA34 $EAA8 sub_ea34 naming=auto end=jmp src=carve cdl=117/117 conf=verified
 farcall 6 $EA49 bank=2 slot=$8009 target=$EFE1 sub_efe1
 code 6 $EAA9 $EAAF sub_eaa9 naming=auto end=jmp src=carve cdl=7/7 conf=verified
-code 6 $EAB0 $EAE0 sub_eab0 naming=auto end=rts src=carve cdl=17/49 conf=verified
+code 6 $EAB0 $EAE0 sub_eab0 naming=auto end=rts src=carve cdl=49/49 conf=verified
 entry 6 $EAB4 e_eab4 in=sub_eab0 via=jmp@$EAAD
 unknown 6 $EAE1 $EB0A cdl_exec=0 cdl_read=8
 code 6 $EB0B $EB51 sub_eb0b naming=auto end=rts src=carve cdl=71/71 conf=verified
 unknown 6 $EB52 $EB69 cdl_exec=0 cdl_read=24
-code 6 $EB6A $EBD6 sub_eb6a naming=auto end=rts src=carve cdl=56/109 conf=verified proposed=update_sprite_buffer_data
-code 6 $EBD7 $EC25 sub_ebd7 naming=auto end=rts src=carve cdl=76/79 conf=verified
+code 6 $EB6A $EBD6 sub_eb6a naming=auto end=rts src=carve cdl=109/109 conf=verified proposed=update_sprite_buffer_data
+code 6 $EBD7 $EC25 sub_ebd7 naming=auto end=rts src=carve cdl=79/79 conf=verified
 code 6 $EC26 $EC45 sub_ec26 naming=auto end=rts src=carve cdl=32/32 conf=verified
 code 6 $EC46 $EC4C sub_ec46 naming=auto end=jmp src=carve cdl=7/7 conf=verified
-code 6 $EC4D $EC8F sub_ec4d naming=auto end=rts src=carve cdl=35/67 conf=verified
+code 6 $EC4D $EC8F sub_ec4d naming=auto end=rts src=carve cdl=67/67 conf=verified
 entry 6 $EC51 e_ec51 in=sub_ec4d via=jmp@$EC4A
-unknown 6 $EC90 $ECA9 cdl_exec=0 cdl_read=8
+unknown 6 $EC90 $ECA9 cdl_exec=0 cdl_read=16
 code 6 $ECAA $ECAF loc_ecaa naming=auto end=bra src=carve cdl=6/6 conf=verified notes=code_read_as_data
 unknown 6 $ECB0 $ECC0 cdl_exec=0 cdl_read=4
 code 6 $ECC1 $ECC6 loc_ecc1 naming=auto end=bra src=carve cdl=6/6 conf=verified notes=code_read_as_data
@@ -3319,21 +3337,21 @@ data 6 $EE62 $EE76 data_ee62 kind=unknown naming=auto src=datacarve cdl_read=21/
 code 6 $EE77 $EEA1 sub_ee77 naming=auto end=rts src=carve cdl=43/43 conf=verified
 code 6 $EEA2 $EEAA sub_eea2 naming=auto end=jmp src=carve cdl=9/9 conf=verified
 farcall 6 $EEA8 bank=4 slot=$8006 target=$C4C1 sub_c4c1 tail
-code 6 $EEAB $EEDF sub_eeab naming=auto end=rts src=carve cdl=47/53 conf=verified proposed=update_lives_display_data notes=code_read_as_data
+code 6 $EEAB $EEDF sub_eeab naming=auto end=rts src=carve cdl=53/53 conf=verified proposed=update_lives_display_data notes=code_read_as_data
 entry 6 $EEB1 e_eeb1 in=sub_eeab via=jsr@$E704
 unknown 6 $EEE0 $EEEF cdl_exec=0 cdl_read=7
-data 6 $EEF0 $EEF7 data_eef0 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $EEF0 $EEF7 data_eef0 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=text_charmap
 unknown 6 $EEF8 $EEFD cdl_exec=0 cdl_read=2
-data 6 $EEFE $EF17 data_eefe kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0
+data 6 $EEFE $EF17 data_eefe kind=table naming=auto src=datacarve cdl_read=26/26 cdl_exec=0 fmt=text_charmap
 unknown 6 $EF18 $EF1A cdl_exec=0 cdl_read=3
-code 6 $EF1B $EFA5 sub_ef1b naming=auto end=rts src=carve cdl=127/139 conf=verified
+code 6 $EF1B $EFA5 sub_ef1b naming=auto end=rts src=carve cdl=139/139 conf=verified
 unknown 6 $EFA6 $EFD0 cdl_exec=34 cdl_read=0
 xcode 6 $EFAF $EFD0 in=unk_efa6 whole=yes
 code 6 $EFD1 $EFE4 loc_efd1 naming=auto end=bra src=carve cdl=20/20 conf=verified notes=code_read_as_data
 unknown 6 $EFE5 $EFEE cdl_exec=0 cdl_read=4
 code 6 $EFEF $F002 loc_efef naming=auto end=bra src=carve cdl=20/20 conf=verified notes=code_read_as_data
 unknown 6 $F003 $F00B cdl_exec=0 cdl_read=4
-code 6 $F00C $F035 sub_f00c naming=auto end=rts src=carve cdl=41/42 conf=verified
+code 6 $F00C $F035 sub_f00c naming=auto end=rts src=carve cdl=42/42 conf=verified
 code 6 $F036 $F069 sub_f036 naming=auto end=rts src=carve cdl=52/52 conf=verified
 code 6 $F06A $F080 sub_f06a naming=auto end=rts src=carve cdl=23/23 conf=verified
 code 6 $F081 $F08F sub_f081 naming=auto end=rts src=carve cdl=15/15 conf=verified
@@ -3365,7 +3383,8 @@ unknown 6 $F346 $F346 cdl_exec=0 cdl_read=0
 data 6 $F347 $F35B data_f347 kind=unknown naming=auto src=datacarve cdl_read=21/21 cdl_exec=0
 code 6 $F35C $F362 sub_f35c naming=auto end=jmp src=carve cdl=7/7 conf=verified
 farcall 6 $F360 bank=3 slot=$8039 target=$B3BB sub_b3bb tail
-unknown 6 $F363 $F3C9 cdl_exec=0 cdl_read=0
+unknown 6 $F363 $F3C9 cdl_exec=89 cdl_read=14
+xcode 6 $F363 $F3BB in=unk_f363 whole=yes
 code 6 $F3CA $F3EA sub_f3ca naming=auto end=rts src=carve cdl=33/33 conf=verified
 code 6 $F3EB $F3FB sub_f3eb naming=auto end=rts src=carve cdl=17/17 conf=verified
 code 6 $F3FC $F439 loc_f3fc naming=auto end=rts src=carve cdl=62/62 conf=verified notes=code_read_as_data
@@ -3377,15 +3396,15 @@ entry 6 $F48A e_f48a in=sub_f465 via=jmp@$F482
 data 6 $F492 $F49A data_f492 kind=unknown naming=auto src=datacarve cdl_read=9/9 cdl_exec=0
 code 6 $F49B $F4B8 sub_f49b naming=auto end=rts src=carve cdl=30/30 conf=verified
 code 6 $F4B9 $F4FD sub_f4b9 naming=auto end=rts src=carve cdl=69/69 conf=verified
-code 6 $F4FE $F5A3 sub_f4fe naming=auto end=rts src=carve cdl=0/166 conf=static
-unknown 6 $F5A4 $F5CF cdl_exec=0 cdl_read=0
+code 6 $F4FE $F5A3 sub_f4fe naming=auto end=rts src=carve cdl=166/166 conf=verified
+unknown 6 $F5A4 $F5CF cdl_exec=0 cdl_read=44
 code 6 $F5D0 $F5D3 loc_f5d0 naming=auto end=bra src=carve cdl=4/4 conf=verified notes=code_read_as_data
 code 6 $F5D4 $F5DB sub_f5d4 naming=auto end=jmp src=carve cdl=8/8 conf=verified
 code 6 $F5DC $F600 sub_f5dc naming=auto end=jmp src=carve cdl=37/37 conf=verified
 unknown 6 $F601 $F606 cdl_exec=0 cdl_read=6
 code 6 $F607 $F68A sub_f607 naming=auto end=jmp src=carve cdl=132/132 conf=verified
 entry 6 $F60D e_f60d in=sub_f607 via=bne@$F5D2,jsr@$F500,jsr@$F5D6
-unknown 6 $F68B $F6BA cdl_exec=0 cdl_read=40
+unknown 6 $F68B $F6BA cdl_exec=0 cdl_read=48
 code 6 $F6BB $F6CC sub_f6bb naming=auto end=fall src=carve cdl=18/18 conf=verified
 code 6 $F6CD $F702 sub_f6cd naming=auto end=rts src=carve cdl=54/54 conf=verified proposed=update_ppu_registers
 code 6 $F703 $F729 sub_f703 naming=auto end=rts src=carve cdl=39/39 conf=verified
@@ -3396,9 +3415,9 @@ farcall 6 $F74F bank=3 slot=$803C target=$B320 sub_b320 tail
 code 6 $F752 $F76C sub_f752 naming=auto end=jmp src=carve cdl=27/27 conf=verified
 code 6 $F76D $F78B sub_f76d naming=auto end=jmp src=carve cdl=31/31 conf=verified
 code 6 $F78C $F7BB sub_f78c naming=auto end=jmp src=carve cdl=48/48 conf=verified
-code 6 $F7BC $F80C sub_f7bc naming=auto end=jmp src=carve cdl=0/81 conf=static proposed=update_intro_cast_text
+code 6 $F7BC $F80C sub_f7bc naming=auto end=jmp src=carve cdl=81/81 conf=verified proposed=update_intro_cast_text
 farcall 6 $F7E1 bank=4 slot=$8021 target=$C691 sub_c691
-unknown 6 $F80D $F81A cdl_exec=0 cdl_read=0
+unknown 6 $F80D $F81A cdl_exec=0 cdl_read=10
 code 6 $F81B $F861 sub_f81b naming=auto end=jmp src=carve cdl=71/71 conf=verified
 farcall 6 $F857 bank=4 slot=$8021 target=$C691 sub_c691
 code 6 $F862 $F88A sub_f862 naming=auto end=fall src=carve cdl=41/41 conf=verified proposed=update_ppu_registers notes=code_read_as_data
@@ -3407,7 +3426,8 @@ unknown 6 $F8B5 $F8B8 cdl_exec=0 cdl_read=4
 code 6 $F8B9 $F8DB sub_f8b9 naming=auto end=rts src=carve cdl=35/35 conf=verified proposed=update_ppu_registers
 code 6 $F8DC $F915 loc_f8dc naming=auto end=jmp src=carve cdl=58/58 conf=verified notes=code_read_as_data
 code 6 $F916 $F926 sub_f916 naming=auto end=rts src=carve cdl=17/17 conf=verified
-unknown 6 $F927 $F994 cdl_exec=0 cdl_read=0
+unknown 6 $F927 $F994 cdl_exec=90 cdl_read=16
+xcode 6 $F927 $F980 in=unk_f927 whole=yes
 xref 6 $F927 unknown from=$F8DD in=unk_f927
 code 6 $F995 $F99D sub_f995 naming=auto end=rts src=carve cdl=9/9 conf=verified
 timing 6 $F99A bank_switch store=$FFB9 mode=abs
@@ -3426,25 +3446,25 @@ code 6 $FA90 $FA98 sub_fa90 naming=auto end=jmp src=carve cdl=9/9 conf=verified
 farcall 6 $FA96 bank=2 slot=$8018 target=$F3E0 sub_f3e0 tail
 data 6 $FA99 $FAB2 intro_presents_text kind=text naming=reviewed src=datacarve cdl_read=26/26 cdl_exec=0
 unknown 6 $FAB3 $FAC2 cdl_exec=0 cdl_read=2
-data 6 $FAC3 $FACC data_fac3 kind=unknown naming=auto src=datacarve cdl_read=10/10 cdl_exec=0
+data 6 $FAC3 $FACC data_fac3 kind=ptrtable naming=auto src=datacarve cdl_read=10/10 cdl_exec=0 fmt=bigfont_substr_ptrs
 unknown 6 $FACD $FACE cdl_exec=0 cdl_read=0
 data 6 $FACF $FAE8 data_facf kind=unknown naming=auto src=datacarve cdl_read=26/26 cdl_exec=0
-unknown 6 $FAE9 $FB08 cdl_exec=0 cdl_read=1
-data 6 $FB09 $FB1E game_over_text kind=text naming=reviewed src=datacarve cdl_read=22/22 cdl_exec=0
+unknown 6 $FAE9 $FB08 cdl_exec=0 cdl_read=5
+data 6 $FB09 $FB1E game_over_text kind=text naming=reviewed src=datacarve cdl_read=22/22 cdl_exec=0 fmt=text_bigfont
 unknown 6 $FB1F $FB23 cdl_exec=0 cdl_read=5
-data 6 $FB24 $FB30 character_names_text_fb24 kind=text naming=reviewed src=datacarve cdl_read=13/13 cdl_exec=0
+data 6 $FB24 $FB30 character_names_text_fb24 kind=text naming=reviewed src=datacarve cdl_read=13/13 cdl_exec=0 fmt=text_bigfont
 unknown 6 $FB31 $FB36 cdl_exec=0 cdl_read=0
-data 6 $FB37 $FBD0 character_names_text kind=text naming=reviewed src=datacarve cdl_read=154/154 cdl_exec=0
-unknown 6 $FBD1 $FC0E cdl_exec=0 cdl_read=4
-data 6 $FC0F $FC56 intro_cast_text kind=ptrtable naming=reviewed src=datacarve cdl_read=72/72 cdl_exec=0
-unknown 6 $FC57 $FC86 cdl_exec=0 cdl_read=17
-data 6 $FC87 $FC8E data_fc87 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $FB37 $FBD0 character_names_text kind=text naming=reviewed src=datacarve cdl_read=154/154 cdl_exec=0 fmt=text_bigfont
+unknown 6 $FBD1 $FC0E cdl_exec=0 cdl_read=32
+data 6 $FC0F $FC56 intro_cast_text kind=text naming=reviewed src=datacarve cdl_read=72/72 cdl_exec=0 fmt=text_bigfont
+unknown 6 $FC57 $FC86 cdl_exec=0 cdl_read=21
+data 6 $FC87 $FC8E data_fc87 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=bigfont_glyphs
 unknown 6 $FC8F $FCA2 cdl_exec=0 cdl_read=4
-data 6 $FCA3 $FCB6 data_fca3 kind=unknown naming=auto src=datacarve cdl_read=20/20 cdl_exec=0 proposed=stage4_table_fca3
+data 6 $FCA3 $FCB6 data_fca3 kind=table naming=auto src=datacarve cdl_read=20/20 cdl_exec=0 proposed=stage4_table_fca3 fmt=bigfont_glyphs
 unknown 6 $FCB7 $FCBA cdl_exec=0 cdl_read=0
-data 6 $FCBB $FCFE data_fcbb kind=unknown naming=auto src=datacarve cdl_read=68/68 cdl_exec=0
+data 6 $FCBB $FCFE data_fcbb kind=table naming=auto src=datacarve cdl_read=68/68 cdl_exec=0 fmt=bigfont_glyphs
 unknown 6 $FCFF $FD02 cdl_exec=0 cdl_read=4
-data 6 $FD03 $FD0A data_fd03 kind=unknown naming=auto src=datacarve cdl_read=8/8 cdl_exec=0
+data 6 $FD03 $FD0A data_fd03 kind=table naming=auto src=datacarve cdl_read=8/8 cdl_exec=0 fmt=bigfont_glyphs
 code 6 $FD0B $FD44 sub_fd0b naming=auto end=rts src=carve cdl=58/58 conf=verified
 entry 6 $FD32 e_fd32 in=sub_fd0b via=jmp@$FD2D
 code 6 $FD45 $FDD7 sub_fd45 naming=auto end=rts src=carve cdl=147/147 conf=verified proposed=update_sprite_buffer_data
@@ -3536,23 +3556,23 @@ code 7 $823C $8245 sub_823c naming=auto end=rts src=carve cdl=10/10 conf=verifie
 unknown 7 $8246 $8251 cdl_exec=0 cdl_read=0
 code 7 $8252 $825A sub_8252 naming=auto end=rts src=carve cdl=9/9 conf=verified proposed=clear_ppu_data
 unknown 7 $825B $825C cdl_exec=0 cdl_read=0
-data 7 $825D $82A4 data_825d kind=unknown naming=auto src=datacarve cdl_read=72/72 cdl_exec=0
+data 7 $825D $82A4 data_825d kind=ptrtable naming=auto src=datacarve cdl_read=72/72 cdl_exec=0 fmt=chr_list_ptrs
 unknown 7 $82A5 $82A8 cdl_exec=0 cdl_read=0
-data 7 $82A9 $83E7 data_82a9 kind=unknown naming=auto src=datacarve cdl_read=319/319 cdl_exec=0
+data 7 $82A9 $83E7 data_82a9 kind=table naming=auto src=datacarve cdl_read=319/319 cdl_exec=0 fmt=chr_list_mode
 unknown 7 $83E8 $83FC cdl_exec=0 cdl_read=0
-data 7 $83FD $EC4B data_83fd kind=unknown naming=auto src=datacarve cdl_read=26703/26703 cdl_exec=10
+data 7 $83FD $EC4B data_83fd kind=graphics naming=auto src=datacarve cdl_read=26703/26703 cdl_exec=10 fmt=chr_rle
 xcode 7 $DEE2 $DEE4 in=data_83fd whole=yes
 xcode 7 $DEE8 $DEEA in=data_83fd whole=yes
 xcode 7 $DEEF $DEEF in=data_83fd whole=yes
 xcode 7 $DEF3 $DEF5 in=data_83fd whole=yes
 code 7 $EC4C $ED19 vram_update_tiles naming=reviewed end=rts src=carve cdl=206/206 conf=verified
 unknown 7 $ED1A $ED23 cdl_exec=0 cdl_read=8
-data 7 $ED24 $ED71 data_ed24 kind=unknown naming=auto src=datacarve cdl_read=78/78 cdl_exec=0
-data 7 $ED72 $EDBE data_ed72 kind=unknown naming=auto src=datacarve cdl_read=77/77 cdl_exec=0
+data 7 $ED24 $ED71 data_ed24 kind=graphics naming=auto src=datacarve cdl_read=78/78 cdl_exec=0 fmt=chr_unknown
+data 7 $ED72 $EDBE data_ed72 kind=graphics naming=auto src=datacarve cdl_read=77/77 cdl_exec=0 fmt=chr_unknown
 unknown 7 $EDBF $EDC1 cdl_exec=0 cdl_read=0
-data 7 $EDC2 $EE5B data_edc2 kind=unknown naming=auto src=datacarve cdl_read=154/154 cdl_exec=0
+data 7 $EDC2 $EE5B data_edc2 kind=graphics naming=auto src=datacarve cdl_read=154/154 cdl_exec=0 fmt=chr_unknown
 data 7 $EE5C $EEAE data_ee5c kind=unknown naming=auto src=datacarve cdl_read=83/83 cdl_exec=0
-data 7 $EEAF $FF71 data_eeaf kind=unknown naming=auto src=datacarve cdl_read=4291/4291 cdl_exec=41
+data 7 $EEAF $FF71 data_eeaf kind=graphics naming=auto src=datacarve cdl_read=4291/4291 cdl_exec=41 fmt=chr_rle
 xcode 7 $FF40 $FF42 in=data_eeaf whole=yes
 xcode 7 $FF44 $FF4A in=data_eeaf whole=yes
 xcode 7 $FF4C $FF52 in=data_eeaf whole=yes
