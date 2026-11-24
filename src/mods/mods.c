@@ -6,11 +6,12 @@
 /* ---- the built-in mods (mod_*.c) ---- */
 extern const ModDef mod_lives;
 extern const ModDef mod_nolimit;
-static const ModDef *const all[] = {&mod_nolimit, &mod_lives};
-#define COUNT (int)(sizeof all / sizeof all[0])
+#define MAX_MODS 32
+static const ModDef *all[MAX_MODS] = {&mod_nolimit, &mod_lives};
+static int n_mods = 2; /* built-in mods first, then mods_add() */
 
-static int enabled[COUNT];
-static int values[COUNT];
+static int enabled[MAX_MODS];
+static int values[MAX_MODS];
 static int values_set;
 
 static void init_values(void)
@@ -18,25 +19,34 @@ static void init_values(void)
     int i;
     if (values_set)
         return;
-    for (i = 0; i < COUNT; i++)
+    for (i = 0; i < n_mods; i++)
         values[i] = all[i]->value_default;
     values_set = 1;
 }
 
+int mods_add(const ModDef *def)
+{
+    if (n_mods == MAX_MODS || mods_find(def->id) >= 0)
+        return -1;
+    all[n_mods] = def;
+    values[n_mods] = def->value_default;
+    return n_mods++;
+}
+
 int mods_count(void)
 {
-    return COUNT;
+    return n_mods;
 }
 
 const ModDef *mods_def(int i)
 {
-    return i >= 0 && i < COUNT ? all[i] : NULL;
+    return i >= 0 && i < n_mods ? all[i] : NULL;
 }
 
 int mods_find(const char *id)
 {
     int i;
-    for (i = 0; i < COUNT; i++)
+    for (i = 0; i < n_mods; i++)
         if (!strcmp(all[i]->id, id))
             return i;
     return -1;
@@ -44,19 +54,19 @@ int mods_find(const char *id)
 
 void mods_enable(int i, int on)
 {
-    if (i >= 0 && i < COUNT)
+    if (i >= 0 && i < n_mods)
         enabled[i] = on != 0;
 }
 
 int mods_enabled(int i)
 {
-    return i >= 0 && i < COUNT && enabled[i];
+    return i >= 0 && i < n_mods && enabled[i];
 }
 
 void mods_set_value(int i, int v)
 {
     init_values();
-    if (i < 0 || i >= COUNT)
+    if (i < 0 || i >= n_mods)
         return;
     if (v < all[i]->value_min)
         v = all[i]->value_min;
@@ -68,13 +78,13 @@ void mods_set_value(int i, int v)
 int mods_value(int i)
 {
     init_values();
-    return i >= 0 && i < COUNT ? values[i] : 0;
+    return i >= 0 && i < n_mods ? values[i] : 0;
 }
 
 int mods_display_flags(void)
 {
     int i, f = 0;
-    for (i = 0; i < COUNT; i++)
+    for (i = 0; i < n_mods; i++)
         if (enabled[i] && all[i] == &mod_nolimit)
             f |= MODS_DISPLAY_NO_SPRITE_LIMIT;
     return f;
@@ -150,7 +160,7 @@ static int on_pc(void *ctx, Cpu *c)
     }
     if (!(map[pc] & MAP_ENTRY))
         return 0;
-    for (i = 0; i < COUNT; i++) {
+    for (i = 0; i < n_mods; i++) {
         if (!enabled[i] || all[i]->kind != MOD_LOGIC)
             continue;
         for (h = 0; h < all[i]->hook_count; h++) {
@@ -190,7 +200,7 @@ void mods_attach(Nes *nes)
     mods_forget_pending();
     for (i = 0; i < 0x10000; i++)
         map[i] = 0;
-    for (i = 0; i < COUNT; i++) {
+    for (i = 0; i < n_mods; i++) {
         if (!enabled[i] || all[i]->kind != MOD_LOGIC)
             continue;
         for (h = 0; h < all[i]->hook_count; h++) {
@@ -265,7 +275,7 @@ void mods_write_settings(FILE *f)
 {
     int i;
     fprintf(f, "# mods (docs/M7_MODS.md): mod_<id> = on | off, or a number for mods that take one\n");
-    for (i = 0; i < COUNT; i++) {
+    for (i = 0; i < n_mods; i++) {
         const ModDef *d = all[i];
         fprintf(f, "# %s: %s\n", d->id, d->help);
         if (d->value_min == d->value_max)
@@ -282,7 +292,7 @@ const char *mods_describe(char *buf, size_t len)
     int i;
     size_t n = 0;
     buf[0] = 0;
-    for (i = 0; i < COUNT && n + 1 < len; i++) {
+    for (i = 0; i < n_mods && n + 1 < len; i++) {
         if (!enabled[i])
             continue;
         if (all[i]->value_min == all[i]->value_max)

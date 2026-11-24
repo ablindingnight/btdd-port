@@ -44,6 +44,8 @@ typedef struct ModDef {
 enum { MODS_DISPLAY_NO_SPRITE_LIMIT = 1 };
 
 int mods_count(void);
+/* Adds a mod defined elsewhere (tests, future plugin code); returns its index or -1. */
+int mods_add(const ModDef *def);
 const ModDef *mods_def(int i);
 int mods_find(const char *id);           /* index or -1 */
 void mods_enable(int i, int on);

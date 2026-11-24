@@ -63,6 +63,61 @@ static void test_lives(const Fm2 *m2p)
     mods_enable(i, 0);
 }
 
+/* BEFORE and REPLACE hooks, with test-only mods on the same routine (bank 6 $9888, player start lives) */
+static int before_calls;
+static void count_call(Nes *n, Cpu *c, int v)
+{
+    (void)n;
+    (void)c;
+    (void)v;
+    before_calls++;
+}
+static void give_lives(Nes *n, Cpu *c, int v) /* our own replacement: player Y gets v lives */
+{
+    n->ram[0x11 + (c->y & 1)] = (uint8_t)v;
+}
+static const ModHook before_hooks[] = {{6, 0x9888, MOD_BEFORE, count_call, 0}};
+static const ModHook replace_hooks[] = {{6, 0x9888, MOD_REPLACE, give_lives, 24}};
+static const ModDef test_before = {"t_before", "test", "test", MOD_LOGIC, 0, 0, 0, before_hooks, 1};
+static const ModDef test_replace = {"t_replace", "test", "test", MOD_LOGIC, 6, 1, 9, replace_hooks, 1};
+
+static void test_before_replace(const Fm2 *m2p)
+{
+    static Nes n, ref;
+    char text[200];
+    long f = 0;
+    int ib = mods_add(&test_before), ir = mods_add(&test_replace), il = mods_find("lives");
+
+    /* reference: the lives mod (after-hook) with 6 lives */
+    mods_enable(il, 1);
+    mods_set_value(il, 6);
+    nes_init(&ref, &rom);
+    nes_power(&ref, PPU_MODEL_OLD);
+    mods_attach(&ref);
+    run_to(&ref, m2p, &f, 3000);
+    mods_enable(il, 0);
+
+    mods_enable(ib, 1);
+    mods_enable(ir, 1);
+    nes_init(&n, &rom);
+    nes_power(&n, PPU_MODEL_OLD);
+    mods_attach(&n);
+    f = 0;
+    run_to(&n, m2p, &f, 3000);
+    snprintf(text, sizeof text, "before-hook ran %d times (2 players start)", before_calls);
+    check(before_calls == 2, text);
+    snprintf(text, sizeof text,
+             "replace-hook (6 lives, original skipped): at frame 3000 lives %d/%d, level $%02X section $%02X; "
+             "after-hook run with 6 lives: %d/%d, $%02X $%02X",
+             n.ram[0x11], n.ram[0x12], n.ram[0x0D], n.ram[0x15], ref.ram[0x11], ref.ram[0x12], ref.ram[0x0D],
+             ref.ram[0x15]);
+    check(n.ram[0x11] == ref.ram[0x11] && n.ram[0x12] == ref.ram[0x12] && n.ram[0x0D] == ref.ram[0x0D] &&
+              n.ram[0x15] == ref.ram[0x15],
+          text);
+    mods_enable(ib, 0);
+    mods_enable(ir, 0);
+}
+
 static void test_nolimit(const Fm2 *m, PpuModel model, long frames, const char *label)
 {
     static Nes a, b;
@@ -137,6 +192,7 @@ int main(int argc, char **argv)
         return 2;
     }
     test_lives(&m2p);
+    test_before_replace(&m2p);
     test_nolimit(&m2p, PPU_MODEL_OLD, frames, "2P old PPU");
     test_nolimit(&m1p, PPU_MODEL_NEW, frames, "1P new PPU");
     printf("%s\n", failed ? "FAIL" : "PASS");
