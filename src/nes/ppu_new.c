@@ -414,6 +414,8 @@ void ppun_run_frame(Ppu *p)
             if (sl != 0)
                 draw_tile(p, yp, xt, renderslot);
         }
+        if (sl != 0 && p->line_done) /* M2 hook: display only */
+            p->line_done(p, yp, p->line_done_user);
         evaluate_sprites(p, yp, scanslot);
         fetch_sprites(p, sl, yp, scanslot);
         fetch_tile(p, &p->bg[0]);

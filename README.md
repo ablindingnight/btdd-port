@@ -23,7 +23,7 @@ The C code must build without warnings with all three compilers (C11; `/W4` or `
 | gcc | 16.2.0 (MSYS2 UCRT64, Rev7) | `winget install --id MSYS2.MSYS2 -e`, then `C:\msys64\usr\bin\bash.exe -lc "pacman -Syu --noconfirm"` (run it twice: the first run updates pacman itself) and `C:\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm --needed mingw-w64-ucrt-x86_64-gcc"` (to `C:\msys64\ucrt64\bin`) |
 | CMake | 4.4.4 | `winget install --id Kitware.CMake -e` |
 | Ninja | 1.13.2 | `winget install --id Ninja-build.Ninja -e` |
-| SDL3 | release-3.4.20 | fetched by CMake (FetchContent, pinned tag); only `btdd_sdl_probe` links it until M2. `-DBTDD_SDL=OFF` skips the download |
+| SDL3 | release-3.4.20 | fetched by CMake (FetchContent, pinned tag); linked by `btdd_play` and `btdd_sdl_probe`. `-DBTDD_SDL=OFF` skips the download (and those targets) |
 
 ## Build
 MSVC (Visual Studio generator):
@@ -39,8 +39,19 @@ cmake --build build-clang
 cmake -S . -B build-gcc -G Ninja -DCMAKE_C_COMPILER=C:/msys64/ucrt64/bin/gcc.exe -DCMAKE_BUILD_TYPE=Release
 cmake --build build-gcc
 ```
-Targets: `btdd` (M0: ROM check), `btdd_headless` (reference interpreter + coverage recorder), `btdd_explore`, `btdd_static` (M1.5, docs/M15_COVERAGE.md), `nestest_check` (CPU test),
-`btdd_sdl_probe` (not in the default build: add `--target btdd_sdl_probe`).
+Targets: `btdd_play` (the game in a window), `btdd` (M0: ROM check), `btdd_headless` (reference
+interpreter + coverage recorder), `btdd_explore`, `btdd_static` (M1.5, docs/M15_COVERAGE.md),
+`btdd_apu_check` / `btdd_shot` (sound and picture checks against FCEUX), tests (`nestest_check`,
+`cpu_call_test`, `apu_synth_test`), `btdd_sdl_probe` (not in the default build).
+
+## Play (M2)
+```powershell
+.\build\Release\btdd_play.exe "..\Gamefiles\Battletoads-Double Dragon (USA).nes"
+```
+Player 1: arrows, X = A, Z = B, Right Shift = Select, Enter = Start. Player 2: W/A/S/D, H = A, G = B, T = Select,
+Y = Start. Gamepads work too. Esc quits, P pauses, F11 fullscreen, F2 square pixels / 4:3, F12 screenshot.
+Keys, scale and the ROM path are set in `%APPDATA%\btdd\btdd.cfg` (created on first run). Details:
+`docs/M2_PLAY.md`.
 
 ## Reference interpreter (M1)
 ```powershell
