@@ -162,8 +162,10 @@ static M6Sample smp;
 static Box exp_box, got_box;
 static int outputs[7];
 static unsigned routine_addr;
+static uint8_t hw_seen[0x10000]; /* hardware addresses the corpus shows this routine touching */
 
-/* Checks the candidate on smp. Returns 0 pass, 1 mismatch (printed), 2 unusable sample. */
+/* Checks the candidate on smp. Returns 0 pass, 1 mismatch (printed), 2 unusable sample, 3 unreachable random
+ * state. */
 static int check(const char *label, int fuzz)
 {
     Cpu cpu;
@@ -178,6 +180,12 @@ static int check(const char *label, int fuzz)
         exp_box.rec = &smp;
         if (run_original(&exp_box, &cpu, (uint16_t)routine_addr) != 0 || exp_box.err[0])
             return 2;
+        /* A random state that makes the original touch a hardware address this routine was never seen touching
+         * in the corpus is one the game does not reach (e.g. a pointer into PPU space, where a page-crossing
+         * (ptr),y even adds a 6502 dummy read no C can express): skip it. */
+        for (k = 0; k < smp.n_acc; k++)
+            if (!hw_seen[smp.acc[k].addr])
+                return 3;
     } else if (run_original(&exp_box, &cpu, (uint16_t)routine_addr) != 0 || exp_box.err[0] ||
                exp_box.pos != smp.n_acc || cpu.a != smp.out_a || cpu.x != smp.out_x || cpu.y != smp.out_y ||
                cpu.p != smp.out_p || m6_ram_hash(exp_box.ram, smp.s) != smp.out_ram_hash)
@@ -255,7 +263,7 @@ int main(int argc, char **argv)
 {
     char hash[41], label[600];
     int f, total = 0, passed = 0, unusable = 0, fuzz_n = getenv("M6_FUZZ") ? atoi(getenv("M6_FUZZ")) : 0;
-    int fuzz_done = 0, fuzz_skip = 0, k;
+    int fuzz_done = 0, fuzz_skip = 0, fuzz_unreach = 0, k;
     uint8_t first_bank = 0, first_s = 0xFD;
     if (argc < 6) {
         fprintf(stderr, "usage: m6_harness ROM BANK ADDR OUTPUTS corpus.m6c...   (env M6_FUZZ=n, M6_VALIDATE=1)\n");
@@ -294,6 +302,7 @@ int main(int argc, char **argv)
                 smp.acc[k].addr = (uint16_t)g16(q);
                 smp.acc[k].value = q[2];
                 smp.acc[k].kind = q[3];
+                hw_seen[smp.acc[k].addr] = 1;
             }
             off += 16 + 2048 + 4 * (size_t)smp.n_acc;
             if (total == 0) {
@@ -335,12 +344,15 @@ int main(int argc, char **argv)
         }
         if (r == 2)
             fuzz_skip++;
+        else if (r == 3)
+            fuzz_unreach++;
         else
             fuzz_done++;
     }
     printf("PASS %d/%d states (%d unusable samples skipped)", passed, total, unusable);
     if (fuzz_n)
-        printf(" + %d/%d random states (%d did not finish)", fuzz_done, fuzz_n, fuzz_skip);
+        printf(" + %d/%d random states (%d did not finish, %d touched hardware the routine never touches in play)",
+               fuzz_done, fuzz_n, fuzz_skip, fuzz_unreach);
     printf("\n");
     return passed > 0 ? 0 : 2;
 }
