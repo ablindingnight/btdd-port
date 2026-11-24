@@ -59,7 +59,7 @@ target_link_libraries(rewind_test PRIVATE btdd_screen)
 btdd_warnings(rewind_test)
 
 add_executable(btdd_shot tools/shot/shot_main.c)
-target_link_libraries(btdd_shot PRIVATE btdd_screen)
+target_link_libraries(btdd_shot PRIVATE btdd_screen btdd_mods)
 btdd_warnings(btdd_shot)
 
 add_executable(btdd src/main.c)

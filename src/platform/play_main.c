@@ -8,6 +8,7 @@
  * players 1 and 2 (east button = A, south button = B, Back = Select, Start, d-pad or left stick).
  * Hotkeys: Esc quit, P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter
  * (nearest / sharp / bilinear), F4 scanlines, F5 redefine keys, F11 or Alt+Enter fullscreen, F12 screenshot.
+ * Mods (M7, docs/M7_MODS.md): F8 no sprite flicker, F9 starting lives (mod_* keys in btdd.cfg, --mod ID[=N]).
  * States (M8): F6 save / F7 load the current slot, 0-9 or Shift+F6 / Shift+F7 pick the slot (10 slots, in
  * <settings folder>\states\<ROM SHA-1>); hold Backspace to rewind (rewind_seconds of history, sound muted),
  * hold Tab to fast-forward (ff_speed x; one frame's sound in ff_speed is played, so pacing stays on the sound
@@ -24,6 +25,7 @@
 #include "nes/apu.h"
 #include "nes/nes.h"
 #include "nes/state.h"
+#include "mods/mods.h"
 #include "platform/png.h"
 #include "platform/rewind.h"
 #include "platform/screen.h"
@@ -61,6 +63,29 @@ static void power_on(PpuModel model)
     nes_power(&nes, model);
     screen_attach(&screen, &nes.ppu);
     attach_apu();
+    mods_attach(&nes);
+}
+
+static void say(const char *text);
+
+/* F8 / F9: toggle a mod, apply it at once, keep it in btdd.cfg */
+static void toggle_mod(const char *id, Config *cfg, int have_cfg)
+{
+    int i = mods_find(id);
+    char text[160], list[120];
+    if (i < 0)
+        return;
+    mods_enable(i, !mods_enabled(i));
+    mods_attach(&nes);
+    screen_set_no_sprite_limit(mods_display_flags() & MODS_DISPLAY_NO_SPRITE_LIMIT);
+    if (mods_def(i)->value_min != mods_def(i)->value_max)
+        snprintf(text, sizeof text, "%s (%d): %s", mods_def(i)->name, mods_value(i), mods_enabled(i) ? "on" : "off");
+    else
+        snprintf(text, sizeof text, "%s: %s", mods_def(i)->name, mods_enabled(i) ? "on" : "off");
+    say(text);
+    SDL_Log("mods: %s", mods_describe(list, sizeof list));
+    if (have_cfg)
+        config_save(cfg);
 }
 
 /* Reset button, as FCEUX does it: CPU takes the reset vector, PPU registers clear and it skips two
@@ -108,6 +133,7 @@ static long blob_restore(const uint8_t *b)
 {
     int64_t f;
     nes_state_restore(&nes, b);
+    mods_forget_pending(); /* the routine frames of pending after-hooks are gone */
     memcpy(&screen, b + nes_state_size(), sizeof screen);
     memcpy(&f, b + nes_state_size() + sizeof screen, 8);
     return (long)f;
@@ -181,6 +207,7 @@ static int slot_load(int slot, long *frame, const char *sha1, char *msg, size_t 
     r = states_dir[0] ? nes_state_load(&nes, &f, sha1, path) : NES_STATE_IO;
     if (r == NES_STATE_OK) {
         *frame = (long)f;
+        mods_forget_pending();
         snprintf(msg, len, "loaded slot %d", slot);
     } else if (r == NES_STATE_IO) {
         snprintf(msg, len, "slot %d is empty", slot);
@@ -479,6 +506,12 @@ int main(int argc, char **argv)
             states_test = 1;
         else if (!strcmp(argv[i], "--dump-ram") && i + 1 < argc)
             dump_path = argv[++i];
+        else if (!strcmp(argv[i], "--mod") && i + 1 < argc) {
+            if (mods_apply_arg(argv[++i]) != 0) {
+                snprintf(msg, sizeof msg, "unknown mod: %s", argv[i]);
+                return fail(msg);
+            }
+        }
         else if (!strcmp(argv[i], "--no-audio"))
             no_audio = 1;
         else if (!strcmp(argv[i], "--fullscreen"))
@@ -487,7 +520,7 @@ int main(int argc, char **argv)
             snprintf(cfg.rom, sizeof cfg.rom, "%s", argv[i]);
         else
             return fail("usage: btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] "
-                        "[--fullscreen] [--no-audio] [--dump-ram out.bin] [--selftest-gamepad] "
+                        "[--fullscreen] [--no-audio] [--dump-ram out.bin] [--mod ID[=N]] [--selftest-gamepad] "
                         "[--selftest-states]");
     }
     if (!have_cfg)
@@ -511,6 +544,11 @@ int main(int argc, char **argv)
             cfg.ppu_new = 1;
     }
     load_palette(cfg.palette);
+    screen_set_no_sprite_limit(mods_display_flags() & MODS_DISPLAY_NO_SPRITE_LIMIT);
+    {
+        char list[120];
+        SDL_Log("mods: %s", mods_describe(list, sizeof list));
+    }
 
     if (video_open(&video, TITLE, cfg.scale, cfg.aspect, cfg.fullscreen, cfg.filter, cfg.scanlines,
                    cfg.renderer) != 0) {
@@ -618,6 +656,10 @@ int main(int argc, char **argv)
                     rb.active = 1;
                     rb.step = 0;
                     memcpy(rb.backup, cfg.keys, sizeof rb.backup);
+                } else if (ev.key.key == SDLK_F8) {
+                    toggle_mod("nolimit", &cfg, have_cfg);
+                } else if (ev.key.key == SDLK_F9) {
+                    toggle_mod("lives", &cfg, have_cfg);
                 } else if (ev.key.key == SDLK_F12) {
                     save_screenshot(&cfg);
                 } else if (ev.key.key == SDLK_F6 || ev.key.key == SDLK_F7) {
