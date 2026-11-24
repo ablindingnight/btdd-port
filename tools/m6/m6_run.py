@@ -28,7 +28,7 @@ M6 = m6_test.M6
 PRIVATE = os.path.join(REPO, 'private', 'm6')
 LOG = os.path.join(M6, 'runs.jsonl')
 TEMPS = [0.2, 0.7, 0.7]
-MAX_TOKENS = 16000
+MAX_TOKENS = 32000
 SERVER_WAIT = 1800
 
 
@@ -55,8 +55,9 @@ def extract_c(text):
     text = re.sub(r'<think>.*?</think>', '', text, flags=re.S)
     if '</think>' in text:
         text = text.split('</think>')[-1]
-    blocks = re.findall(r'```(?:c|C)?\s*\n(.*?)```', text, flags=re.S)
-    blocks = [b for b in blocks if 'routine' in b]
+    blocks = re.findall(r'```[cC]\s*\n(.*?)```', text, flags=re.S)
+    blocks = [b for b in blocks if re.search(r'^\s*void\s+routine\s*\(', b, flags=re.M) and '...' not in b
+              and len(b.strip().splitlines()) >= 3]
     return blocks[-1].strip() + '\n' if blocks else None
 
 
@@ -87,7 +88,7 @@ def solve(bank, addr, tries):
             cand = os.path.join(work, 'try%d.c' % (t + 1))
             with open(cand, 'w', newline='\n') as f:
                 f.write(code)
-            rc, msg = m6_test.run_test(bank, addr, cand, outs or '-', work=work)
+            rc, msg = m6_test.run_test(bank, addr, cand, outs or '-', work=work, show=m6_prompt.ram_reads(bank, addr))
             result = {0: 'pass', 1: 'mismatch', 3: 'compile'}.get(rc, 'setup')
         entry.update({'result': result, 'message': msg[:400]})
         log(entry)

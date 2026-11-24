@@ -50,7 +50,8 @@ uint8_t bus_read(M6 *m, uint16_t addr);           /* hardware registers, ROM of 
 void bus_write(M6 *m, uint16_t addr, uint8_t value);
 #define RAM(addr) (m->ram[(addr) & 0x7FF])
 ```
-Answer with the ```c block only (thinking first is fine)."""
+Keep the reasoning short: translate instruction by instruction, then simplify; do not trace example states by
+hand. Declare every local variable. Answer with exactly one ```c block that starts with `void routine(M6 *m)`."""
 
 
 def asm_listing(bank, name):
@@ -114,6 +115,128 @@ def outputs_of(ins):
     return ''.join(r for r in 'axyc' if r in regs)
 
 
+# what each instruction reads / overwrites among A X Y C Z N V (for caller liveness)
+def _uses(m, mode):
+    reads, writes = set(), set()
+    if m in ('sta', 'pha', 'tax', 'tay', 'cmp', 'and', 'ora', 'eor', 'adc', 'sbc', 'bit') or \
+            (m in ('asl', 'lsr', 'rol', 'ror') and mode == 'acc'):
+        reads.add('a')
+    if m in ('stx', 'txa', 'txs', 'cpx', 'inx', 'dex') or mode in ('zpx', 'absx', 'indx'):
+        reads.add('x')
+    if m in ('sty', 'tya', 'cpy', 'iny', 'dey') or mode in ('zpy', 'absy', 'indy'):
+        reads.add('y')
+    if m in ('adc', 'sbc', 'rol', 'ror', 'bcc', 'bcs', 'php'):
+        reads.add('c')
+    if m in ('beq', 'bne', 'php'):
+        reads.add('z')
+    if m in ('bmi', 'bpl', 'php'):
+        reads.add('n')
+    if m in ('bvc', 'bvs', 'php'):
+        reads.add('v')
+    if m in ('lda', 'pla', 'txa', 'tya') or (m in ('and', 'ora', 'eor', 'adc', 'sbc')):
+        writes.add('a')
+    if m in ('ldx', 'tax', 'tsx'):
+        writes.add('x')
+    if m in ('ldy', 'tay'):
+        writes.add('y')
+    if m in ('adc', 'sbc', 'cmp', 'cpx', 'cpy', 'asl', 'lsr', 'rol', 'ror', 'clc', 'sec', 'plp'):
+        writes.add('c')
+    if m in ('lda', 'ldx', 'ldy', 'tax', 'tay', 'txa', 'tya', 'tsx', 'pla', 'inx', 'dex', 'iny', 'dey', 'inc', 'dec',
+             'and', 'ora', 'eor', 'adc', 'sbc', 'cmp', 'cpx', 'cpy', 'asl', 'lsr', 'rol', 'ror', 'bit', 'plp'):
+        writes.update(('z', 'n'))
+    if m in ('adc', 'sbc', 'bit', 'clv', 'plp'):
+        writes.add('v')
+    return reads, writes
+
+
+def caller_outputs(bank, addr, mem):
+    """Registers/flags some caller reads after `jsr addr` before overwriting them (straight-line scan of up to 12
+    instructions per call site in the same bank; anything that leaves the straight line counts as a read of
+    everything still undecided). Returns (outputs string, number of call sites)."""
+    live, sites = set(), 0
+    for r in m6_pick.routines():
+        if r['bank'] != bank:
+            continue
+        a = r['start']
+        while a <= r['end']:
+            d = decode(mem, a)
+            if d is None:
+                break
+            if d[0] == 'jsr' and d[3] == addr:
+                sites += 1
+                live |= _live_after(mem, a + 3)
+            a += d[2]
+    return ''.join(r for r in 'axyczvn' if r in live), sites
+
+
+REGS = frozenset('axy')
+
+
+def _live_after(mem, start, budget=400):
+    """Registers/flags read before being overwritten on some path from `start`: depth-first over branches (both
+    ways), `jmp abs`, and into `jsr` callees (back to the return address at their RTS). Leaving the known code
+    (an RTS with no pending return, an indirect jump, BRK/RTI, an undecodable byte, the step budget) counts as a
+    read of the registers still pending, but not of the flags: a flag carried across a second return is rare,
+    and counting it would make nearly every flag an output."""
+    live = set()
+    work = [(start, frozenset('axyczvn'), ())]
+    seen = set()
+    steps = 0
+    while work:
+        pc, pending, rets = work.pop()
+        while pending:
+            steps += 1
+            if steps > budget or (pc, pending, rets) in seen:
+                if steps > budget:
+                    live |= pending & REGS
+                break
+            seen.add((pc, pending, rets))
+            e = decode(mem, pc)
+            if e is None:
+                live |= pending & REGS
+                break
+            m, mode, n, v = e
+            rd, wr = _uses(m, mode)
+            live |= rd & pending
+            pending = pending - rd - wr
+            if m in ('rti', 'brk') or (m == 'jmp' and mode == 'ind'):
+                live |= pending & REGS
+                break
+            if m == 'rts':
+                if not rets:
+                    live |= pending & REGS
+                    break
+                pc, rets = rets[-1], rets[:-1]
+                continue
+            if m == 'jsr':
+                if v < 0x8000 or len(rets) > 4:
+                    live |= pending & REGS
+                    break
+                rets, pc = rets + ((pc + 3) & 0xFFFF,), v
+                continue
+            if m == 'jmp':
+                pc = v
+                continue
+            if mode == 'rel':
+                work.append((v, pending, rets))
+            pc = (pc + n) & 0xFFFF
+    return live
+
+
+def ram_reads(bank, addr):
+    """RAM addresses (and pointer pairs) the routine names directly: shown with their entry values in FAIL lines."""
+    raw = open(m6_test.ROM, 'rb').read()[16:]
+    mem = raw[bank * 0x8000:(bank + 1) * 0x8000]
+    r = next(x for x in m6_pick.routines() if x['bank'] == bank and x['start'] == addr)
+    out = []
+    for a, (m, mode, n, v) in m6_pick.analyse(mem, r)[2]:
+        if v is not None and mode not in ('imm', 'rel') and v < 0x0800:
+            for x in ([v, (v + 1) & 0xFF] if mode in ('indx', 'indy') else [v]):
+                if x not in out:
+                    out.append(x)
+    return out[:16]
+
+
 def build(bank, addr):
     raw = open(m6_test.ROM, 'rb').read()[16:]
     mem = raw[bank * 0x8000:(bank + 1) * 0x8000]
@@ -131,7 +254,9 @@ def build(bank, addr):
                     used.append((nm, lo, kind))
         elif v >= 0x8000 and m not in ('jmp', 'jsr'):
             tables.append(v)
-    outs = outputs_of(ins)
+    outs, sites = caller_outputs(bank, addr, mem)
+    if not sites:  # only reached by jumps, dispatch slots or far calls: fall back to what it writes
+        outs = outputs_of(ins)
     calls = m6_pick.call_counts().get((bank, addr), 0)
     asm = asm_listing(bank, r['name']) or '(decomp listing not found)'
     mech = mechanical_c(bank, r['start'], r['end'], mem)

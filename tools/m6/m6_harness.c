@@ -233,6 +233,18 @@ static int check(const char *label, int fuzz)
                smp.y, smp.p & 1, (smp.p >> 1) & 1, (smp.p >> 7) & 1, (smp.p >> 6) & 1, smp.bank);
         if (ram_diff >= 0 && fuzz)
             printf(" (random entry RAM; entry value at $%04X was $%02X)", ram_diff, smp.ram[ram_diff]);
+        if (getenv("M6_SHOW") && *getenv("M6_SHOW")) { /* entry values of the RAM the routine names */
+            const char *q = getenv("M6_SHOW");
+            printf(" | entry RAM");
+            while (*q) {
+                char *e;
+                unsigned a = (unsigned)strtoul(q, &e, 16);
+                printf(" $%04X=$%02X", a, smp.ram[a & 0x7FF]);
+                if (*e != ',')
+                    break;
+                q = e + 1;
+            }
+        }
         printf("\n");
         return 1;
     }
@@ -289,7 +301,12 @@ int main(int argc, char **argv)
                 first_s = smp.s;
             }
             total++;
-            snprintf(label, sizeof label, "state %d (%s #%u)", total, argv[f], i);
+            {
+                const char *base = strrchr(argv[f], '/'), *b2 = strrchr(argv[f], '\\');
+                if (b2 > base)
+                    base = b2;
+                snprintf(label, sizeof label, "state %d (%s #%u)", total, base ? base + 1 : argv[f], i);
+            }
             r = check(label, 0);
             if (r == 1) {
                 printf("checked %d states before the failure (%d passed, %d unusable)\n", total, passed, unusable);

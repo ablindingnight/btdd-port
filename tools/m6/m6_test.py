@@ -73,7 +73,7 @@ def build(candidate, work):
     return exe, ''
 
 
-def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000):
+def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000, show=None):
     """-> (code, message). code 0 pass, 1 mismatch, 2 setup, 3 compile error."""
     dirs = dirs or [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
     work = work or os.path.join(M6, 'work')
@@ -83,7 +83,7 @@ def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000
     exe, err = build(candidate, work)
     if not exe:
         return 3, 'COMPILE ERROR: ' + err
-    env = dict(os.environ, M6_FUZZ=str(fuzz))
+    env = dict(os.environ, M6_FUZZ=str(fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])))
     r = subprocess.run([exe, ROM, str(bank), '%04X' % addr, outputs or '-'] + files, capture_output=True,
                        text=True, timeout=600, env=env)
     lines = [l for l in r.stdout.splitlines() if l.strip()]
