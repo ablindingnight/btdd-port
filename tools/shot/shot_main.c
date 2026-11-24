@@ -1,10 +1,11 @@
 /* btdd_shot: plays a movie headless and saves the picture at chosen frames.
  *
- *   btdd_shot ROM --movie X.fm2 --frames 600,1200 --out DIR [--ppu old|new|auto]
+ *   btdd_shot ROM --movie X.fm2 --frames 600,1200 --out DIR [--ppu old|new|auto] [--mod ID[=N]]
  *
  * For each frame N writes DIR/shot_N.png and DIR/idx_N.bin (61,440 bytes: NES palette index per pixel,
  * row-major), comparable with tools/fceux/screendump.lua output via tools/shotdiff.py. Frame N = the picture
  * drawn during frame N (FCEUX's screen after emu.frameadvance() returns with framecount N). */
+#include "mods/mods.h"
 #include "nes/nes.h"
 #include "platform/png.h"
 #include "platform/screen.h"
@@ -36,10 +37,14 @@ int main(int argc, char **argv)
             out_dir = argv[++i];
         else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
             ppu_opt = argv[++i];
+        else if (!strcmp(argv[i], "--mod") && i + 1 < argc) { /* M7 mods, e.g. --mod nolimit */
+            if (mods_apply_arg(argv[++i]) != 0)
+                return 2;
+        }
         else if (argv[i][0] != '-' && !rom_path)
             rom_path = argv[i];
         else {
-            fprintf(stderr, "usage: btdd_shot ROM --movie X.fm2 --frames N,N,... --out DIR [--ppu old|new|auto]\n");
+            fprintf(stderr, "usage: btdd_shot ROM --movie X.fm2 --frames N,N,... --out DIR [--ppu old|new|auto] [--mod ID[=N]]\n");
             return 2;
         }
     }
@@ -75,6 +80,8 @@ int main(int argc, char **argv)
 
     nes_init(&nes, &rom);
     nes_power(&nes, model);
+    mods_attach(&nes);
+    screen_set_no_sprite_limit(mods_display_flags() & MODS_DISPLAY_NO_SPRITE_LIMIT);
     screen_attach(&screen, &nes.ppu);
     for (i = 0; i < last && i < movie.count; i++) {
         long k;

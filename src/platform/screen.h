@@ -13,6 +13,10 @@
 typedef struct Screen {
     uint8_t idx[PPU_H][PPU_W]; /* palette index per pixel */
     uint8_t emph[PPU_H];        /* PPUMASK bits 5-7 per line */
+    /* "nolimit" statistics: lines that had more than 8 sprites, and (old model) lines where our own sprite
+     * evaluation disagreed with the PPU's first 8 (then the PPU's are shown; should stay 0) */
+    uint32_t extra_sprite_lines, sprite_mismatch_lines;
+    uint8_t line_extra[PPU_H]; /* 1 if the line was drawn with more than 8 sprites */
 } Screen;
 
 void screen_attach(Screen *s, Ppu *ppu);      /* call after nes_power (power clears the hook) */
@@ -21,5 +25,7 @@ void screen_palette(uint32_t rgb[8][64]);     /* 0xRRGGBB for every emphasis com
  * (8 emphasis variants x 64, the usual .pal layouts). rgb holds count*3 bytes. Returns 0 if accepted. */
 int screen_set_palette(const uint8_t *rgb, int count);
 void screen_to_rgb(const Screen *s, uint32_t *out_argb, int pitch_pixels); /* 0xFFRRGGBB */
+/* M7 mod "nolimit": draw every sprite on every line instead of the PPU's 8 (display only; global setting). */
+void screen_set_no_sprite_limit(int on);
 
 #endif

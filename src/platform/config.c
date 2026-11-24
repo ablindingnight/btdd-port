@@ -1,5 +1,6 @@
 #include "config.h"
 #include "video.h"
+#include "mods/mods.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,6 +67,8 @@ static void apply(Config *c, const char *key, const char *val)
         c->rewind_seconds = SDL_clamp(atoi(val), 0, 600);
     else if (!strcmp(key, "ff_speed"))
         c->ff_speed = SDL_clamp(atoi(val), 2, 16);
+    else if (mods_apply_setting(key, val))
+        ; /* mod_<id> (src/mods) */
     else
         for (p = 0; p < 2; p++)
             for (b = 0; b < BTN_COUNT; b++) {
@@ -107,6 +110,7 @@ static int write_file(const Config *c, const char *path)
     fprintf(f, "renderer = %s\n", c->renderer);
     fprintf(f, "# rewind_seconds = how far Backspace can rewind (0 = off; ~1 MB per second); ff_speed = Tab speed\n");
     fprintf(f, "rewind_seconds = %d\nff_speed = %d\n", c->rewind_seconds, c->ff_speed);
+    mods_write_settings(f);
     for (p = 0; p < 2; p++)
         for (b = 0; b < BTN_COUNT; b++)
             fprintf(f, "p%d_%s = %s\n", p + 1, config_button_names[b], SDL_GetScancodeName(c->keys[p][b]));

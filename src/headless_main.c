@@ -13,6 +13,7 @@
  *                     [--load X.snap]             (start from a snapshot; the movie continues at its frame)
  *                     [--save-state N X.state]    (save state after frame N, see nes/state.h; run continues)
  *                     [--load-state X.state]      (start from a save state; the movie continues at its frame)
+ *                     [--mod ID[=N]]              (enable a mod, repeatable; see src/mods, docs/M7_MODS.md)
  *                     [--warp L[:S]] [--warp-every]  (start the next stage as level L, section S; see cov/play.h)
  *                     [--god]                     (refill players' HP and lives after every frame)
  *                     [--poke 11=00,12=00@900]    (RAM writes after frame N; "@N+" keeps them frozen)
@@ -34,6 +35,7 @@
 #include "cov/coverage.h"
 #include "cov/snapshot.h"
 #include "nes/state.h"
+#include "mods/mods.h"
 #include "cov/tracker.h"
 #include "cov/play.h"
 #include "nes/nes.h"
@@ -192,7 +194,12 @@ int main(int argc, char **argv)
             ppu_opt = argv[++i];
         else if (!strcmp(argv[i], "--prg-poke") && i + 1 < argc)
             prg_poke = argv[++i];
-        else if (!strcmp(argv[i], "--quiet"))
+        else if (!strcmp(argv[i], "--mod") && i + 1 < argc) {
+            if (mods_apply_arg(argv[++i]) != 0) {
+                fprintf(stderr, "unknown mod %s\n", argv[i]);
+                return 2;
+            }
+        } else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
         else if (argv[i][0] != '-' && !rom_path)
             rom_path = argv[i];
@@ -261,6 +268,7 @@ int main(int argc, char **argv)
 
     nes_init(&nes, &rom);
     nes_power(&nes, model);
+    mods_attach(&nes);
     if (watch_spec) { /* comma list of RAM addresses in hex, e.g. 05,1F,0300-0310 */
         const char *s = watch_spec;
         while (*s) {

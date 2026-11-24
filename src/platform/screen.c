@@ -6,21 +6,50 @@
 
 /* ---- line building ---- */
 
-/* Old model: sprites drawn highest index first so the lowest index wins; a behind-background sprite pixel
- * only shows where the background is transparent (fb bit 6). Left 8 pixels hidden by PPUMASK bit 2. */
-static void compose_old(const Ppu *p, int y, uint8_t *out)
-{
-    const uint8_t *bg = p->fb + y * PPU_W;
-    uint8_t spr[PPU_W + 8];
-    int x, n;
+static int no_limit; /* M7 mod "nolimit" */
 
-    for (x = 0; x < PPU_W; x++)
-        out[x] = bg[x];
-    if (!(p->mask & 0x10) || !p->line_sprite_count)
-        goto finish;
-    memset(spr, 0x80, sizeof spr);
-    for (n = p->line_sprite_count - 1; n >= 0; n--) {
-        const PpuSprite *s = &p->line_sprites[n];
+void screen_set_no_sprite_limit(int on)
+{
+    no_limit = on != 0;
+}
+
+/* Every sprite on display line y in OAM order, evaluated the way the old-model PPU picks its 8 (at the end of
+ * line y-1, from the same OAM), without the limit. */
+static int eval_all_sprites(const Ppu *p, int y, PpuSprite *out)
+{
+    unsigned height = (p->ctrl & 0x20) ? 16 : 8;
+    unsigned table8 = ((p->ctrl & 0x28) == 0x08) ? 0x1000 : 0;
+    int n, count = 0;
+    for (n = 0; n < 64; n++) {
+        const uint8_t *s = p->oam + n * 4;
+        int row = y - 1 - s[0];
+        unsigned addr;
+        if ((unsigned)row >= height)
+            continue;
+        if (height == 16)
+            addr = ((s[1] & 1u) << 12) + ((s[1] & 0xFEu) << 4);
+        else
+            addr = ((unsigned)s[1] << 4) + table8;
+        if (s[2] & 0x80)
+            addr = addr + 7 - (unsigned)row + ((p->ctrl & 0x20) >> 1) - ((unsigned)row & 8);
+        else
+            addr = addr + (unsigned)row + ((unsigned)row & 8);
+        out[count].lo = p->chr[addr & 0x1FFF];
+        out[count].hi = p->chr[(addr + 8) & 0x1FFF];
+        out[count].attr = s[2];
+        out[count].x = s[3];
+        count++;
+    }
+    return count;
+}
+
+/* Sprite pixels of list[first..count) into spr[] (0x80 = none, bit 6 = behind background), drawn highest index
+ * first so the lowest index wins. */
+static void draw_sprites(const Ppu *p, const PpuSprite *list, int first, int count, uint8_t *spr)
+{
+    int n;
+    for (n = count - 1; n >= first; n--) {
+        const PpuSprite *s = &list[n];
         uint8_t opaque = s->lo | s->hi;
         int i;
         if (!opaque)
@@ -38,6 +67,42 @@ static void compose_old(const Ppu *p, int y, uint8_t *out)
             spr[s->x + i] = c;
         }
     }
+}
+
+/* Old model: sprites drawn highest index first so the lowest index wins; a behind-background sprite pixel
+ * only shows where the background is transparent (fb bit 6). Left 8 pixels hidden by PPUMASK bit 2.
+ * With "nolimit" every sprite on the line is drawn, not only the PPU's 8. */
+static void compose_old(Screen *scr, const Ppu *p, int y, uint8_t *out)
+{
+    static PpuSprite all[64];
+    const uint8_t *bg = p->fb + y * PPU_W;
+    const PpuSprite *list = p->line_sprites;
+    uint8_t spr[PPU_W + 8];
+    int x, n, count = p->line_sprite_count;
+
+    if (no_limit && (p->mask & 0x10)) {
+        int k = eval_all_sprites(p, y, all), same = k >= count;
+        for (n = 0; same && n < count; n++)
+            same = !memcmp(&all[n], &p->line_sprites[n], sizeof all[n]);
+        if (!same) {
+            /* the sprite data changed between the PPU's fetch (end of line y-1) and now (seen when the game
+             * rewrites a sprite tile mid-frame): show the PPU's 8, as without the mod */
+            scr->sprite_mismatch_lines++;
+        } else {
+            if (k > count) {
+                scr->extra_sprite_lines++;
+                scr->line_extra[y] = 1;
+            }
+            list = all;
+            count = k;
+        }
+    }
+    for (x = 0; x < PPU_W; x++)
+        out[x] = bg[x];
+    if (!(p->mask & 0x10) || !count)
+        goto finish;
+    memset(spr, 0x80, sizeof spr);
+    draw_sprites(p, list, 0, count, spr);
     for (x = (p->mask & 0x04) ? 0 : 8; x < PPU_W; x++) {
         uint8_t t = spr[x];
         if (!(t & 0x80) && (!(t & 0x40) || (bg[x] & 0x40)))
@@ -51,17 +116,42 @@ finish:
             out[x] &= 0x30;
 }
 
+/* New model with "nolimit": the PPU's picture already holds the first 8 sprites; the others are added where it
+ * shows the backdrop color (the dot model keeps no background-transparency bit, so a background pixel that
+ * happens to use the backdrop color counts as transparent here). */
+static void add_extra_sprites_new(Screen *scr, const Ppu *p, int y, uint8_t *out)
+{
+    static PpuSprite all[64];
+    uint8_t spr[PPU_W + 8], backdrop = p->pal[0] & 0x3F, grey = (p->mask & 0x01) ? 0x30 : 0x3F;
+    int count, x;
+    if (!(p->mask & 0x10))
+        return;
+    count = eval_all_sprites(p, y, all);
+    if (count <= 8)
+        return;
+    scr->extra_sprite_lines++;
+    scr->line_extra[y] = 1;
+    memset(spr, 0x80, sizeof spr);
+    draw_sprites(p, all, 8, count, spr);
+    for (x = (p->mask & 0x04) ? 0 : 8; x < PPU_W; x++)
+        if (!(spr[x] & 0x80) && out[x] == (backdrop & grey))
+            out[x] = (uint8_t)(spr[x] & grey);
+}
+
 static void on_line(Ppu *p, int y, void *user)
 {
     Screen *s = user;
     if (y < 0 || y >= PPU_H)
         return;
+    s->line_extra[y] = 0;
     if (p->model == PPU_MODEL_OLD) {
-        compose_old(p, y, s->idx[y]);
+        compose_old(s, p, y, s->idx[y]);
     } else {
         int x;
         for (x = 0; x < PPU_W; x++)
             s->idx[y][x] = p->fb[y * PPU_W + x] & 0x3F;
+        if (no_limit)
+            add_extra_sprites_new(s, p, y, s->idx[y]);
     }
     s->emph[y] = (uint8_t)(p->mask >> 5);
 }

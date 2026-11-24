@@ -50,12 +50,16 @@ add_library(btdd_screen STATIC
 target_link_libraries(btdd_screen PUBLIC btdd_core)
 btdd_warnings(btdd_screen)
 
+add_executable(mods_test tests/mods/mods_test.c)
+target_link_libraries(mods_test PRIVATE btdd_screen btdd_mods)
+btdd_warnings(mods_test)
+
 add_executable(rewind_test tests/state/rewind_test.c)
 target_link_libraries(rewind_test PRIVATE btdd_screen)
 btdd_warnings(rewind_test)
 
 add_executable(btdd_shot tools/shot/shot_main.c)
-target_link_libraries(btdd_shot PRIVATE btdd_screen)
+target_link_libraries(btdd_shot PRIVATE btdd_screen btdd_mods)
 btdd_warnings(btdd_shot)
 
 add_executable(btdd src/main.c)
@@ -63,6 +67,15 @@ target_link_libraries(btdd PRIVATE btdd_core)
 btdd_warnings(btdd)
 
 # Coverage recorder, snapshots, warp/god mode, explorer (tools only; not part of the game exe)
+# M7 mods (our own code hooked at ROM routine addresses; src/mods/mods.h)
+add_library(btdd_mods STATIC
+    src/mods/mods.c
+    src/mods/mod_lives.c
+    src/mods/mod_nolimit.c
+)
+target_link_libraries(btdd_mods PUBLIC btdd_core)
+btdd_warnings(btdd_mods)
+
 add_library(btdd_cov STATIC
     src/cov/coverage.c
     src/cov/snapshot.c
@@ -81,7 +94,7 @@ target_link_libraries(btdd_static PRIVATE btdd_core btdd_cov)
 btdd_warnings(btdd_static)
 
 add_executable(btdd_headless src/headless_main.c)
-target_link_libraries(btdd_headless PRIVATE btdd_core btdd_cov)
+target_link_libraries(btdd_headless PRIVATE btdd_core btdd_cov btdd_mods)
 btdd_warnings(btdd_headless)
 
 add_executable(btdd_apu_check tools/apu_check/apu_check_main.c)
@@ -219,6 +232,6 @@ if(BTDD_SDL)
 
     # M2: the game in a window
     add_executable(btdd_play src/platform/play_main.c src/platform/config.c src/platform/video.c)
-    target_link_libraries(btdd_play PRIVATE btdd_screen SDL3::SDL3-static)
+    target_link_libraries(btdd_play PRIVATE btdd_screen btdd_mods SDL3::SDL3-static)
     btdd_warnings(btdd_play)
 endif()

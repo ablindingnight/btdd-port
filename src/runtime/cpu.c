@@ -554,6 +554,8 @@ void cpu_run(Cpu *cpu, int32_t dots)
             add_cycles(cpu, cpu_base_cycles[0x02]);
             continue;
         }
+        if (cpu->pc_hook_map && cpu->pc_hook_map[cpu->pc] && cpu->pc_hook(cpu->ctx, cpu))
+            continue;
         execute(cpu);
     }
 }
