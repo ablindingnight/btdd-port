@@ -34,12 +34,39 @@ def kind(e):
     return 'other'
 
 
+def by_kind(series):
+    import sys
+    sys.path.insert(0, HERE)
+    import m6_pick
+    raw = open(m6_pick.ROM, 'rb').read()[16:]
+    rs = {(r['bank'], r['start']): r for r in m6_pick.routines()}
+    rows = collections.OrderedDict((k, [0, 0, 0, 0.0]) for k in m6_pick.KIND_ORDER)  # routines, try-1, passed, s
+    for name, s in series.items():
+        k = s[-1].get('kind')
+        if not k:
+            r = rs.get((s[-1]['bank'], int(s[-1]['addr'], 16)))
+            if r is None:
+                continue
+            ok, k, t, why = m6_pick.classify(raw[r['bank'] * 0x8000:(r['bank'] + 1) * 0x8000], r)
+            k = k if ok else 'unsupported'
+        row = rows.setdefault(k, [0, 0, 0, 0.0])
+        row[0] += 1
+        row[1] += s[0]['result'] == 'pass'
+        row[2] += s[-1]['result'] == 'pass'
+        row[3] += sum(t['seconds'] for t in s)
+    print('kind        routines  try-1  passed  pass%  passes/GPU-h')
+    for k, (n, f, p, sec) in rows.items():
+        if n:
+            print('%-10s %9d %6d %7d %5.0f%% %12.1f' % (k, n, f, p, 100.0 * p / n, p / (sec / 3600.0) if sec else 0))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--since', default='')
     ap.add_argument('--tag', help='only tries logged with this M6_TAG')
     ap.add_argument('--total', type=int, default=1143)
     ap.add_argument('--log', default=LOG)
+    ap.add_argument('--by-kind', action='store_true', help='pass counts per routine kind (m6_pick.classify)')
     a = ap.parse_args()
     rows = [json.loads(l) for l in open(a.log) if l.strip()]
     rows = [r for r in rows if r['time'] >= a.since and (a.tag is None or r.get('tag') == a.tag)]
@@ -49,6 +76,8 @@ def main():
         if r['try'] == 1 or key not in series:
             series[key] = []
         series[key].append(r)
+    if a.by_kind:
+        return by_kind(series)
     first = sum(1 for s in series.values() if s[0]['result'] == 'pass')
     later = sum(1 for s in series.values() if s[-1]['result'] == 'pass' and s[0]['result'] != 'pass')
     failed = len(series) - first - later

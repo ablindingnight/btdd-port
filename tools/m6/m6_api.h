@@ -30,4 +30,12 @@ void routine(M6 *m);
  * without a passing C translation run as original code through m6_call (provided by the harness). */
 void m6_call(M6 *m, uint16_t addr);
 
+/* Far call (`ldx #slot / ldy #bank_index / jsr $FFCB`): sets m->x = slot, m->y = bank_index and runs the original
+ * trampoline (bank switch, jlist dispatch, the target, switch back); registers and flags come back in m. */
+void far_call(M6 *m, uint8_t bank_index, uint8_t slot);
+
+/* Indirect jump (`jmp (ptr)`): runs the code at target with the registers in m, then the routine is finished
+ * (write `jump_to(m, target); return;`). A tail jump to a known routine is just a call followed by return. */
+void jump_to(M6 *m, uint16_t target);
+
 #endif

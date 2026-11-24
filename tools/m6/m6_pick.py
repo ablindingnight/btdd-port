@@ -95,6 +95,118 @@ def callees_of(mem, r, starts):
     return last == 'rts', out
 
 
+FARCALL = 0xFFCB  # conv farcall stub (ldx #slot / ldy #bank_index / jsr $FFCB)
+TRAMPOLINES = {0x8000, 0xFFCB}  # the jlist dispatch and the far-call stub: runtime, never M6 targets
+KIND_ORDER = ('leaf', 'calls', 'tail', 'alt', 'far', 'dispatch')
+
+
+def entries(meta=os.path.join(REPO, 'meta', 'btdd.meta')):
+    """(bank, addr) -> entry name, for addresses inside a routine that are entered from elsewhere."""
+    _, recs = parse(meta)
+    return {(int(pos[0]), int(pos[1][1:], 16)): pos[2] for t, pos, kv, n in recs if t == 'entry'}
+
+
+_CACHE = {}
+
+
+def _bank_index():
+    if 'idx' not in _CACHE:
+        rs = routines()
+        ent = entries()
+        idx = {}
+        for r in rs:
+            idx.setdefault(r['bank'], []).append(r)
+        _CACHE['idx'] = (rs, ent, idx)
+    return _CACHE['idx']
+
+
+def target_name(bank, addr):
+    """Routine name at a routine start, the meta entry name inside a routine, else entry_XXXX."""
+    rs, ent, idx = _bank_index()
+    for r in idx.get(bank, []):
+        if r['start'] == addr:
+            return r['name']
+    return ent.get((bank, addr), 'entry_%04x' % addr)
+
+
+def _inside(bank, addr):
+    rs, ent, idx = _bank_index()
+    return any(r['start'] <= addr <= r['end'] for r in idx.get(bank, []))
+
+
+def classify(mem, r):
+    """Every way out of a routine besides its own RTS.
+    -> (ok, kind, targets, why). targets: [(name, addr, how)] with how in
+       call  (jsr to a routine start of the same bank)
+       alt   (jsr/jmp/branch to an address inside another routine: a meta `entry`)
+       tail  (jmp/branch out of the range to another routine's start: a call followed by return)
+       far   (jsr $FFCB: the far-call trampoline; far_call(m, bank_index, slot) in C)
+       dispatch (jmp (ptr): jump_to(m, target) in C)
+    kind: the hardest feature it needs, in KIND_ORDER. ok False (why says) for BRK/RTI, TXS, code in RAM,
+    undecodable bytes, a last instruction that is not RTS/JMP, or a trampoline."""
+    b = r['bank']
+    if r['start'] in TRAMPOLINES:
+        return False, None, [], 'trampoline'
+    a, out, last, rank = r['start'], [], None, 0
+
+    def add(addr, how):
+        nm = target_name(b, addr)
+        if (nm, addr, how) not in out:
+            out.append((nm, addr, how))
+
+    while a <= r['end']:
+        d = decode(mem, a)
+        if d is None:
+            return False, None, [], 'undecodable'
+        m, mode, n, v = d
+        if m in ('brk', 'rti', 'txs'):
+            return False, None, [], m
+        if m == 'jmp' and mode == 'ind':
+            out.append(('jump_to', v, 'dispatch'))
+            rank = max(rank, 5)
+        elif m == 'jsr':
+            if v == FARCALL:
+                if ('far_call', v, 'far') not in out:
+                    out.append(('far_call', v, 'far'))
+                rank = max(rank, 4)
+            elif v < 0x8000:
+                return False, None, [], 'code in RAM'
+            elif any(x['start'] == v for x in _bank_index()[2].get(b, [])):
+                add(v, 'call')
+                rank = max(rank, 1)
+            elif _inside(b, v):
+                add(v, 'alt')
+                rank = max(rank, 3)
+            else:
+                return False, None, [], 'jsr outside known code'
+        elif (m == 'jmp' or m in BRANCHES) and not (r['start'] <= v <= r['end']):
+            if v < 0x8000:
+                return False, None, [], 'code in RAM'
+            if any(x['start'] == v for x in _bank_index()[2].get(b, [])):
+                add(v, 'tail')
+                rank = max(rank, 2)
+            elif _inside(b, v):
+                add(v, 'alt')
+                rank = max(rank, 3)
+            else:
+                return False, None, [], 'jump outside known code'
+        last = (m, mode)
+        a += n
+    if last is None:
+        return False, None, [], 'empty'
+    if last[0] not in ('rts', 'jmp'):  # runs on into the next code: a tail jump to the address after the range
+        nxt = r['end'] + 1
+        if any(x['start'] == nxt for x in _bank_index()[2].get(b, [])):
+            add(nxt, 'tail')
+            rank = max(rank, 2)
+        elif _inside(b, nxt):
+            add(nxt, 'alt')
+            rank = max(rank, 3)
+        else:
+            return False, None, [], 'falls through its end'
+    return True, KIND_ORDER[rank], out, ''
+
+
 def callgraph_ready(passing, max_size=128, stubs=False):
     """Non-leaf routines (conf=verified) all of whose callees have passing C, ranked by call count.
     passing: set of routine names with passing C. -> [(calls, routine, [callee names])]

@@ -126,7 +126,7 @@ def solve(bank, addr, tries, keep_existing=False):
                  'addr': '%04X' % addr, 'try': t + 1, 'prompt_tokens': usage.get('prompt_tokens'),
                  'completion_tokens': usage.get('completion_tokens'), 'cached_tokens':
                  timings.get('cache_n'), 'seconds': round(secs, 1), 'outputs': outs, 'thinking': think,
-                 'tag': TAG, 'finish_reason': usage.get('finish_reason'), 'max_tokens': ((RETRY_MAX_TOKENS if t > 0 else MAX_TOKENS) if think else
+                 'tag': TAG, 'kind': r.get('kind'), 'finish_reason': usage.get('finish_reason'), 'max_tokens': ((RETRY_MAX_TOKENS if t > 0 else MAX_TOKENS) if think else
                                                 NOTHINK_MAX_TOKENS)}
         if capped and code is None:
             result, msg = 'cap', 'hit the %d-token cap without an answer' % entry['max_tokens']
@@ -202,7 +202,12 @@ def main():
                     help='skip routines that already have a try in runs.jsonl (failed before)')
     ap.add_argument('--callgraph', action='store_true',
                     help='after the list: routines whose callees all have passing C, re-ranked after every pass')
+    ap.add_argument('--kinds', help='comma list of routine kinds (m6_pick.classify: calls,tail,alt,far,dispatch,'
+                    'leaf): every routine of those kinds with a corpus, callees with passing C first, then by calls')
+    ap.add_argument('--max-size', type=int, default=256, help='with --kinds: largest routine in bytes')
     a = ap.parse_args()
+    if a.kinds:
+        return kinds_mode(a)
     if a.callgraph and not a.only and not a.list:
         return callgraph_mode(a)
     if a.only:
@@ -233,6 +238,47 @@ def main():
     if a.callgraph and not a.only and len(results) < a.routines:  # then the call-graph pass, as the help says
         a.routines -= len(results)
         callgraph_mode(a)
+
+
+def kinds_ready(kinds, max_size, skip):
+    """[(routine, kind, share of callees with passing C, calls)] best first."""
+    pick = m6_prompt.m6_pick
+    raw = open(m6_test.ROM, 'rb').read()[16:]
+    passing = set(os.path.splitext(n)[0] for n in os.listdir(PRIVATE)) if os.path.isdir(PRIVATE) else set()
+    calls = pick.call_counts()
+    dirs = [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
+    out = []
+    for r in pick.routines():
+        if r['name'] in passing or r['name'] in skip or r['conf'] != 'verified' or r['end'] - r['start'] + 1 > max_size:
+            continue
+        mem = raw[r['bank'] * 0x8000:(r['bank'] + 1) * 0x8000]
+        ok, kind, targets, why = pick.classify(mem, r)
+        if not ok or kind not in kinds or not m6_test.corpus_files(r['bank'], r['start'], dirs):
+            continue
+        cs = [nm for nm, ad, how in targets if how in ('call', 'tail')]
+        share = sum(1 for n in cs if n in passing) / len(cs) if cs else 1.0
+        out.append((r, kind, share, calls.get((r['bank'], r['start']), 0)))
+    out.sort(key=lambda x: (-x[2], -x[3], x[0]['end'] - x[0]['start']))
+    return out
+
+
+def kinds_mode(a):
+    """Routines of the given kinds, re-ranked after every try (a pass can raise a caller's callee share)."""
+    kinds = set(a.kinds.split(','))
+    tried, results = set(), []
+    while len(results) < a.routines:
+        skip = tried | (tried_before() if a.new_only else set())
+        ready = kinds_ready(kinds, a.max_size, skip)
+        if not ready:
+            print('no more routines of kinds %s with a corpus' % a.kinds)
+            break
+        r, kind, share, calls = ready[0]
+        tried.add(r['name'])
+        print('%s (bank %d $%04X) kind %s, %d bytes, callees with C %.0f%%, %d calls' % (
+            r['name'], r['bank'], r['start'], kind, r['end'] - r['start'] + 1, 100 * share, calls), flush=True)
+        ok, n, tot = safe_solve(r['bank'], r['start'], a.tries)
+        results.append((r['name'], ok, n, tot))
+    summary(results)
 
 
 def callgraph_mode(a):

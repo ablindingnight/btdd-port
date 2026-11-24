@@ -140,12 +140,18 @@ void bus_write(M6 *m, uint16_t addr, uint8_t value) { box_write(m->ctx, addr, va
 static int call_depth;
 static uint8_t entry_s, entry_p;
 
-void m6_call(M6 *m, uint16_t addr)
+static void run_at(M6 *m, uint16_t addr, uint8_t s);
+
+void m6_call(M6 *m, uint16_t addr) { run_at(m, addr, (uint8_t)(entry_s - 2 - 2 * call_depth)); }
+
+/* jump_to: a JMP, not a JSR: the target runs at the routine's own stack level and its RTS is the routine's. */
+void jump_to(M6 *m, uint16_t target) { run_at(m, target, (uint8_t)(entry_s - 2 * call_depth)); }
+
+static void run_at(M6 *m, uint16_t addr, uint8_t s)
 {
     Box *b = m->ctx;
     Cpu c;
     long steps;
-    uint8_t s = (uint8_t)(entry_s - 2 - 2 * call_depth);
     cpu_init(&c, b, cpu_rd, cpu_wr, NULL);
     c.a = m->a;
     c.x = m->x;
@@ -172,6 +178,14 @@ void m6_call(M6 *m, uint16_t addr)
     m->v = (c.p >> 6) & 1;
     m->n = (c.p >> 7) & 1;
 }
+
+void far_call(M6 *m, uint8_t bank_index, uint8_t slot)
+{
+    m->x = slot;
+    m->y = bank_index;
+    m6_call(m, 0xFFCB);
+}
+
 
 /* ---- corpus ---- */
 static unsigned g16(const uint8_t *p) { return p[0] | p[1] << 8; }
