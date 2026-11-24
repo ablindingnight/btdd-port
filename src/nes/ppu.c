@@ -1,5 +1,5 @@
 /* PPU at M1 level. See ppu.h for the model. Dots per scanline: 341 (256 visible + 85). */
-#include "ppu.h"
+#include "ppu_internal.h"
 #include "../runtime/cpu.h"
 #include <string.h>
 
@@ -278,8 +278,15 @@ uint8_t ppu_read(Ppu *p, uint16_t reg)
         p->status &= 0x7F;
         p->latch = ret;
         return ret;
+    case 4:
+        if (p->model == PPU_MODEL_NEW)
+            return ppun_read_oam(p);
+        ppu_line_update(p);
+        return p->latch;
     case 7: {
         uint32_t a = p->v & 0x3FFF;
+        if (p->model == PPU_MODEL_NEW)
+            return ppun_read_data(p);
         ppu_line_update(p);
         if (a >= 0x3F00) {
             if (!(a & 3))
@@ -316,6 +323,8 @@ void ppu_write(Ppu *p, uint16_t reg, uint8_t v)
             p->cpu->irq |= CPU_INT_NMI2;
         p->ctrl = v;
         p->t = (p->t & 0xF3FF) | ((uint32_t)(v & 3) << 10);
+        if (p->model == PPU_MODEL_NEW)
+            ppun_write_scroll(p, 0, v, 0);
         break;
     case 1:
         ppu_line_update(p);
@@ -331,6 +340,10 @@ void ppu_write(Ppu *p, uint16_t reg, uint8_t v)
         p->oam_low = v & 7;
         break;
     case 4:
+        if (p->model == PPU_MODEL_NEW) {
+            ppun_write_oam(p, v);
+            break;
+        }
         p->latch = v;
         if (p->oam_low >= 8) {
             if (p->oam_addr >= 8)
@@ -350,6 +363,8 @@ void ppu_write(Ppu *p, uint16_t reg, uint8_t v)
         } else {
             p->t = (p->t & 0x8C1F) | ((uint32_t)(v & 0xF8) << 2) | ((uint32_t)(v & 7) << 12);
         }
+        if (p->model == PPU_MODEL_NEW)
+            ppun_write_scroll(p, 5, v, p->toggle);
         p->toggle ^= 1;
         break;
     case 6:
@@ -361,10 +376,16 @@ void ppu_write(Ppu *p, uint16_t reg, uint8_t v)
             p->t = (p->t & 0xFF00) | v;
             p->v = p->t;
         }
+        if (p->model == PPU_MODEL_NEW)
+            ppun_write_scroll(p, 6, v, p->toggle);
         p->toggle ^= 1;
         break;
     case 7: {
         uint32_t a = p->v & 0x3FFF;
+        if (p->model == PPU_MODEL_NEW) {
+            ppun_write_data(p, v);
+            break;
+        }
         p->latch = v;
         if (a < 0x2000) {
             p->chr[a] = v;
@@ -407,6 +428,10 @@ static void visible_line(Ppu *p)
 void ppu_run_frame(Ppu *p)
 {
     p->frame++;
+    if (p->model == PPU_MODEL_NEW) {
+        ppun_run_frame(p);
+        return;
+    }
     if (p->dead_frames) {
         memset(p->fb, 0x80, PPU_W * PPU_H);
         cpu_run(p->cpu, 262 * 341);
@@ -438,15 +463,17 @@ void ppu_run_frame(Ppu *p)
         visible_line(p);
 }
 
-void ppu_power(Ppu *p, struct Cpu *cpu)
+void ppu_power(Ppu *p, struct Cpu *cpu, PpuModel model)
 {
     int i;
     memset(p, 0, sizeof *p);
     p->cpu = cpu;
+    p->model = model;
     /* FCEUX power-on contents: CIRAM/palette/OAM zero, CHR-RAM in its 00 00 00 00 FF FF FF FF pattern */
     for (i = 0; i < 0x2000; i++)
         p->chr[i] = (i & 4) ? 0xFF : 0x00;
     p->dead_frames = 2;
     p->hit_x = 0;     /* FCEUX's statics start at 0, not at "no hit pending" */
     p->scanline = 0;
+    ppun_power(p);
 }

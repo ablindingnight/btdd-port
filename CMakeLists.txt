@@ -27,6 +27,7 @@ add_library(btdd_core STATIC
     src/runtime/cpu.c
     src/runtime/fm2.c
     src/nes/ppu.c
+    src/nes/ppu_new.c
     src/nes/nes.c
 )
 target_include_directories(btdd_core PUBLIC src)

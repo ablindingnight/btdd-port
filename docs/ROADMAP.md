@@ -3,7 +3,7 @@
 | # | Milestone | Done when |
 |---|---|---|
 | M0 | Skeleton | `btdd.exe ROM` verifies SHA-1 and prints the banks' vectors (done 2026-11-23) |
-| M1 | Reference interpreter | exact 6502 + AxROM bus, headless; fm2 playback; RAM matches FCEUX over the 2P TAS (done 2026-11-23: identical on all 59,351 frames, docs/M1_INTERPRETER.md) |
+| M1 | Reference interpreter | exact 6502 + AxROM bus, headless; fm2 playback; RAM matches FCEUX over the 2P TAS (done 2026-11-23: identical on all 59,351 frames; 1P TAS too with the new-PPU model, docs/M1_INTERPRETER.md) |
 | M1.5 | Coverage engine | headless coverage recorder, snapshots, stage warp/god mode, bots, coverage-guided exploration (docs/COVERAGE_PLAN.md); feeds new logs to btdd-decomp |
 | M2 | Window + picture + input | SDL3 window, scanline PPU, keyboard/gamepads; playable on the interpreter |
 | M3 | Sound | APU incl. cycle-stamped `$4011` PCM; matches the FCEUX APU log |

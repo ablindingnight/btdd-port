@@ -23,7 +23,27 @@ typedef struct PpuSprite {
     uint8_t lo, hi, attr, x; /* pattern bytes for the line, attributes, X */
 } PpuSprite;
 
+typedef enum PpuModel {
+    PPU_MODEL_OLD = 0, /* FCEUX "old PPU": scanline slices, lazy line drawing (2P TAS) */
+    PPU_MODEL_NEW = 1, /* FCEUX "new PPU" (newppu 1): dot-stepped fetches and pixels (1P TAS) */
+} PpuModel;
+
+/* Scroll counters of the dot-based model, in the PPU's own split form. */
+typedef struct PpuScroll {
+    uint32_t fv, v, h, vt, ht;      /* live counters: fine Y, NT Y, NT X, coarse Y, coarse X */
+    uint32_t lfv, lv, lh, lvt, lht; /* latches filled by $2000/$2005/$2006 */
+    uint32_t fh;                    /* fine X */
+    uint32_t s;                     /* background pattern table ($2000 bit 4) */
+    uint32_t par;                   /* tile number being fetched */
+} PpuScroll;
+
+typedef struct PpuBgTile {
+    uint8_t pt[2], at;              /* pattern bytes, attribute bits already shifted to 2-3 */
+} PpuBgTile;
+
 typedef struct Ppu {
+    PpuModel model;
+
     /* registers */
     uint8_t ctrl, mask, status, oam_addr;
     uint8_t oam_low;   /* FCEUX quirk: separate index for the first 8 OAM bytes after a $2003 write */
@@ -63,10 +83,19 @@ typedef struct Ppu {
     int hit_x;             /* 0x100 = no sprite-0 hit pending on this line */
     uint8_t hit_mask;
 
+    /* new (dot-based) model */
+    PpuScroll sc;
+    int sl, dot, end_dot;          /* FCEUX ppur.status: scanline, dot within it, line length */
+    int idle_synch;
+    PpuBgTile bg[34];
+    uint8_t oams[2][64][8];        /* per slot: y, tile, attr, x, pattern lo, pattern hi, OAM index, valid */
+    int oam_counts[2], oam_slot;
+    uint64_t oam_reads_rendering;  /* $2004 reads during rendering (approximated: not used by the game) */
+
     struct Cpu *cpu;
 } Ppu;
 
-void ppu_power(Ppu *ppu, struct Cpu *cpu);
+void ppu_power(Ppu *ppu, struct Cpu *cpu, PpuModel model);
 uint8_t ppu_read(Ppu *ppu, uint16_t reg);           /* reg = address & 7 */
 void ppu_write(Ppu *ppu, uint16_t reg, uint8_t v);
 void ppu_line_update(Ppu *ppu);                     /* draw up to now (called before mapper changes) */

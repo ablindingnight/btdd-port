@@ -3,6 +3,7 @@
  *   btdd_headless ROM [--movie X.fm2] [--frames N] [--dump-ram out.bin] [--dump-every K] [--quiet]
  *                     [--watch 05,1F,0300-030F]   (print every CPU write to those RAM addresses)
  *                     [--exec 8291,82AC]          (print when an instruction at that address starts)
+ *                     [--ppu old|new|auto]        (FCEUX PPU timing model; auto = the movie's NewPPU flag)
  *
  * RAM dump format (shared with tools/fceux/ramdump.lua and tools/ramdiff.py): a sequence of records,
  * each a little-endian uint32 frame number followed by the 2048 bytes of CPU RAM. The frame number is
@@ -20,7 +21,7 @@
 static void usage(void)
 {
     fprintf(stderr, "usage: btdd_headless ROM [--movie X.fm2] [--frames N] [--dump-ram out.bin] "
-                    "[--dump-every K] [--quiet]\n");
+                    "[--dump-every K] [--ppu old|new|auto] [--quiet]\n");
 }
 
 static long cur_frame;
@@ -54,6 +55,8 @@ int main(int argc, char **argv)
     const char *rom_path = NULL, *movie_path = NULL, *dump_path = NULL;
     long frames = -1, every = 0, i;
     int quiet = 0;
+    const char *ppu_opt = "auto";
+    PpuModel model = PPU_MODEL_OLD;
     const char *watch_spec = NULL, *exec_spec = NULL;
     char hash[41] = "", err[256];
     Fm2 movie = {0};
@@ -74,6 +77,8 @@ int main(int argc, char **argv)
             watch_spec = argv[++i];
         else if (!strcmp(argv[i], "--exec") && i + 1 < argc)
             exec_spec = argv[++i];
+        else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
+            ppu_opt = argv[++i];
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
         else if (argv[i][0] != '-' && !rom_path)
@@ -98,13 +103,20 @@ int main(int argc, char **argv)
             return 1;
         }
         if (movie.new_ppu)
-            fprintf(stderr, "warning: movie was recorded with FCEUX's new PPU; this interpreter "
-                            "models the old PPU\n");
+            model = PPU_MODEL_NEW;
         if (frames < 0)
             frames = movie.count;
     }
     if (frames < 0)
         frames = 60;
+    if (!strcmp(ppu_opt, "old"))
+        model = PPU_MODEL_OLD;
+    else if (!strcmp(ppu_opt, "new"))
+        model = PPU_MODEL_NEW;
+    else if (strcmp(ppu_opt, "auto") != 0) {
+        usage();
+        return 2;
+    }
     if (dump_path) {
         dump = fopen(dump_path, "wb");
         if (!dump) {
@@ -114,7 +126,7 @@ int main(int argc, char **argv)
     }
 
     nes_init(&nes, &rom);
-    nes_power(&nes);
+    nes_power(&nes, model);
     if (watch_spec) { /* comma list of RAM addresses in hex, e.g. 05,1F,0300-0310 */
         const char *s = watch_spec;
         while (*s) {

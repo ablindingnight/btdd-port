@@ -45,7 +45,7 @@ struct Nes {
 };
 
 void nes_init(Nes *nes, const Rom *rom);
-void nes_power(Nes *nes);             /* FCEUX power-on state (RAM pattern 00x4 FFx4, two dead PPU frames) */
+void nes_power(Nes *nes, PpuModel model); /* FCEUX power-on state (RAM pattern 00x4 FFx4, two dead PPU frames) */
 void nes_set_pads(Nes *nes, uint8_t pad1, uint8_t pad2);
 void nes_run_frame(Nes *nes);         /* one frame, from the end of line 239 to the end of the next line 239 */
 uint8_t nes_peek(Nes *nes, uint16_t addr); /* side-effect-free read for tools */
