@@ -24,6 +24,10 @@
 #include "nes/apu.h"
 #include "nes/nes.h"
 #include "nes/state.h"
+#ifdef BTDD_HAVE_MODS
+#include "mods/mods.h"
+#endif
+#include "platform/menu.h"
 #include "platform/png.h"
 #include "platform/rewind.h"
 #include "platform/screen.h"
@@ -431,6 +435,378 @@ static int states_script(int phase, long *frame, const char *sha1, uint8_t *ram_
     return phase;
 }
 
+/* ---- settings overlay (Esc, or Guide / Back+Start on a gamepad): src/platform/menu.c pages built from the live
+ * state; changes apply at once and are saved to btdd.cfg when the menu closes ---- */
+
+enum {
+    PG_MAIN, PG_STATES, PG_DISPLAY, PG_GRAPHICS, PG_AUDIO, PG_CONTROLS, PG_KEYS1, PG_KEYS2, PG_GAMEPLAY, PG_MODS,
+};
+enum {
+    ID_RESUME = 1, ID_RESET, ID_POWER, ID_QUIT, ID_SLOT, ID_SAVE, ID_LOAD, ID_SCALE, ID_FULLSCREEN, ID_ASPECT,
+    ID_FILTER, ID_SCANLINES, ID_VIDEO, ID_SHADER, ID_VOLUME, ID_REBIND_ALL, ID_REWIND, ID_FF, ID_BACK,
+    ID_KEY_BASE = 100, /* + player * BTN_COUNT + button */
+    ID_MOD_BASE = 200, /* + mod index */
+};
+
+typedef struct PlayCtx {
+    Config *cfg;
+    Video *video;
+    SDL_AudioStream *audio;
+    SDL_Gamepad **gp;
+    Rebind *rb;
+    int *slot, *quit;
+    long *frame;
+    const char *hash;
+    int have_cfg, dirty;
+    int capture; /* key being rebound: ID_KEY_BASE + ..., 0 = none */
+    char status[64];
+} PlayCtx;
+
+static Menu menu;
+static const int rewind_choices[] = {0, 10, 30, 60, 120, 300};
+
+static const char *onoff(int v)
+{
+    return v ? "on" : "off";
+}
+
+static void add_back(Menu *m)
+{
+    menu_add(m, ITEM_INFO, 0, "", "", "");
+    menu_add(m, ITEM_ACTION, ID_BACK, "Back", "", "Esc / B: back");
+}
+
+static void build_page(Menu *m, PlayCtx *c)
+{
+    char v[32], h[64];
+    int i;
+    switch (m->page) {
+    case PG_STATES:
+        menu_begin(m, "SAVE STATES");
+        slot_describe(*c->slot, v, sizeof v);
+        menu_add(m, ITEM_CHOICE, ID_SLOT, "Slot", v + 5, "left/right picks the slot (also 0-9 in game)");
+        menu_add(m, ITEM_ACTION, ID_SAVE, "Save to this slot", "", "F6 in game");
+        menu_add(m, ITEM_ACTION, ID_LOAD, "Load this slot", "", "F7 in game");
+        menu_add(m, ITEM_INFO, 0, "Hold Backspace: rewind", "", "");
+        menu_add(m, ITEM_INFO, 0, "Hold Tab: fast forward", "", "");
+        add_back(m);
+        break;
+    case PG_DISPLAY:
+        menu_begin(m, "DISPLAY");
+        snprintf(v, sizeof v, "%dx", c->cfg->scale);
+        menu_add(m, ITEM_CHOICE, ID_SCALE, "Window size", v, "window size in NES pixels (1-10x)");
+        menu_add(m, ITEM_CHOICE, ID_FULLSCREEN, "Fullscreen", onoff(c->cfg->fullscreen), "F11 / Alt+Enter in game");
+        menu_add(m, ITEM_CHOICE, ID_ASPECT, "Aspect", c->cfg->aspect ? "4:3" : "square",
+                 "4:3 = the NES pixel shape (F2)");
+        if (!c->video->gpu) {
+            menu_add(m, ITEM_CHOICE, ID_FILTER, "Filter", video_filter_names[c->cfg->filter],
+                     "nearest / sharp / bilinear (F3)");
+            menu_add(m, ITEM_CHOICE, ID_SCANLINES, "Scanlines", onoff(c->cfg->scanlines), "F4 in game");
+        } else {
+            menu_add(m, ITEM_INFO, 0, "Filters: see Graphics", "", "");
+        }
+        add_back(m);
+        break;
+    case PG_GRAPHICS:
+        menu_begin(m, "GRAPHICS");
+        snprintf(h, sizeof h, "%s",
+                 (c->cfg->gpu != (c->video->gpu != NULL)) ? "applies at the next start"
+                                                          : "gpu = shader presets (Direct3D 12)");
+        menu_add(m, ITEM_CHOICE, ID_VIDEO, "Renderer", c->cfg->gpu ? "gpu" : "sdl", h);
+        menu_add(m, ITEM_CHOICE, ID_SHADER, "Shader preset", gpu_preset_names[c->cfg->shader],
+                 c->video->gpu ? "F3 in game cycles presets" : "used with renderer = gpu");
+        add_back(m);
+        break;
+    case PG_AUDIO:
+        menu_begin(m, "AUDIO");
+        snprintf(v, sizeof v, "%d%%", (int)(c->cfg->volume * 100.0f + 0.5f));
+        menu_add(m, ITEM_CHOICE, ID_VOLUME, "Volume", v, c->audio ? "" : "no audio device");
+        add_back(m);
+        break;
+    case PG_CONTROLS:
+        menu_begin(m, "CONTROLS");
+        menu_add(m, ITEM_PAGE, PG_KEYS1, "Player 1 keys", "", "");
+        menu_add(m, ITEM_PAGE, PG_KEYS2, "Player 2 keys", "", "");
+        menu_add(m, ITEM_ACTION, ID_REBIND_ALL, "Redefine all keys", "", "prompts for every key (F5)");
+        for (i = 0; i < 2; i++) {
+            snprintf(h, sizeof h, "Pad %d: %.20s", i + 1, c->gp[i] ? SDL_GetGamepadName(c->gp[i]) : "none");
+            menu_add(m, ITEM_INFO, 0, h, "", "");
+        }
+        add_back(m);
+        break;
+    case PG_KEYS1:
+    case PG_KEYS2: {
+        int p = m->page == PG_KEYS2;
+        menu_begin(m, p ? "PLAYER 2 KEYS" : "PLAYER 1 KEYS");
+        for (i = 0; i < BTN_COUNT; i++) {
+            int id = ID_KEY_BASE + p * BTN_COUNT + i;
+            menu_add(m, ITEM_ACTION, id, button_labels[i],
+                     c->capture == id ? "press a key" : SDL_GetScancodeName(c->cfg->keys[p][i]),
+                     c->capture == id ? "Esc keeps the old key" : "Enter, then press the new key");
+        }
+        add_back(m);
+        break;
+    }
+    case PG_GAMEPLAY:
+        menu_begin(m, "GAMEPLAY");
+        if (c->cfg->rewind_seconds)
+            snprintf(v, sizeof v, "%d s", c->cfg->rewind_seconds);
+        else
+            snprintf(v, sizeof v, "off");
+        menu_add(m, ITEM_CHOICE, ID_REWIND, "Rewind length", v, "about 1 MB of memory per second");
+        snprintf(v, sizeof v, "%dx", c->cfg->ff_speed);
+        menu_add(m, ITEM_CHOICE, ID_FF, "Fast forward", v, "speed while Tab is held");
+        add_back(m);
+        break;
+    case PG_MODS:
+        menu_begin(m, "MODS");
+#ifdef BTDD_HAVE_MODS
+        for (i = 0; i < mods_count() && i < MENU_MAX_ITEMS - 4; i++) {
+            const ModDef *d = mods_def(i);
+            if (d->value_min != d->value_max && mods_enabled(i))
+                snprintf(v, sizeof v, "%d", mods_value(i));
+            else
+                snprintf(v, sizeof v, "%s", onoff(mods_enabled(i)));
+            menu_add(m, ITEM_CHOICE, ID_MOD_BASE + i, d->name, v, d->help);
+        }
+#else
+        menu_add(m, ITEM_INFO, 0, "No mods in this build", "", "");
+#endif
+        add_back(m);
+        break;
+    default:
+        menu_begin(m, "SETTINGS");
+        menu_add(m, ITEM_ACTION, ID_RESUME, "Resume", "", "Esc closes this menu");
+        menu_add(m, ITEM_PAGE, PG_STATES, "Save states", "", "");
+        menu_add(m, ITEM_PAGE, PG_DISPLAY, "Display", "", "");
+        menu_add(m, ITEM_PAGE, PG_GRAPHICS, "Graphics", "", "");
+        menu_add(m, ITEM_PAGE, PG_AUDIO, "Audio", "", "");
+        menu_add(m, ITEM_PAGE, PG_CONTROLS, "Controls", "", "");
+        menu_add(m, ITEM_PAGE, PG_GAMEPLAY, "Gameplay", "", "");
+        menu_add(m, ITEM_PAGE, PG_MODS, "Mods", "", "");
+        menu_add(m, ITEM_INFO, 0, "", "", "");
+        menu_add(m, ITEM_ACTION, ID_RESET, "Reset", "", "F1 in game");
+        menu_add(m, ITEM_ACTION, ID_POWER, "Power cycle", "", "Ctrl+F1 in game");
+        menu_add(m, ITEM_ACTION, ID_QUIT, "Quit", "", "settings are saved");
+        if (c->status[0])
+            menu_add(m, ITEM_INFO, 0, c->status, "", "");
+        break;
+    }
+}
+
+static int wrap(int v, int lo, int hi)
+{
+    return v < lo ? hi : v > hi ? lo : v;
+}
+
+static void menu_closed(PlayCtx *c)
+{
+    if (c->dirty && c->have_cfg && config_save(c->cfg) == 0)
+        SDL_Log("settings saved: %s", c->cfg->path);
+    c->dirty = 0;
+    c->capture = 0;
+}
+
+static void menu_leave(PlayCtx *c)
+{
+    menu_close(&menu);
+    menu_closed(c);
+}
+
+/* One menu event: apply it. */
+static void menu_apply(PlayCtx *c, MenuEvent ev, int id, int dir)
+{
+    Config *cfg = c->cfg;
+    int i;
+    if (ev == MENU_EV_CLOSE) {
+        menu_closed(c);
+        return;
+    }
+    if (ev != MENU_EV_ACTIVATE && ev != MENU_EV_CHANGE)
+        return;
+    c->status[0] = 0;
+    if (id == ID_BACK) {
+        int d0, d1;
+        MenuEvent back = menu_input(&menu, MENU_BACK, &d0, &d1);
+        menu_apply(c, back, d0, d1);
+        return;
+    }
+    if (id >= ID_KEY_BASE && id < ID_KEY_BASE + 2 * BTN_COUNT) {
+        c->capture = id;
+        return;
+    }
+#ifdef BTDD_HAVE_MODS
+    if (id >= ID_MOD_BASE && id < ID_MOD_BASE + mods_count()) {
+        const ModDef *d = mods_def(id - ID_MOD_BASE);
+        i = id - ID_MOD_BASE;
+        if (d->value_min == d->value_max) {
+            mods_enable(i, !mods_enabled(i));
+        } else { /* cycle: off, min..max */
+            int v = mods_enabled(i) ? mods_value(i) : d->value_min - 1;
+            v = wrap(v + dir, d->value_min - 1, d->value_max);
+            mods_enable(i, v >= d->value_min);
+            if (v >= d->value_min)
+                mods_set_value(i, v);
+        }
+        mods_attach(&nes);
+        screen_set_no_sprite_limit(mods_display_flags() & MODS_DISPLAY_NO_SPRITE_LIMIT);
+        c->dirty = 1;
+        return;
+    }
+#endif
+    switch (id) {
+    case ID_RESUME:
+        menu_leave(c);
+        break;
+    case ID_RESET:
+        soft_reset();
+        menu_leave(c);
+        say("reset");
+        break;
+    case ID_POWER:
+        power_on(nes.ppu.model);
+        menu_leave(c);
+        say("power cycle");
+        break;
+    case ID_QUIT:
+        menu_closed(c);
+        *c->quit = 1;
+        break;
+    case ID_SLOT:
+        *c->slot = wrap(*c->slot + dir, 0, 9);
+        break;
+    case ID_SAVE:
+        slot_save(*c->slot, *c->frame, c->hash, c->status, sizeof c->status);
+        say(c->status);
+        break;
+    case ID_LOAD:
+        if (slot_load(*c->slot, c->frame, c->hash, c->status, sizeof c->status)) {
+            rewind_record(*c->frame);
+            if (c->audio)
+                SDL_ClearAudioStream(c->audio);
+            menu_leave(c);
+        }
+        say(c->status);
+        break;
+    case ID_SCALE:
+        cfg->scale = wrap(cfg->scale + dir, 1, 10);
+        if (!cfg->fullscreen)
+            SDL_SetWindowSize(c->video->win, (cfg->aspect ? 292 : 256) * cfg->scale, 240 * cfg->scale);
+        c->dirty = 1;
+        break;
+    case ID_FULLSCREEN:
+        cfg->fullscreen = !cfg->fullscreen;
+        SDL_SetWindowFullscreen(c->video->win, cfg->fullscreen);
+        c->dirty = 1;
+        break;
+    case ID_ASPECT:
+        c->video->aspect = cfg->aspect = !cfg->aspect;
+        c->dirty = 1;
+        break;
+    case ID_FILTER:
+        c->video->filter = cfg->filter = wrap(cfg->filter + dir, 0, FILTER_COUNT - 1);
+        c->dirty = 1;
+        break;
+    case ID_SCANLINES:
+        c->video->scanlines = cfg->scanlines = !cfg->scanlines;
+        c->dirty = 1;
+        break;
+    case ID_VIDEO:
+        cfg->gpu = !cfg->gpu;
+        c->dirty = 1;
+        break;
+    case ID_SHADER:
+        cfg->shader = wrap(cfg->shader + dir, 0, GPU_PRESET_COUNT - 1);
+        c->video->preset = cfg->shader;
+        c->dirty = 1;
+        break;
+    case ID_VOLUME: {
+        int v = (int)(cfg->volume * 10.0f + 0.5f) + dir;
+        cfg->volume = (float)SDL_clamp(v, 0, 10) / 10.0f;
+        if (c->audio)
+            SDL_SetAudioStreamGain(c->audio, cfg->volume);
+        c->dirty = 1;
+        break;
+    }
+    case ID_REBIND_ALL:
+        menu_leave(c);
+        c->rb->active = 1;
+        c->rb->step = 0;
+        memcpy(c->rb->backup, cfg->keys, sizeof c->rb->backup);
+        break;
+    case ID_REWIND: {
+        int n = (int)(sizeof rewind_choices / sizeof rewind_choices[0]), k = 0;
+        for (i = 0; i < n; i++)
+            if (rewind_choices[i] == cfg->rewind_seconds)
+                k = i;
+        cfg->rewind_seconds = rewind_choices[wrap(k + dir, 0, n - 1)];
+        if (rw_on)
+            rewind_free(&rw);
+        free(rw_blob);
+        rw_blob = NULL;
+        rewind_setup(cfg);
+        rewind_record(*c->frame);
+        c->dirty = 1;
+        break;
+    }
+    case ID_FF:
+        cfg->ff_speed = wrap(cfg->ff_speed + dir, 2, 16);
+        c->dirty = 1;
+        break;
+    default:
+        break;
+    }
+}
+
+static void menu_do(PlayCtx *c, MenuInput in)
+{
+    MenuEvent ev;
+    int id, dir;
+    build_page(&menu, c);
+    ev = menu_input(&menu, in, &id, &dir);
+    menu_apply(c, ev, id, dir);
+}
+
+/* Keyboard while the menu is open (or a key is being rebound). */
+static void menu_key(PlayCtx *c, SDL_Scancode sc, SDL_Keycode key)
+{
+    if (c->capture) {
+        int k = c->capture - ID_KEY_BASE;
+        if (key != SDLK_ESCAPE) {
+            c->cfg->keys[k / BTN_COUNT][k % BTN_COUNT] = sc;
+            c->dirty = 1;
+        }
+        c->capture = 0;
+        return;
+    }
+    switch (key) {
+    case SDLK_UP: case SDLK_KP_8: menu_do(c, MENU_UP); break;
+    case SDLK_DOWN: case SDLK_KP_2: menu_do(c, MENU_DOWN); break;
+    case SDLK_LEFT: case SDLK_KP_4: menu_do(c, MENU_LEFT); break;
+    case SDLK_RIGHT: case SDLK_KP_6: menu_do(c, MENU_RIGHT); break;
+    case SDLK_RETURN: case SDLK_KP_ENTER: case SDLK_SPACE: menu_do(c, MENU_ACCEPT); break;
+    case SDLK_ESCAPE: case SDLK_BACKSPACE: menu_do(c, MENU_BACK); break;
+    default: break;
+    }
+}
+
+/* Gamepad while the menu is open: d-pad, south = accept, east = back, Guide / Start = close. */
+static void menu_pad(PlayCtx *c, Uint8 button)
+{
+    if (c->capture)
+        return;
+    switch (button) {
+    case SDL_GAMEPAD_BUTTON_DPAD_UP: menu_do(c, MENU_UP); break;
+    case SDL_GAMEPAD_BUTTON_DPAD_DOWN: menu_do(c, MENU_DOWN); break;
+    case SDL_GAMEPAD_BUTTON_DPAD_LEFT: menu_do(c, MENU_LEFT); break;
+    case SDL_GAMEPAD_BUTTON_DPAD_RIGHT: menu_do(c, MENU_RIGHT); break;
+    case SDL_GAMEPAD_BUTTON_SOUTH: menu_do(c, MENU_ACCEPT); break;
+    case SDL_GAMEPAD_BUTTON_EAST: menu_do(c, MENU_BACK); break;
+    case SDL_GAMEPAD_BUTTON_GUIDE: case SDL_GAMEPAD_BUTTON_START: menu_leave(c); break;
+    default: break;
+    }
+}
+
 /* The audio device can take seconds to open on a busy machine; it is opened on its own thread while the window and
  * renderer are created. */
 static SDL_AudioStream *audio_opened;
@@ -485,6 +861,7 @@ int main(int argc, char **argv)
     SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, AUDIO_RATE};
     SDL_Gamepad *gp[2] = {NULL, NULL};
     Uint64 next_tick;
+    PlayCtx ctx;
     RomResult rr;
 
     memset(&rb, 0, sizeof rb);
@@ -618,10 +995,21 @@ int main(int argc, char **argv)
     stage("gamepads+console");
     SDL_Log("startup: %s; total %llu ms", stage_text, (unsigned long long)((SDL_GetTicksNS() - stage_t0) / 1000000));
     next_tick = SDL_GetTicksNS();
+    memset(&ctx, 0, sizeof ctx);
+    ctx.cfg = &cfg;
+    ctx.video = &video;
+    ctx.audio = audio;
+    ctx.gp = gp;
+    ctx.rb = &rb;
+    ctx.slot = &slot;
+    ctx.quit = &quit;
+    ctx.frame = &frame;
+    ctx.hash = hash;
+    ctx.have_cfg = have_cfg;
 
     while (!quit) {
         SDL_Event ev;
-        int run_frame, hold = paused || rb.active;
+        int run_frame, hold = paused || rb.active || menu.open;
         const char *lines[4];
         while (SDL_PollEvent(&ev)) {
             switch (ev.type) {
@@ -633,11 +1021,26 @@ int main(int argc, char **argv)
                 if (!vjoy)
                     open_gamepads(gp);
                 break;
+            case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
+                if (menu.open) {
+                    menu_pad(&ctx, ev.gbutton.button);
+                } else if (!rb.active) { /* Guide, or Start while Back is held: settings */
+                    SDL_Gamepad *pad = SDL_GetGamepadFromID(ev.gbutton.which);
+                    if (ev.gbutton.button == SDL_GAMEPAD_BUTTON_GUIDE ||
+                        (ev.gbutton.button == SDL_GAMEPAD_BUTTON_START && pad &&
+                         SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK)))
+                        menu_open(&menu, PG_MAIN);
+                }
+                break;
             case SDL_EVENT_KEY_DOWN:
+                if (menu.open) { /* the settings menu takes the keyboard (repeats too, for scrolling) */
+                    menu_key(&ctx, ev.key.scancode, ev.key.key);
+                    break;
+                }
                 if (ev.key.repeat || rebind_key(&rb, &cfg, ev.key.scancode))
                     break;
                 if (ev.key.key == SDLK_ESCAPE) {
-                    quit = 1;
+                    menu_open(&menu, PG_MAIN); /* settings; Quit is in there */
                 } else if (ev.key.key == SDLK_P) {
                     paused = !paused;
                     SDL_SetWindowTitle(video.win, paused ? TITLE " (paused)" : TITLE);
@@ -697,10 +1100,15 @@ int main(int argc, char **argv)
                 break;
             }
         }
-        if (hold) { /* paused or redefining keys: keep drawing the last picture with the overlay */
+        if (hold) { /* paused, redefining keys or in the settings: keep drawing the last picture with the overlay */
             if (audio)
                 SDL_ClearAudioStream(audio);
-            video_present(&video, pixels, lines, overlay(&rb, &cfg, paused, lines));
+            if (menu.open) {
+                build_page(&menu, &ctx);
+                video_present(&video, pixels, menu.lines, menu_render(&menu));
+            } else {
+                video_present(&video, pixels, lines, overlay(&rb, &cfg, paused, lines));
+            }
             next_tick = SDL_GetTicksNS();
             SDL_Delay(15);
             continue;
