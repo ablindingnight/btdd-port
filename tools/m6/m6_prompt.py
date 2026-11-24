@@ -75,9 +75,26 @@ def asm_listing(bank, name):
 
 
 def mechanical_c(bank, start, end, mem):
+    """recomp/gen.py's C for the routine with the run-loop bookkeeping stripped: one '/* $addr */' marker per
+    instruction, labels kept for branches, n_* helpers as in recomp/native_rt.h."""
     import gen  # recomp/gen.py
     g = gen.Gen(bank, mem)
-    return g.routine('', start, end)[2]
+    out = []
+    for line in g.routine('', start, end)[2].splitlines():
+        st = line.strip()
+        m = re.match(r'^L([0-9A-F]{4}): if \(c->budget', line)
+        if m:
+            out.append('L%s:' % m.group(1))
+            continue
+        m = re.match(r'^E([0-9A-F]{4}): ', line)
+        if m:
+            out.append('    /* $%s */' % m.group(1))
+            continue
+        if (st.startswith(('static void', 'uint8_t v;', '(void)v', 'switch (c->pc)', 'case 0x', 'default: return',
+                           'c->bus = ', '/*  $')) or st in ('{', '}')):
+            continue
+        out.append(line.replace('N_EXIT;', 'return;'))
+    return '\n'.join(out)
 
 
 def outputs_of(ins):
@@ -129,9 +146,10 @@ def build(bank, addr):
         parts.append('It reads ROM at: ' + ', '.join('$%04X' % t for t in sorted(set(tables))) +
                      ' (use bus_read for these)')
     parts.append('6502 source (ca65):\n```\n%s\n```' % asm)
-    parts.append('Mechanical C of the same code from our recompiler (exact cycle-level semantics, ugly; n_cyc and '
-                 'the bus/pc lines are bookkeeping you must NOT copy; it only shows the meaning of each '
-                 'instruction):\n```c\n%s\n```' % mech)
+    parts.append('The same code translated mechanically, one block per instruction (c->a/x/y/p are the registers, '
+                 'n_adc/n_sbc/n_cmp/n_rol... do exactly what the 6502 instruction does including flags, n_rdram/'
+                 'n_wrram are RAM, n_rd/n_wr are the bus, `goto L....` are branches, n_cyc is timing: ignore it). '
+                 'Use it to check the semantics, then write clean C:\n```c\n%s\n```' % mech)
     parts.append('Outputs the test compares besides RAM and hardware accesses: %s.' %
                  (', '.join('m->' + o for o in outs) if outs else 'none (registers are not compared)'))
     parts.append('Write `void routine(M6 *m)` now.')
