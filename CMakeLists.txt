@@ -39,6 +39,8 @@ btdd_warnings(btdd)
 # Coverage recorder, snapshots, warp/god mode, explorer (tools only; not part of the game exe)
 add_library(btdd_cov STATIC
     src/cov/coverage.c
+    src/cov/snapshot.c
+    src/cov/tracker.c
 )
 target_link_libraries(btdd_cov PUBLIC btdd_core)
 btdd_warnings(btdd_cov)

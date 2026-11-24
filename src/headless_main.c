@@ -7,6 +7,10 @@
  *                     [--cdl-mesen out.cdl]       (same run as a Mesen-format log: adds jump-target/entry bits)
  *                     [--cdl-fceux-clear]         (clear a byte's FCEUX flags when the game writes to it, as FCEUX)
  *                     [--reads out.tsv]           (PRG data reads: byte, reader PC, routine, $000D, $0015, count)
+ *                     [--snap-dir D] [--snap-every N]  (snapshots every N frames (default 60) and at every
+ *                                                  level/section change and camera lock/unlock; gate log
+ *                                                  gates.txt/gates.tsv + gate-*.ram in D)
+ *                     [--load X.snap]             (start from a snapshot; the movie continues at its frame)
  *
  * RAM dump format (shared with tools/fceux/ramdump.lua and tools/ramdiff.py): a sequence of records,
  * each a little-endian uint32 frame number followed by the 2048 bytes of CPU RAM. The frame number is
@@ -14,6 +18,8 @@
  * --dump-every K writes a record every K frames; the final frame is always written.
  */
 #include "cov/coverage.h"
+#include "cov/snapshot.h"
+#include "cov/tracker.h"
 #include "nes/nes.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
@@ -62,6 +68,9 @@ int main(int argc, char **argv)
     const char *watch_spec = NULL, *exec_spec = NULL;
     const char *cdl_path = NULL, *cdl_mesen_path = NULL, *reads_path = NULL;
     int cdl_clear = 0;
+    const char *snap_dir = NULL, *load_path = NULL;
+    long snap_every = 60, start = 0;
+    static Tracker trk;
     static Coverage cov;
     char hash[41] = "", err[256];
     Fm2 movie = {0};
@@ -88,6 +97,12 @@ int main(int argc, char **argv)
             cdl_mesen_path = argv[++i];
         else if (!strcmp(argv[i], "--reads") && i + 1 < argc)
             reads_path = argv[++i];
+        else if (!strcmp(argv[i], "--snap-dir") && i + 1 < argc)
+            snap_dir = argv[++i];
+        else if (!strcmp(argv[i], "--snap-every") && i + 1 < argc)
+            snap_every = strtol(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--load") && i + 1 < argc)
+            load_path = argv[++i];
         else if (!strcmp(argv[i], "--cdl-fceux-clear"))
             cdl_clear = 1;
         else if (!strcmp(argv[i], "--quiet"))
@@ -154,6 +169,28 @@ int main(int argc, char **argv)
         nes.cpu.exec_watch = exec_map;
         nes.cpu.exec_hook = print_exec;
     }
+    if (load_path) {
+        SnapInfo si;
+        int lr = snap_load(&nes, &si, load_path);
+        if (lr != 0) {
+            fprintf(stderr, "%s: %s\n", load_path, lr == -2 ? "not a snapshot of this build" : "cannot read");
+            return 1;
+        }
+        start = (long)si.frame;
+    }
+    if (snap_dir) {
+        char p[1024];
+        snprintf(p, sizeof p, "%s/gates.txt", snap_dir);
+        trk.log = fopen(p, "w");
+        snprintf(p, sizeof p, "%s/gates.tsv", snap_dir);
+        trk.tsv = fopen(p, "w");
+        trk.ram_dir = snap_dir;
+        if (!trk.log || !trk.tsv) {
+            fprintf(stderr, "cannot write in %s (does the folder exist?)\n", snap_dir);
+            return 1;
+        }
+        tracker_init(&trk, &nes, start);
+    }
     if (cdl_path || cdl_mesen_path || reads_path) {
         cov_init(&cov, &rom);
         cov.fceux_clear_on_write = cdl_clear;
@@ -161,7 +198,7 @@ int main(int argc, char **argv)
         cov_attach(&cov, &nes);
     }
     t0 = clock();
-    for (i = 0; i < frames; i++) {
+    for (i = start; i < frames; i++) {
         cur_frame = i;
         if (movie.frames && i < movie.count) {
             const Fm2Frame *fr = &movie.frames[i];
@@ -180,6 +217,25 @@ int main(int argc, char **argv)
             if (write_record(dump, (uint32_t)(i + 1), nes.ram) != 0) {
                 fprintf(stderr, "write error on %s\n", dump_path);
                 return 1;
+            }
+        }
+        if (snap_dir) {
+            unsigned why = tracker_frame(&trk, &nes, i + 1);
+            if (snap_every > 0 && (i + 1) % snap_every == 0)
+                why |= SNAP_PERIODIC;
+            if (why) {
+                char p[1024], rs[32];
+                SnapInfo si;
+                si.frame = (uint32_t)(i + 1);
+                si.level = nes.ram[0x0D];
+                si.section = nes.ram[0x15];
+                si.reason = (uint16_t)why;
+                snprintf(p, sizeof p, "%s/f%06ld-L%02X-S%02X-%s.snap", snap_dir, i + 1, si.level, si.section,
+                         snap_reason_text(si.reason, rs, sizeof rs));
+                if (snap_save(&nes, &si, p) != 0) {
+                    fprintf(stderr, "cannot write %s\n", p);
+                    return 1;
+                }
             }
         }
         if (nes.cpu.jammed) {
