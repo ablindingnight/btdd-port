@@ -205,6 +205,8 @@ def main():
     ap.add_argument('--kinds', help='comma list of routine kinds (m6_pick.classify: calls,tail,alt,far,dispatch,'
                     'leaf): every routine of those kinds with a corpus, callees with passing C first, then by calls')
     ap.add_argument('--max-size', type=int, default=256, help='with --kinds: largest routine in bytes')
+    ap.add_argument('--shard', default='0/1', help='i/n: only routines with (bank*0x10000+addr) %% n == i, so n '
+                    'processes (one per llama-server slot) never take the same routine')
     a = ap.parse_args()
     if a.kinds:
         return kinds_mode(a)
@@ -268,7 +270,9 @@ def kinds_mode(a):
     tried, results = set(), []
     while len(results) < a.routines:
         skip = tried | (tried_before() if a.new_only else set())
-        ready = kinds_ready(kinds, a.max_size, skip)
+        si, sn = (int(x) for x in a.shard.split('/'))
+        ready = [x for x in kinds_ready(kinds, a.max_size, skip)
+                 if (x[0]['bank'] * 0x10000 + x[0]['start']) % sn == si]
         if not ready:
             print('no more routines of kinds %s with a corpus' % a.kinds)
             break
