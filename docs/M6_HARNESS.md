@@ -16,9 +16,15 @@ is written to `private/m6/` (gitignored) and never committed or shipped. Only th
 | `m6_prompt.py` | builds the prompt: fixed instructions + API first (prefix-cache friendly), then routine facts, RAM names used, ROM addresses read, the decomp's asm (`git show HEAD:src/bankN.s`), the M5 mechanical C with the bookkeeping stripped, and the outputs the test compares |
 | `m6_run.py` | driver: prompt -> model (thinking on; temperature 0.2, then 0.7 on retries; max 3 tries) -> extract the last ```c block -> test -> on failure append the FAIL line and retry; logs every try to `..\Gamefiles\Movies\m6\runs.jsonl` |
 
-Outputs (registers the test compares): A/X/Y if the routine writes them, C if it ends in `CLC`/`SEC; RTS`
-(a status return). Flags otherwise are not compared: callers rarely use them after an RTS, and demanding them would
-reject readable C for no gain; when a caller does depend on one, add it with `--outputs`.
+Outputs (registers/flags the test compares besides RAM and hardware accesses): those some caller reads after the
+`JSR` before overwriting them, found by a bounded path search from every call site in the bank (both branch
+directions, `jmp`, into callees until their RTS). Leaving known code (the caller's own RTS, an indirect jump)
+counts as a read of the pending registers but not of flags. Routines with no JSR site in their bank (dispatch
+slots, far-call targets) fall back to "registers the routine writes". Cross-bank callers are not analysed yet.
+
+Every test also runs 2,000 random entry states (random registers, flags, RAM; hardware reads answer random bytes,
+recorded from the original and replayed to the candidate) after the corpus, so a candidate that only matches the
+states the TAS happened to produce is still caught.
 
 ## Corpus (built 2026-11-24 for the 40 top leaf routines)
 `m6_capture` on both movies (2P old PPU 47 s, 1P new PPU 114 s): 2,000 samples per routine per movie for 39 of 40
@@ -29,8 +35,33 @@ routines (`sub_a3bc`, a PPUSTATUS wait, has 216: most of its calls are interrupt
 Harness check: a hand-written `sub_8624` (the game's RNG step) passes 4,000/4,000; the same with one constant
 changed fails at state 1 with `RAM $002C expected $A4 got $A5`.
 
-## Model run
-See the section added after the run (pass rate, tries, tokens and time per routine).
+## Model run (Qwen3.6-35B-A3B Q4_K_M, llama-server shared with the decomp loop, thinking on), 2026-11-24 00:30-01:15
+8 leaf routines tried, **7 pass** (corpus of both movies + 2,000 random states). All passing C is in
+`private/m6/` (gitignored).
+| routine | size | result | tries | completion tokens | time |
+|---|---|---|---|---|---|
+| `sub_8624` (RNG step) | 20 B | pass | 1 | 6,973 | 55 s |
+| `sub_8550` | 15 B | pass | 1 | 5,851 | 44 s |
+| `sub_81eb` | 12 B | pass | 1 | 3,062 | 23 s |
+| `sub_83eb` | 15 B | pass | 1 | 4,561 | 39 s |
+| `read_controllers` ($4016/$4017 order) | 49 B | pass | 1 | 14,094 | 108 s |
+| `sub_a305` (ROM tables) | 89 B | pass | 1 | 19,258 | 160 s |
+| `sub_feda` (hardware + delay loop) | 52 B | pass | 3 | 33,933 | 259 s |
+| `sub_d73f` (pointer + ROM tables) | 54 B | **fail** | 3 | 78,635 | 673 s |
+Prompts are 1.2-4.2k tokens; almost all tokens are thinking. Over all 19 logged tries: 252k completion tokens,
+34 minutes of model time.
+
+What the run taught (fixed in the harness/prompt during the night):
+- The first `sub_8624` answer cleared C at the end; with outputs taken from the instructions it wrote, the test did
+  not compare C and let it pass. Callers do read C, and the caller-liveness outputs now reject it; the second answer
+  passes. The first version of `sub_a305`/`sub_d73f` runs failed on extraction (prose taken as code), the 16k
+  token cap, and missing declarations; the extractor now takes only a block that defines `void routine(`, the cap is
+  32k and the prompt asks for short reasoning.
+- `sub_d73f` still fails: wrong A on try 1 (callers read A), then two retries spent the full 32k tokens thinking
+  without an answer. Next: retry with a fresh conversation (prompt + previous code + FAIL line) instead of the
+  growing chat, and cap thinking on retries.
+- Readability: the passing C is correct but mostly instruction-by-instruction with explicit flag updates. A second,
+  "simplify" pass (same test as the gate) is the cheap next step once correctness is in hand.
 
 ## Not done / next
 - `facts.py` output is not in the prompt: running decomp tools needs the user's OK (AGENTS.md); the prompt uses
