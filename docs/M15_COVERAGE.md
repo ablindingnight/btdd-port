@@ -138,6 +138,9 @@ pointer tables (e.g. bank 6 `$997D` table: entry `$9986` -> `$9B52`, 96 bytes; `
 106 clean candidates, 951 bytes.
 
 ## Human-play checklist (Mesen, code/data logger on, save as a NEW .cdl in Gamefiles\Debugger)
+Checkpoint states for every stage/section (FCEUX .fcs, no movie attached) and a README with the steps are in
+`..\Gamefiles\SaveStates\checkpoints\` (made by `tools/fceux/checkpoints.lua` + `tools/fcs_checkpoints.py`;
+Mesen cannot load .fcs, so use FCEUX's Debug > Code/Data Logger with them).
 What automation cannot reach is mostly data selected by game situations (`tools/gap_context.py` lists every gap
 with its readers and the stage/section where neighbouring bytes are read). Already covered automatically, no
 need to repeat: title/menus/attract, every character pair, 1P and mode B starts, pause, game over/continue in 1P
