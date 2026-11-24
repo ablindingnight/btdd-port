@@ -31,3 +31,64 @@ the struct size and a layout fingerprint; loading refuses a mismatch). Re-record
   never ran in our replay. Because our RAM matches FCEUX on every frame, the TAS cannot have run them: FCEUX's
   logger session for that file was not started fresh (it also logged hand play).
 - Without `--cdl-fceux-clear`, 43 extra data bytes stay flagged (bank-switch writes FCEUX would clear).
+
+## Snapshots and gates (2P TAS)
+1,279 snapshots (every 60 frames + 27 level changes, 21 section changes, 69 camera unlocks and the matching
+locks); loading any of them and replaying the rest gives RAM identical to the straight run. Camera position
+is `$8E:$8D` (X) and `$90:$8F` (Y). No single "wave cleared" counter explains every unlock: several unlocks
+follow the enemy HP slots `$051B,x` (x >= 2) dropping to 0 (frames 4782, 5927, 6502), others do not; `$32/$33`
+drop to 0 before 54/51 of the 69 unlocks but change ~1,100 times per stage (input/animation state, not a gate).
+Exploration starts from these snapshots, so gates the TAS passed are already open.
+
+## Level and section IDs (stage warp)
+- Stage start = bank 0 `$8312` (`sta $10; sta $0D`, A = level). `$0010` is the level the logic uses (compared with
+  4, 7, 8, 9, $0B, $0D in bank 6 `set_scroll_and_ppu_frame`); between stages it counts stages (0 at the title,
+  1 after stage 1, ...) and bank 6 `$9736` turns it into the next level through an order table at bank 6 `$903A`:
+  3, 5, 2, 4, 8, 9, 6, then `$FF` (end). Bank 6 `sub_a0fb` sets `$0015` from a per-level first-section table
+  (bank 6 `$A0E2`) only when `$0015` is 0.
+- **Level 0** is the title/menu value of `$000D` (seen in the TAS from power-on to frame 657), and **level 1** is
+  the inter-stage counter value of `$0010`: neither is a stage. Warping to them jumps into RAM garbage and jams
+  the CPU within 3 / 112 frames.
+- **Level 7** has first section 0 in the table; warping there (and to $0B, $0C, $0D) hangs in the NMI's sprite-0
+  wait (bank 0 `$8180`/`$8190`, no sprite 0 is ever placed): not startable as a stage. Level `$0A` runs but shows
+  stage-7 section data with the wrong tiles. None of them looks like hidden content; the order table never
+  produces them.
+- **Section 0** is what level 7 gets (see above). Section table entries exist up to `$10` (`$11` = end marker):
+  `$0F` runs (wrong tiles from level 6; level 9 and 3 move on to their own sections), `$10` and `$11` jam.
+- Warp logs added 51 code bytes, mostly from runs that later jammed (garbage), so they are **not published**;
+  they stay in `..\Gamefiles\Movies\coverage\warp\` with pictures.
+
+## Results (2026-11-23, all logs in ..\Gamefiles\Debugger)
+| | code bytes | data-only | seen |
+|---|---|---|---|
+| before (13 existing logs) | 56,168 (21.4%) | 190,302 (72.6%) | 246,470 (94.0%) |
+| after (+ auto-*) | 59,463 (22.7%) | 195,434 (74.6%) | 254,897 (97.2%) |
+
+New bytes per source, in the order added: explore-a +2,358 code / +5,019 data; explore-b +64 / +140; explore-c +2 / +16;
+static probe +866 code (116 candidates: 15 rejected by decoding, 101 clean; the cpu_call probe almost always
+returns, so decoding is the real filter; fall-throughs of always-taken branches are skipped); tas1p-oldppu +5 / +5; 2P TAS, attract, Start-only 1P, Select+Start, 2P game over, mode B,
+ending, 1P TAS (new PPU), koh movies: 0 new code (the hand-play/FCEUX logs already had them). Random exploration
+saturates within minutes; the remaining 7,247 unseen bytes (99 runs >= 16 bytes, mostly bank 4 $CBF0 528 bytes,
+bank 6 $F4FE 210, bank 4 $C16D 160) are listed in `..\Gamefiles\Movies\coverage\report\final.txt`.
+
+btdd-decomp frontier (tools/frontier_count.py, same rules as cdlfrontier/datacarve, read-only): with the old logs
+0 carvable executed runs and 0 data tables in raw blocks; with the new logs 29 runs (399 bytes) and 136 data
+tables (5,124 bytes), and raw bytes no log has seen drop from 12,210 to 6,584 (of 14,191 raw).
+
+## Rerun everything
+```
+cd btdd-port-cov   (or btdd-port after the merge); build: cmake --build build-clang
+set G=..\Gamefiles  &  set C=%G%\Movies\coverage
+btdd_headless ROM --movie %G%\Movies\tasvideos-4323M-2p.fm2 --cdl %G%\Debugger\auto-tas2p.cdl --cdl-mesen %G%\Debugger\auto-tas2p-m.cdl --reads %G%\Debugger\auto-reads-tas2p.tsv --ram-pcs %C%\tas2p-ram-pcs.txt
+btdd_headless ROM --movie %G%\Movies\tasvideos-4323M-2p.fm2 --snap-dir %C%\snap-tas2p
+python tools/forced_paths.py --out %C%\forced --publish
+(movies-ram-pcs.txt = sorted union of --ram-pcs from the 2P TAS, the 1P TAS --ppu new, koh-btdd --frames 38594)
+python tools/explore.py --snaps %C%\snap-tas2p --out %C%\explore-a --seconds 600 --seed 11 --publish explore-a
+python tools/explore.py --snaps %C%\snap-tas2p,%C%\forced\snap-* (comma list) --out %C%\explore-c --seconds 600 --seed 33 --publish explore-c --extra "--burst 200,1500 --god-ratio 0.7"
+btdd_static ROM --known KNOWN.txt (list of Debugger\*.cdl) --snaps SNAPS.txt (one snapshot per stage) --ram-pcs %C%\movies-ram-pcs.txt --out %C%\static\probe   then copy probe-m.cdl to Debugger\auto-static-m.cdl
+python tools/covreport.py --new "auto-*" --regions
+python tools/frontier_count.py %C%\baseline %G%\Debugger
+btdd_headless ROM --movie ... --movie-until 800 --frames 2400 --warp 7 --god --shot-every 200 DIR ; python tools/shots.py DIR
+```
+Not done: a dedicated character-choice matrix (characters are only varied by exploration bursts from the title
+/ menu snapshots), and bots per stage type (random bursts + god mode replaced them).

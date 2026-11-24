@@ -78,6 +78,28 @@ static void add_target(int bank, uint16_t t, int src)
         cand_src[j] |= (uint8_t)src;
 }
 
+/* A branch whose flag was just set to a fixed value (clc/bcc, sec/bcs, clv/bvc, lda/ldx/ldy #imm then
+ * bne/beq/bpl/bmi) is an unconditional jump: the bytes after it may well be data, so its fall-through is
+ * not a candidate. i = offset of the branch in the bank. */
+static int always_taken(int bank, long base, long i, uint8_t op)
+{
+    uint8_t p1, p2, v;
+    if (i >= 1 && is_code(base + i - 1)) {
+        p1 = rom.prg[bank][i - 1];
+        if ((p1 == 0x18 && op == 0x90) || (p1 == 0x38 && op == 0xB0) || (p1 == 0xB8 && op == 0x50))
+            return 1;
+    }
+    if (i >= 2 && is_code(base + i - 2) && is_code(base + i - 1)) {
+        p2 = rom.prg[bank][i - 2];
+        v = rom.prg[bank][i - 1];
+        if (p2 == 0xA9 || p2 == 0xA2 || p2 == 0xA0) {
+            if ((op == 0xD0 && v) || (op == 0xF0 && !v) || (op == 0x10 && v < 0x80) || (op == 0x30 && v >= 0x80))
+                return 1;
+        }
+    }
+    return 0;
+}
+
 /* Step 1: decode the known code linearly and collect never-executed targets. */
 static void scan_known(void)
 {
@@ -103,7 +125,8 @@ static void scan_known(void)
                 if ((op & 0x1F) == 0x10) {
                     int8_t rel = (int8_t)byte_at(bank, (uint16_t)(pc + 1));
                     add_target(bank, (uint16_t)(pc + 2 + rel), SRC_BRANCH);
-                    add_target(bank, (uint16_t)(pc + 2), SRC_FALL);
+                    if (!always_taken(bank, base, i, op))
+                        add_target(bank, (uint16_t)(pc + 2), SRC_FALL);
                 } else if (op == 0x20 || op == 0x4C) {
                     uint16_t t = (uint16_t)(byte_at(bank, (uint16_t)(pc + 1)) | byte_at(bank, (uint16_t)(pc + 2)) << 8);
                     add_target(bank, t, op == 0x20 ? SRC_JSR : SRC_JMP);
