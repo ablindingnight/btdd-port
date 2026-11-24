@@ -28,13 +28,23 @@ M6 = m6_test.M6
 PRIVATE = os.path.join(REPO, 'private', 'm6')
 LOG = os.path.join(M6, 'runs.jsonl')
 TEMPS = [0.2, 0.7, 0.7]
-MAX_TOKENS = 32000
+# Token budget per try. Thinking runaways used to run into a 32k cap (340 s for nothing). Now: 16k per try with a
+# 12k thinking budget (llama-server honours `thinking_budget_tokens`; `reasoning_budget` and a template kwarg had
+# no effect in a probe). A try that hits the cap counts as failed and the next one runs with thinking OFF and a
+# shorter prompt (the mechanical C left out): the passing C is usually short.
+MAX_TOKENS = 16000
+THINK_BUDGET = 12000
+NOTHINK_MAX_TOKENS = 6000
 SERVER_WAIT = 1800
 
 
-def ask(messages, temperature):
-    body = json.dumps({'messages': messages, 'temperature': temperature, 'max_tokens': MAX_TOKENS,
-                       'cache_prompt': True, 'chat_template_kwargs': {'enable_thinking': True}}).encode()
+def ask(messages, temperature, think=True):
+    body = {'messages': messages, 'temperature': temperature, 'cache_prompt': True,
+            'max_tokens': MAX_TOKENS if think else NOTHINK_MAX_TOKENS,
+            'chat_template_kwargs': {'enable_thinking': bool(think)}}
+    if think:
+        body['thinking_budget_tokens'] = THINK_BUDGET
+    body = json.dumps(body).encode()
     t0 = time.time()
     while True:
         try:
@@ -46,9 +56,18 @@ def ask(messages, temperature):
             if time.time() - t0 > SERVER_WAIT:
                 raise SystemExit('model server unavailable: %s' % e)
             time.sleep(10)
-    msg = resp['choices'][0]['message']
-    return msg.get('content') or '', msg.get('reasoning_content') or '', resp.get('usage', {}), \
-        resp.get('timings', {}), time.time() - t0
+    choice = resp['choices'][0]
+    msg = choice['message']
+    usage = dict(resp.get('usage', {}))
+    usage['finish_reason'] = choice.get('finish_reason')
+    return msg.get('content') or '', msg.get('reasoning_content') or '', usage, resp.get('timings', {}), \
+        time.time() - t0
+
+
+def short_prompt(messages):
+    """The prompt without the mechanical C section (used for the thinking-off retry after a cap hit)."""
+    user = re.sub(r'The same code translated mechanically.*?```c\n.*?```\n*', '', messages[1]['content'], flags=re.S)
+    return [messages[0], {'role': 'user', 'content': user}]
 
 
 def extract_c(text):
@@ -67,15 +86,17 @@ def log(entry):
         f.write(json.dumps(entry) + '\n')
 
 
-def solve(bank, addr, tries):
+def solve(bank, addr, tries, keep_existing=False):
     messages, outs, r = m6_prompt.build(bank, addr)
+    think = True
     base = messages
     last_code = last_msg = None
     work = os.path.join(M6, 'work', 'b%d_%04x' % (bank, addr))
     os.makedirs(work, exist_ok=True)
     total = {'prompt': 0, 'completion': 0, 'seconds': 0.0}
     for t in range(tries):
-        content, reasoning, usage, timings, secs = ask(messages, TEMPS[min(t, len(TEMPS) - 1)])
+        content, reasoning, usage, timings, secs = ask(messages, TEMPS[min(t, len(TEMPS) - 1)], think)
+        capped = usage.get('finish_reason') == 'length'
         total['prompt'] += usage.get('prompt_tokens', 0)
         total['completion'] += usage.get('completion_tokens', 0)
         total['seconds'] += secs
@@ -83,8 +104,11 @@ def solve(bank, addr, tries):
         entry = {'time': time.strftime('%Y-%m-%d %H:%M:%S'), 'routine': r['name'], 'bank': bank,
                  'addr': '%04X' % addr, 'try': t + 1, 'prompt_tokens': usage.get('prompt_tokens'),
                  'completion_tokens': usage.get('completion_tokens'), 'cached_tokens':
-                 timings.get('cache_n'), 'seconds': round(secs, 1), 'outputs': outs}
-        if code is None:
+                 timings.get('cache_n'), 'seconds': round(secs, 1), 'outputs': outs, 'thinking': think,
+                 'finish_reason': usage.get('finish_reason'), 'max_tokens': MAX_TOKENS if think else NOTHINK_MAX_TOKENS}
+        if capped and code is None:
+            result, msg = 'cap', 'hit the %d-token cap without an answer' % entry['max_tokens']
+        elif code is None:
             result, msg = 'noanswer', 'no ```c block with routine() in the answer'
         else:
             cand = os.path.join(work, 'try%d.c' % (t + 1))
@@ -100,6 +124,8 @@ def solve(bank, addr, tries):
         if result == 'pass':
             os.makedirs(PRIVATE, exist_ok=True)
             out = os.path.join(PRIVATE, '%s.c' % r['name'])
+            if keep_existing and os.path.isfile(out):  # re-run for measurements: keep the passing file we have
+                out = os.path.join(work, 'rerun_pass.c')
             with open(out, 'w', newline='\n') as f:
                 f.write('/* %s: bank %d $%04X-$%04X. Private decompile (M6): passed the differential test, %s. '
                         'Never commit or ship. */\n' % (r['name'], bank, r['start'], r['end'], msg))
@@ -117,14 +143,22 @@ def solve(bank, addr, tries):
                      'write the corrected complete function.' % (last_code, last_msg))
         else:
             retry = '\n\nA previous attempt gave no usable ```c block (%s). Keep the reasoning short this time.' % msg
+        if result in ('cap', 'noanswer') and think:
+            # thinking ran away: one try without thinking, on the shorter prompt
+            think = False
+            messages = short_prompt(base)
+            if last_code:
+                messages[1]['content'] += retry
+            continue
+        think = True
         messages = [base[0], {'role': 'user', 'content': base[1]['content'] + retry}]
     return False, tries, total
 
 
-def safe_solve(bank, addr, tries):
+def safe_solve(bank, addr, tries, keep_existing=False):
     """solve() that logs an unexpected error and moves on instead of ending the batch."""
     try:
-        return solve(bank, addr, tries)
+        return solve(bank, addr, tries, keep_existing)
     except (OSError, ValueError, KeyError, StopIteration, RuntimeError) as e:
         log({'time': time.strftime('%Y-%m-%d %H:%M:%S'), 'bank': bank, 'addr': '%04X' % addr, 'try': 0,
              'result': 'error', 'message': repr(e)[:400]})
@@ -138,6 +172,8 @@ def main():
     ap.add_argument('--list', default=os.path.join(M6, 'leaf40.txt'))
     ap.add_argument('--only')
     ap.add_argument('--tries', type=int, default=3)
+    ap.add_argument('--rerun', action='store_true',
+                    help='also run routines that already pass (measurements); their passing file is kept')
     ap.add_argument('--stub-callees', action='store_true',
                     help='with --callgraph: do not wait for callees; those without passing C run as original code')
     ap.add_argument('--callgraph', action='store_true',
@@ -160,12 +196,12 @@ def main():
             break
         name = next((r['name'] for r in m6_prompt.m6_pick.routines() if r['bank'] == bank and r['start'] == addr),
                     None)
-        if name in done:
+        if name in done and not a.rerun:
             continue
         if not m6_test.corpus_files(bank, addr, [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]):
             continue
         print('%s (bank %d $%04X)' % (name, bank, addr))
-        ok, n, tot = safe_solve(bank, addr, a.tries)
+        ok, n, tot = safe_solve(bank, addr, a.tries, a.rerun)
         results.append((name, ok, n, tot))
     summary(results)
 
