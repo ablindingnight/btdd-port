@@ -174,6 +174,19 @@ now off by default (`M6_FACTS=1` turns it on). Only `sub_dc11`, `sub_a262` and `
 `sub_8ec8` failed in all three: per-routine outcome is still mostly variance; 12 routines separate settings only
 coarsely. Failure kinds are the same in every setting: RAM values (arithmetic/indexing) first, then flag outputs.
 
+## Morning batch and readability pass (2026-11-24 07:38-11:25)
+- Readability (`m6_simplify.py`, 5 worst by `m6_lint.py`): 3 replaced (`sub_b412` 83.6 -> 8.0, `sub_feda` 84.0 -> 12.0,
+  `load_metasprite_b987` 101.6 -> 39.0); `sub_a305` and `read_controllers` kept (rewrites failed the test).
+- Two harness bugs found and fixed: a passing callee's own callees were not built into the test (false compile
+  failures in call-graph order), and `--callgraph` skipped the `--list` routines. `--new-only` skips routines
+  already tried. Corpus captured for 73 more leaf routines (211 in total).
+- Untried leaf routines (`--list leaf300.txt --callgraph --stub-callees --new-only`, 10:20-11:25): 36 routines,
+  30 passed (24 on try 1), 29.2 passes per GPU-hour, mean 13.9k completion tokens / 103 s (median 56 s).
+  Retrying routines that had already failed (call-graph pass, 09:15-10:15) gave 2/13 (2.3 per GPU-hour):
+  retries of old failures are poor use of the GPU.
+- All tries since 07:38: 68 routines, 48 passed (71%), 19.5 passes per GPU-hour. 102 routines now have passing C;
+  mean lint score 19.9. Projection at the leaf rate: ~33 h serial for 1,143 routines (lower bound).
+
 ## Not done / next
 - `facts.py` output: allowed and wired in (`M6_FACTS=1`), off by default after the A/B above.
 - Non-leaf routines: done for same-bank callees (below). Far calls (`$FFCB`), indirect jumps and tail jumps out
