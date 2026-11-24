@@ -491,6 +491,28 @@ static const char *skip_reason(const Routine *r, const char *confs, const char *
     return NULL;
 }
 
+int btdd_gen_fast_blocks; /* set to 1 for unchecked fast-block copies (same as gen.py --fast-blocks) */
+
+/* see gen.py Gen.pure / Gen.max_cycles */
+static int pure(const Insn *d)
+{
+    const char *m = d->m;
+    if (in_list(m, BRANCH) || is(m, "jmp") || is(m, "jsr") || is(m, "rts") || is(m, "rti") || is(m, "brk"))
+        return 0;
+    switch (d->mode) {
+    case IMP: case ACC: case IMM: case ZP: case ZPX: case ZPY: return 1;
+    case ABS: return d->v < 0x2000;
+    case ABSX: case ABSY: return d->v + 0xFF < 0x2000;
+    default: return 0;
+    }
+}
+
+static int max_cycles(int a, const Insn *d)
+{
+    int read = is(d->m, "lda") || is(d->m, "ldx") || is(d->m, "ldy") || alu_text(d->m) != NULL;
+    return cpu_base_cycles[byte_at(a)] + (read && (d->mode == ABSX || d->mode == ABSY || d->mode == INDY));
+}
+
 /* Writes native_b0..7.c, native_all.c and skipped.txt for `rom` (whose file SHA-1 is sha1_hex, or NULL when the
  * caller already accepted it with rom_load, which only takes the one supported dump) into outdir.
  * Returns 0 on success; on failure writes a message to err. */
@@ -549,34 +571,88 @@ int btdd_gen_write(const Rom *rom_in, const char *sha1_hex, const char *meta_pat
             }
             for (k = 0; k < nc; k++)
                 map[addrs[k]] = 1;
-            for (k = 0; k < nc; k++) {
-                int at = addrs[k], nxt = (at + code[k].n) & 0xFFFF;
-                size_t mark = body.len;
-                int op = byte_at(at);
-                bprintf(&body, "L%04X: if (c->budget <= 0 || c->irq) { c->pc = 0x%04X; return; }\n", at, at);
-                bprintf(&body, "E%04X: c->p_before = c->p; n_cyc(c, %d); c->instructions++; c->last_op = 0x%02X; "
-                               "native_insns++;\n", at, cpu_base_cycles[op], op);
-                if (!insn(&body, at, &code[k], nxt)) {
-                    body.len = mark;
-                    bprintf(&body, "L%04X: c->pc = 0x%04X; return; /* %s: interpreter */\n", at, at, code[k].m);
-                    if (is(code[k].m, "brk"))
-                        unsupported_brk++;
-                    continue;
+            {
+                /* render every instruction once; the fast-block copies reuse the text */
+                static size_t off[4096], len[4096];
+                static int ok[4096], fast_total[4096], blk_end[4096];
+                static int entries[4096];
+                Buf ins = {0};
+                static char eline[4096][96];
+                int fall = 0;
+                for (k = 0; k < nc; k++) {
+                    int at = addrs[k], nxt = (at + code[k].n) & 0xFFFF, op = byte_at(at);
+                    off[k] = ins.len;
+                    ok[k] = insn(&ins, at, &code[k], nxt);
+                    len[k] = ins.len - off[k];
+                    snprintf(eline[k], sizeof eline[k], "c->p_before = c->p; n_cyc(c, %d); c->instructions++; "
+                             "c->last_op = 0x%02X; native_insns++;", cpu_base_cycles[op], op);
+                    fast_total[k] = -1;
                 }
-                addrs[ne++] = at; /* entries reuse the front of addrs (ne <= k) */
-            }
-            if (nc) {
-                /* recompute the fall-out address from the last decoded instruction */
-                int la = R->start, ln = 0;
-                Insn d;
-                for (a = R->start; a <= R->end;) {
-                    if (!decode(a, &d) || a + d.n - 1 > R->end)
-                        break;
-                    la = a;
-                    ln = d.n;
-                    a += d.n;
+                if (btdd_gen_fast_blocks) {
+                    static uint8_t target[0x10000];
+                    int i, j;
+                    for (k = 0; k < nc; k++) {
+                        const Insn *d = &code[k];
+                        if ((in_list(d->m, BRANCH) || (is(d->m, "jmp") && d->mode == ABS)) && map[d->v])
+                            target[d->v] = 1;
+                    }
+                    for (i = 0; i < nc;) {
+                        if (!ok[i]) {
+                            i++;
+                            continue;
+                        }
+                        j = i;
+                        while (j + 1 < nc && pure(&code[j]) && ok[j + 1] && !target[addrs[j + 1]])
+                            j++;
+                        if (j > i) {
+                            int t = 0, q;
+                            for (q = i; q < j; q++)
+                                t += max_cycles(addrs[q], &code[q]);
+                            fast_total[i] = t;
+                            blk_end[i] = j;
+                        }
+                        i = j + 1;
+                    }
+                    for (k = 0; k < nc; k++)
+                        if (code[k].mode == REL || (is(code[k].m, "jmp") && code[k].mode == ABS))
+                            target[code[k].v] = 0;
                 }
-                bprintf(&body, "    c->pc = 0x%04X; N_EXIT; /* falls out of the routine */\n", (la + ln) & 0xFFFF);
+                for (k = 0; k < nc; k++) {
+                    int at = addrs[k];
+                    if (!ok[k]) {
+                        bprintf(&body, "L%04X: c->pc = 0x%04X; return; /* %s: interpreter */\n", at, at, code[k].m);
+                        if (is(code[k].m, "brk"))
+                            unsupported_brk++;
+                        continue;
+                    }
+                    entries[ne++] = at;
+                    bprintf(&body, "L%04X: if (c->budget <= 0 || c->irq) { c->pc = 0x%04X; return; }\n", at, at);
+                    if (fast_total[k] >= 0)
+                        bprintf(&body, "    if (c->budget > %d * CPU_CYCLE_UNITS) goto F%04X;\n", fast_total[k], at);
+                    bprintf(&body, "E%04X: %s\n", at, eline[k]);
+                    bprintf(&body, "%.*s", (int)len[k], ins.s + off[k]);
+                }
+                if (nc) {
+                    fall = (addrs[nc - 1] + code[nc - 1].n) & 0xFFFF;
+                    bprintf(&body, "    c->pc = 0x%04X; N_EXIT; /* falls out of the routine */\n", fall);
+                    for (k = 0; k < nc; k++) {
+                        int q;
+                        if (fast_total[k] < 0)
+                            continue;
+                        bprintf(&body, "F%04X: /* unchecked copy of $%04X-$%04X */\n", addrs[k], addrs[k],
+                                addrs[blk_end[k]]);
+                        for (q = k; q <= blk_end[k]; q++) {
+                            bprintf(&body, "    %s\n", eline[q]);
+                            bprintf(&body, "%.*s", (int)len[q], ins.s + off[q]);
+                        }
+                        if (blk_end[k] + 1 < nc)
+                            bprintf(&body, "    goto L%04X;\n", addrs[blk_end[k] + 1]);
+                        else
+                            bprintf(&body, "    c->pc = 0x%04X; N_EXIT;\n", fall);
+                    }
+                }
+                memcpy(addrs, entries, sizeof(int) * (size_t)ne);
+                free(ins.s);
             }
             for (a = R->start; a <= R->end; a++)
                 map[a] = 0;
@@ -667,6 +743,8 @@ int main(int argc, char **argv)
             excl = argv[++i];
         else if (is(argv[i], "--exclude-timing"))
             excl_timing = 1;
+        else if (is(argv[i], "--fast-blocks"))
+            btdd_gen_fast_blocks = 1;
         else {
             fprintf(stderr, "unknown option %s\n", argv[i]);
             return 2;

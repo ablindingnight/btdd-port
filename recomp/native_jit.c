@@ -41,6 +41,8 @@
 int btdd_gen_write(const Rom *rom, const char *sha1_hex, const char *meta_path, const char *outdir,
                    const char *confs, const char *excl, int excl_timing, char *err, size_t errcap);
 
+extern int btdd_gen_fast_blocks; /* recomp/gen.c */
+
 double native_jit_seconds_gen, native_jit_seconds_compile, native_jit_seconds_load;
 int native_jit_cache_hit;
 
@@ -234,8 +236,14 @@ int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap)
     char meta_default[1024], root[1024], dir[1100], dll[1200], key[41];
     uint8_t digest[20], *meta_bytes, *buf;
     size_t meta_len, n, i;
-    const char *ver = BTDD_EXE_VERSION, *cid = compiler_id();
+    const char *ver = BTDD_EXE_VERSION, *conf = getenv("BTDD_CONF") ? getenv("BTDD_CONF") : "verified,static";
+    const char *fb = getenv("BTDD_FAST_BLOCKS");
+    char cid[600];
     double t0;
+
+    /* everything that changes the generated code or how it is compiled goes into the cache key */
+    btdd_gen_fast_blocks = fb && fb[0] == '1'; /* exact on both gates but no measurable gain: opt-in */
+    snprintf(cid, sizeof cid, "%s|%s|fast=%d", compiler_id(), conf, btdd_gen_fast_blocks);
 
     if (!meta) {
         snprintf(meta_default, sizeof meta_default, "%s/meta/btdd.meta", BTDD_SOURCE_DIR);
@@ -267,8 +275,7 @@ int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap)
     if (!native_jit_cache_hit) {
         MKDIR(dir);
         t0 = now_s();
-        if (btdd_gen_write(rom, NULL, meta, dir, getenv("BTDD_CONF") ? getenv("BTDD_CONF") : "verified,static", "",
-                           0, err, cap) != 0)
+        if (btdd_gen_write(rom, NULL, meta, dir, conf, "", 0, err, cap) != 0)
             return 1;
         native_jit_seconds_gen = now_s() - t0;
         t0 = now_s();

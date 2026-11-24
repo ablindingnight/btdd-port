@@ -5,7 +5,7 @@
 set -e
 cd "$(dirname "$0")/.."
 M5=../Gamefiles/Movies/m5
-GEN=$M5/generated
+GEN=${GEN:-$M5/generated}
 OPT=${1:--O2}
 CC=${CC:-zig cc}
 FLAGS="$OPT $EXTRA -std=c11 -D_CRT_SECURE_NO_WARNINGS -Isrc -Irecomp -Wno-unused-label -DBTDD_NATIVE_STATIC"

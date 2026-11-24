@@ -64,8 +64,8 @@ IMPLIED = {
 
 
 class Gen:
-    def __init__(self, bank, mem):
-        self.b, self.mem = bank, mem
+    def __init__(self, bank, mem, fast=False):
+        self.b, self.mem, self.fast = bank, mem, fast
         self.unsupported = collections.Counter()
 
     def byte(self, a):
@@ -210,6 +210,25 @@ class Gen:
             return None
         return L
 
+    def pure(self, d):
+        """True if the instruction only touches RAM at addresses known to be RAM, so it cannot change the
+        interrupt state, and is not a control transfer: it may sit inside a fast block."""
+        m, mode, n, v = d
+        if m in BRANCHES or m in ('jmp', 'jsr', 'rts', 'rti', 'brk'):
+            return False
+        if mode in ('imp', 'acc', 'imm', 'zp', 'zpx', 'zpy'):
+            return True
+        if mode == 'abs':
+            return v < 0x2000
+        if mode in ('absx', 'absy'):
+            return v + 0xFF < 0x2000
+        return False
+
+    def max_cycles(self, a, d):
+        m, mode, n, v = d
+        extra = 1 if (m in LOADS or m in ALU) and mode in ('absx', 'absy', 'indy') else 0
+        return BASE_CYCLES[self.byte(a)] + extra
+
     def routine(self, name, start, end):
         """C text of one routine, and the list of registered entry addresses."""
         code, a = [], start
@@ -221,24 +240,63 @@ class Gen:
             a += d[2]
         addrs = set(x for x, _ in code)
         body, entries = [], []
+        lines_of, eline = {}, {}
         for i, (a, d) in enumerate(code):
             nxt = (a + d[2]) & 0xFFFF
             lines = self.insn(a, d, lambda t: t in addrs, nxt)
-            if lines is None:
+            if lines is not None:
+                lines_of[a] = [x.replace('return;', 'N_EXIT;') for x in lines]
+                op = self.byte(a)
+                eline[a] = ('c->p_before = c->p; n_cyc(c, %d); c->instructions++; c->last_op = 0x%02X; '
+                            'native_insns++;' % (BASE_CYCLES[op], op))
+        # fast blocks: runs of pure instructions (plus one last instruction of any kind) entered only at the
+        # top; if the budget covers the worst case of all but the last, the per-instruction checks inside
+        # cannot fire (no hardware access means no new interrupt), so an unchecked copy runs instead.
+        fast_at, blocks = {}, []
+        if self.fast:
+            targets = set()
+            for a, d in code:
+                if (d[0] in BRANCHES or (d[0] == 'jmp' and d[1] == 'abs')) and d[3] in addrs:
+                    targets.add(d[3])
+            i = 0
+            while i < len(code):
+                if code[i][0] not in lines_of:
+                    i += 1
+                    continue
+                j = i
+                while (j + 1 < len(code) and self.pure(code[j][1]) and code[j + 1][0] in lines_of and
+                       code[j + 1][0] not in targets):
+                    j += 1
+                if j > i:
+                    total = sum(self.max_cycles(*code[k]) for k in range(i, j))
+                    fast_at[code[i][0]] = total
+                    blocks.append((i, j))
+                i = j + 1
+        for i, (a, d) in enumerate(code):
+            if a not in lines_of:
                 self.unsupported[d[0]] += 1
                 body.append('L%04X: c->pc = 0x%04X; return; /* %s: interpreter */' % (a, a, d[0]))
                 continue
-            lines = [x.replace('return;', 'N_EXIT;') for x in lines]
             entries.append(a)
-            op = self.byte(a)
             body.append('L%04X: if (c->budget <= 0 || c->irq) { c->pc = 0x%04X; return; }' % (a, a))
-            body.append('E%04X: c->p_before = c->p; n_cyc(c, %d); c->instructions++; c->last_op = 0x%02X; '
-                        'native_insns++;' % (a, BASE_CYCLES[op], op))
-            body += ['    ' + x for x in lines]
+            if a in fast_at:
+                body.append('    if (c->budget > %d * CPU_CYCLE_UNITS) goto F%04X;' % (fast_at[a], a))
+            body.append('E%04X: %s' % (a, eline[a]))
+            body += ['    ' + x for x in lines_of[a]]
         if code:
             last_a, last_d = code[-1]
             fall = (last_a + last_d[2]) & 0xFFFF
             body.append('    c->pc = 0x%04X; N_EXIT; /* falls out of the routine */' % fall)
+            for i, j in blocks:
+                body.append('F%04X: /* unchecked copy of $%04X-$%04X */' % (code[i][0], code[i][0], code[j][0]))
+                for k in range(i, j + 1):
+                    a = code[k][0]
+                    body.append('    ' + eline[a])
+                    body += ['    ' + x for x in lines_of[a]]
+                if j + 1 < len(code):
+                    body.append('    goto L%04X;' % code[j + 1][0])
+                else:
+                    body.append('    c->pc = 0x%04X; N_EXIT;' % fall)
         fn = 'r%d_%04x' % (self.b, start)
         out = ['/* %s $%04X-$%04X */' % (name, start, end),
                'static void %s(Cpu *c)' % fn, '{',
@@ -261,6 +319,8 @@ def main():
     ap.add_argument('--out', default=DEF_OUT)
     ap.add_argument('--conf', default='verified,static', help='code confidences to compile natively')
     ap.add_argument('--exclude-timing', action='store_true', help='leave routines with timing sites to the interpreter')
+    ap.add_argument('--fast-blocks', action='store_true',
+                    help='add unchecked copies of straight-line RAM-only blocks, used when the budget covers them')
     ap.add_argument('--exclude', default='', help='comma list of bank:addr routine starts to leave out')
     a = ap.parse_args()
 
@@ -289,7 +349,7 @@ def main():
     skipped = []
     regs = []
     for b in range(8):
-        g = Gen(b, mems[b])
+        g = Gen(b, mems[b], a.fast_blocks)
         parts = ['/* GENERATED from the player\'s ROM by the btdd recompiler. ROM-derived: never commit or distribute. */',
                  '#include "native_rt.h"', '']
         for rb, s, e, name, kv in routines:
