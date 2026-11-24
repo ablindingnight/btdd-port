@@ -21,3 +21,5 @@ __pycache__/
 *.pyc
 private/*
 !private/README.md
+# Local Claude Code settings (per machine, never committed)
+.claude/settings.local.json
