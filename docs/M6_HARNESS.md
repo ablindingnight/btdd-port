@@ -136,6 +136,16 @@ states only until human play (STATUS gap #4) gives them a corpus.
    before the bulk run, so the C reads `ent[x].hp` instead of `RAM(0x051B + x)`; renaming after the fact means
    re-running simplify.
 
+## Stub callees (2026-11-24 ~04:00)
+`m6_run.py --callgraph --stub-callees`: a non-leaf routine no longer waits for its callees; callees without
+passing C run as the original code through the interpreter stub (this also covers far calls through the `$FFCB`
+trampoline, itself a routine start). Ready set with 37 passing routines: 8 -> 80. The prompt shows each callee's
+C, or, for a stubbed one, its 6502 listing (what it reads and writes). First 5: **all pass, all on try 1**
+(`sub_8261`, `sub_a423`, `sub_dc11`, `sub_f1d8` with a far call, `sub_9160`); `sub_9160` failed 3 tries until
+the stubbed callees' listings were added to the prompt, then passed at once. Prompts also carry the decomp's
+`facts.py` output (run read-only as `python ../btdd-decomp/tools/facts.py BANK LABEL`, allowed by the user's
+local settings).
+
 ## Not done / next
 - `facts.py` output is not in the prompt: running decomp tools needs the user's OK (AGENTS.md); the prompt uses
   the meta's facts (names, RAM map, call counts) instead.

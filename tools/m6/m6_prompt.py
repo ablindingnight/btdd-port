@@ -324,6 +324,11 @@ def build(bank, addr):
                 body = [l for l in open(mine, encoding='utf-8').read().splitlines()[1:]]
                 if len(body) <= 60:
                     lines.append('  its C (`routine` is `%s`):\n```c\n%s\n```' % (name, '\n'.join(body)))
+            else:  # no C yet: show what it does (it runs as the original code; just call it)
+                src = asm_listing(bank, name)
+                if src and len(src.splitlines()) <= 50:
+                    lines.append('  no C yet (calling it runs the original); its 6502 code, for what it reads and '
+                                 'writes:\n```\n%s\n```' % src)
         parts.append('\n'.join(lines))
     parts.append('Outputs the test compares besides RAM and hardware accesses: %s.' %
                  (', '.join('m->' + o for o in outs) if outs else 'none (registers are not compared)'))
