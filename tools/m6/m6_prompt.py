@@ -357,7 +357,7 @@ def build(bank, addr):
     ok, kind, targets, why = m6_pick.classify(mem, r)
     r['kind'] = kind if ok else 'unsupported:' + why
     r['targets'] = targets if ok else []
-    r['callees'] = [(nm, a) for nm, a, how in r['targets'] if how in ('call', 'tail', 'alt')]
+    r['callees'] = list(dict.fromkeys((nm, a) for nm, a, how in r['targets'] if how in ('call', 'tail', 'alt')))
     spans = [(a, a + size - 1, n, kind) for n, a, size, kind, naming in m6_test.ram_names()]
     used, tables = [], []
     for a, (m, mode, n, v) in ins:

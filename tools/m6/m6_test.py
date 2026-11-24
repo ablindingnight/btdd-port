@@ -97,7 +97,7 @@ def callee_sources(callees, work, bank=None, candidate=None):
     """One C file per callee: its passing C from private/m6 renamed to the callee's name, or a stub that runs the
     original code through m6_call. Plus m6_callees.h with the prototypes (included into every unit)."""
     files, protos = [], []
-    callees = list(callees)
+    callees = list(dict.fromkeys(callees))  # a callee reached by JSR and by a tail jump is one function
     if bank is not None:  # passing callee C calls its own callees: add them too (transitively)
         import m6_pick
         by_name = {r['name']: r['start'] for r in m6_pick.routines() if r['bank'] == bank}
