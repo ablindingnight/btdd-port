@@ -158,9 +158,24 @@ The two regressions did not come back with the larger retry budget; `sub_8609` p
 facts.py block (`M6_NO_FACTS=1`), `sub_a305` failed with and without it. With samples this small the run-to-run
 variance at temperature 0.2-0.7 dominates; a fair comparison needs the same 20+ routines run 2-3 times per setting.
 
+## A/B of the token settings (2026-11-24 05:00-07:35)
+The same 12 routines (`0:8624 0:8609 0:8dd2 0:dc11 5:a305 3:8ec8 3:8c4a 0:aa0e 5:b151 0:8d5b 6:a262 0:9160`), up to 3
+tries each, serial, one setting after the other (`M6_TAG`, `m6_stats.py --tag`):
+
+| setting | try-1 passes | passed | completion tokens / routine | model s / routine | passes per GPU-hour |
+|---|---|---|---|---|---|
+| 16k cap + 12k thinking budget, facts.py block | 4 | 7/12 | 28.6k | 229 | 9.2 |
+| 16k cap + 12k thinking budget, no facts | 3 | 8/12 | 27.6k | 212 | **11.3** |
+| legacy: 32k cap, no budget, no facts | 1 | 7/12 | 34.3k | 267 | 7.9 |
+
+The budget saves ~20% tokens and time per routine for the same or better pass rate, and gets more first-try passes.
+The facts.py block did not help (one pass fewer, within noise) and costs a subprocess plus prompt tokens, so it is
+now off by default (`M6_FACTS=1` turns it on). Only `sub_dc11`, `sub_a262` and `sub_b151` passed in all three runs and
+`sub_8ec8` failed in all three: per-routine outcome is still mostly variance; 12 routines separate settings only
+coarsely. Failure kinds are the same in every setting: RAM values (arithmetic/indexing) first, then flag outputs.
+
 ## Not done / next
-- `facts.py` output is not in the prompt: running decomp tools needs the user's OK (AGENTS.md); the prompt uses
-  the meta's facts (names, RAM map, call counts) instead.
+- `facts.py` output: allowed and wired in (`M6_FACTS=1`), off by default after the A/B above.
 - Non-leaf routines: done for same-bank callees (below). Far calls (`$FFCB`), indirect jumps and tail jumps out
   of the routine are not handled yet, which leaves few non-leaf routines ready: with 100 leaf routines passing,
   only 18 more become ready in call-graph order.

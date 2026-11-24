@@ -286,7 +286,8 @@ def build(bank, addr):
     mech = mechanical_c(bank, r['start'], r['end'], mem)
     parts = ['Routine %s: bank %d, $%04X-$%04X, %d instructions, called %d times in the 2-player TAS.'
              % (r['name'], bank, r['start'], r['end'], len(ins), calls)]
-    facts = None if os.environ.get('M6_NO_FACTS') else decomp_facts(bank, r['name'])
+    # off by default: the A/B (docs/M6_HARNESS.md) found no gain from it; M6_FACTS=1 turns it on
+    facts = decomp_facts(bank, r['name']) if os.environ.get('M6_FACTS') and not os.environ.get('M6_NO_FACTS') else None
     if facts:
         parts.append('Facts about it from the decomp (tools/facts.py):\n```\n%s\n```' % facts)
     if r.get('proposed'):
