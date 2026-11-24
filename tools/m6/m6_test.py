@@ -60,10 +60,24 @@ def corpus_files(bank, addr, dirs):
 PRIVATE = os.path.join(REPO, 'private', 'm6')
 
 
-def callee_sources(callees, work):
+def callee_sources(callees, work, bank=None):
     """One C file per callee: its passing C from private/m6 renamed to the callee's name, or a stub that runs the
     original code through m6_call. Plus m6_callees.h with the prototypes (included into every unit)."""
     files, protos = [], []
+    callees = list(callees)
+    if bank is not None:  # passing callee C calls its own callees: add them too (transitively)
+        import m6_pick
+        by_name = {r['name']: r['start'] for r in m6_pick.routines() if r['bank'] == bank}
+        seen = {n for n, a in callees}
+        i = 0
+        while i < len(callees):
+            mine = os.path.join(PRIVATE, callees[i][0] + '.c')
+            if os.path.isfile(mine):
+                for n in re.findall(r'\b([A-Za-z_]\w*)\s*\(\s*m\s*\)', open(mine, encoding='utf-8').read()):
+                    if n in by_name and n not in seen:
+                        seen.add(n)
+                        callees.append((n, by_name[n]))
+            i += 1
     for name, addr in callees:
         protos.append('void %s(M6 *m); /* $%04X */' % (name, addr))
         path = os.path.join(work, 'callee_%s.c' % name)
@@ -79,10 +93,10 @@ def callee_sources(callees, work):
     return files
 
 
-def build(candidate, work, callees=None):
+def build(candidate, work, callees=None, bank=None):
     os.makedirs(work, exist_ok=True)
     write_names(os.path.join(work, 'm6_names.h'))
-    extra = callee_sources(callees or [], work)
+    extra = callee_sources(callees or [], work, bank)
     exe = os.path.join(work, 'm6_harness.exe')
     src = os.path.join(REPO, 'src')
     cmd = CC + ['-O1', '-std=c11', '-w', '-D_CRT_SECURE_NO_WARNINGS', '-I' + src, '-I' + HERE, '-I' + work,
@@ -106,7 +120,7 @@ def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000
         return 2, 'no corpus for bank %d $%04X' % (bank, addr)
     if 'm6_call' in open(candidate, encoding='utf-8', errors='replace').read():
         return 3, 'COMPILE ERROR: the routine must not use m6_call (that runs the original code); call callees by name'
-    exe, err = build(candidate, work, callees)
+    exe, err = build(candidate, work, callees, bank)
     if not exe:
         return 3, 'COMPILE ERROR: ' + err
     env = dict(os.environ, M6_FUZZ=str(fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])), M6_TRACE='1')
