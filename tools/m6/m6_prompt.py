@@ -286,7 +286,8 @@ def build(bank, addr):
     mech = mechanical_c(bank, r['start'], r['end'], mem)
     parts = ['Routine %s: bank %d, $%04X-$%04X, %d instructions, called %d times in the 2-player TAS.'
              % (r['name'], bank, r['start'], r['end'], len(ins), calls)]
-    facts = decomp_facts(bank, r['name'])
+    # off by default: the A/B (docs/M6_HARNESS.md) found no gain from it; M6_FACTS=1 turns it on
+    facts = decomp_facts(bank, r['name']) if os.environ.get('M6_FACTS') and not os.environ.get('M6_NO_FACTS') else None
     if facts:
         parts.append('Facts about it from the decomp (tools/facts.py):\n```\n%s\n```' % facts)
     if r.get('proposed'):
@@ -324,6 +325,11 @@ def build(bank, addr):
                 body = [l for l in open(mine, encoding='utf-8').read().splitlines()[1:]]
                 if len(body) <= 60:
                     lines.append('  its C (`routine` is `%s`):\n```c\n%s\n```' % (name, '\n'.join(body)))
+            else:  # no C yet: show what it does (it runs as the original code; just call it)
+                src = asm_listing(bank, name)
+                if src and len(src.splitlines()) <= 50:
+                    lines.append('  no C yet (calling it runs the original); its 6502 code, for what it reads and '
+                                 'writes:\n```\n%s\n```' % src)
         parts.append('\n'.join(lines))
     parts.append('Outputs the test compares besides RAM and hardware accesses: %s.' %
                  (', '.join('m->' + o for o in outs) if outs else 'none (registers are not compared)'))

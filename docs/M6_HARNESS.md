@@ -136,9 +136,46 @@ states only until human play (STATUS gap #4) gives them a corpus.
    before the bulk run, so the C reads `ent[x].hp` instead of `RAM(0x051B + x)`; renaming after the fact means
    re-running simplify.
 
+## Stub callees (2026-11-24 ~04:00)
+`m6_run.py --callgraph --stub-callees`: a non-leaf routine no longer waits for its callees; callees without
+passing C run as the original code through the interpreter stub (this also covers far calls through the `$FFCB`
+trampoline, itself a routine start). Ready set with 37 passing routines: 8 -> 80. The prompt shows each callee's
+C, or, for a stubbed one, its 6502 listing (what it reads and writes). First 5: **all pass, all on try 1**
+(`sub_8261`, `sub_a423`, `sub_dc11`, `sub_f1d8` with a far call, `sub_9160`); `sub_9160` failed 3 tries until
+the stubbed callees' listings were added to the prompt, then passed at once. Prompts also carry the decomp's
+`facts.py` output (run read-only as `python ../btdd-decomp/tools/facts.py BANK LABEL`, allowed by the user's
+local settings).
+
+## Token budget (2026-11-24 ~04:30)
+llama-server honours `thinking_budget_tokens` per request (probe: 1,727 -> 237 generated tokens at a 200 budget,
+same answer; `reasoning_budget` and a template kwarg had no effect). The driver now caps the first try at 16k tokens
+with a 12k thinking budget, retries after a wrong answer at 24k / 20k, and after a cap hit retries once with
+thinking off (6k) on the prompt without the mechanical C. Re-run of 7 routines (completion tokens, before -> after):
+`read_controllers` 14.1k -> 8.7k pass, `sub_dc11` 15.9k -> 13.3k pass, `sub_9160` 16.6k -> 12.9k pass,
+`sub_8624` 7-10k try 1 -> 34k pass on try 3, `sub_8ec8` 52k no answer -> 32k wrong answers, `sub_8609` 14.2k pass
+-> 34k fail, `sub_a305` 19.3k pass -> 40k fail. No try hit the cap any more (max ~22k on retries vs 32k before).
+The two regressions did not come back with the larger retry budget; `sub_8609` passed again on try 1 without the
+facts.py block (`M6_NO_FACTS=1`), `sub_a305` failed with and without it. With samples this small the run-to-run
+variance at temperature 0.2-0.7 dominates; a fair comparison needs the same 20+ routines run 2-3 times per setting.
+
+## A/B of the token settings (2026-11-24 05:00-07:35)
+The same 12 routines (`0:8624 0:8609 0:8dd2 0:dc11 5:a305 3:8ec8 3:8c4a 0:aa0e 5:b151 0:8d5b 6:a262 0:9160`), up to 3
+tries each, serial, one setting after the other (`M6_TAG`, `m6_stats.py --tag`):
+
+| setting | try-1 passes | passed | completion tokens / routine | model s / routine | passes per GPU-hour |
+|---|---|---|---|---|---|
+| 16k cap + 12k thinking budget, facts.py block | 4 | 7/12 | 28.6k | 229 | 9.2 |
+| 16k cap + 12k thinking budget, no facts | 3 | 8/12 | 27.6k | 212 | **11.3** |
+| legacy: 32k cap, no budget, no facts | 1 | 7/12 | 34.3k | 267 | 7.9 |
+
+The budget saves ~20% tokens and time per routine for the same or better pass rate, and gets more first-try passes.
+The facts.py block did not help (one pass fewer, within noise) and costs a subprocess plus prompt tokens, so it is
+now off by default (`M6_FACTS=1` turns it on). Only `sub_dc11`, `sub_a262` and `sub_b151` passed in all three runs and
+`sub_8ec8` failed in all three: per-routine outcome is still mostly variance; 12 routines separate settings only
+coarsely. Failure kinds are the same in every setting: RAM values (arithmetic/indexing) first, then flag outputs.
+
 ## Not done / next
-- `facts.py` output is not in the prompt: running decomp tools needs the user's OK (AGENTS.md); the prompt uses
-  the meta's facts (names, RAM map, call counts) instead.
+- `facts.py` output: allowed and wired in (`M6_FACTS=1`), off by default after the A/B above.
 - Non-leaf routines: done for same-bank callees (below). Far calls (`$FFCB`), indirect jumps and tail jumps out
   of the routine are not handled yet, which leaves few non-leaf routines ready: with 100 leaf routines passing,
   only 18 more become ready in call-graph order.
