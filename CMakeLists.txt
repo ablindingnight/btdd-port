@@ -28,9 +28,16 @@ add_library(btdd_core STATIC
     src/runtime/fm2.c
     src/nes/ppu.c
     src/nes/ppu_new.c
+    src/nes/apu.c
     src/nes/nes.c
 )
 target_include_directories(btdd_core PUBLIC src)
+if(NOT WIN32 OR NOT MSVC)
+    find_library(BTDD_LIBM m)
+    if(BTDD_LIBM)
+        target_link_libraries(btdd_core PUBLIC ${BTDD_LIBM})
+    endif()
+endif()
 btdd_warnings(btdd_core)
 
 add_executable(btdd src/main.c)
@@ -40,6 +47,14 @@ btdd_warnings(btdd)
 add_executable(btdd_headless src/headless_main.c)
 target_link_libraries(btdd_headless PRIVATE btdd_core)
 btdd_warnings(btdd_headless)
+
+add_executable(btdd_apu_check tools/apu_check/apu_check_main.c)
+target_link_libraries(btdd_apu_check PRIVATE btdd_core)
+btdd_warnings(btdd_apu_check)
+
+add_executable(apu_synth_test tests/apu/apu_synth_test.c)
+target_link_libraries(apu_synth_test PRIVATE btdd_core)
+btdd_warnings(apu_synth_test)
 
 add_executable(nestest_check tests/cpu/nestest.c)
 target_link_libraries(nestest_check PRIVATE btdd_core)
