@@ -146,6 +146,18 @@ the stubbed callees' listings were added to the prompt, then passed at once. Pro
 `facts.py` output (run read-only as `python ../btdd-decomp/tools/facts.py BANK LABEL`, allowed by the user's
 local settings).
 
+## Token budget (2026-11-24 ~04:30)
+llama-server honours `thinking_budget_tokens` per request (probe: 1,727 -> 237 generated tokens at a 200 budget,
+same answer; `reasoning_budget` and a template kwarg had no effect). The driver now caps the first try at 16k tokens
+with a 12k thinking budget, retries after a wrong answer at 24k / 20k, and after a cap hit retries once with
+thinking off (6k) on the prompt without the mechanical C. Re-run of 7 routines (completion tokens, before -> after):
+`read_controllers` 14.1k -> 8.7k pass, `sub_dc11` 15.9k -> 13.3k pass, `sub_9160` 16.6k -> 12.9k pass,
+`sub_8624` 7-10k try 1 -> 34k pass on try 3, `sub_8ec8` 52k no answer -> 32k wrong answers, `sub_8609` 14.2k pass
+-> 34k fail, `sub_a305` 19.3k pass -> 40k fail. No try hit the cap any more (max ~22k on retries vs 32k before).
+The two regressions did not come back with the larger retry budget; `sub_8609` passed again on try 1 without the
+facts.py block (`M6_NO_FACTS=1`), `sub_a305` failed with and without it. With samples this small the run-to-run
+variance at temperature 0.2-0.7 dominates; a fair comparison needs the same 20+ routines run 2-3 times per setting.
+
 ## Not done / next
 - `facts.py` output is not in the prompt: running decomp tools needs the user's OK (AGENTS.md); the prompt uses
   the meta's facts (names, RAM map, call counts) instead.

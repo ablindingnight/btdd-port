@@ -32,18 +32,20 @@ TEMPS = [0.2, 0.7, 0.7]
 # 12k thinking budget (llama-server honours `thinking_budget_tokens`; `reasoning_budget` and a template kwarg had
 # no effect in a probe). A try that hits the cap counts as failed and the next one runs with thinking OFF and a
 # shorter prompt (the mechanical C left out): the passing C is usually short.
-MAX_TOKENS = 16000
+MAX_TOKENS = 16000          # first try
 THINK_BUDGET = 12000
+RETRY_MAX_TOKENS = 24000    # retries after a wrong answer: harder routines needed more thinking (a 12k budget lost
+RETRY_THINK_BUDGET = 20000  # two routines that had passed with 14-19k); prompt + 24k stays under the 40k slot limit
 NOTHINK_MAX_TOKENS = 6000
 SERVER_WAIT = 1800
 
 
-def ask(messages, temperature, think=True):
+def ask(messages, temperature, think=True, retry=False):
     body = {'messages': messages, 'temperature': temperature, 'cache_prompt': True,
-            'max_tokens': MAX_TOKENS if think else NOTHINK_MAX_TOKENS,
+            'max_tokens': (RETRY_MAX_TOKENS if retry else MAX_TOKENS) if think else NOTHINK_MAX_TOKENS,
             'chat_template_kwargs': {'enable_thinking': bool(think)}}
     if think:
-        body['thinking_budget_tokens'] = THINK_BUDGET
+        body['thinking_budget_tokens'] = RETRY_THINK_BUDGET if retry else THINK_BUDGET
     body = json.dumps(body).encode()
     t0 = time.time()
     while True:
@@ -95,7 +97,7 @@ def solve(bank, addr, tries, keep_existing=False):
     os.makedirs(work, exist_ok=True)
     total = {'prompt': 0, 'completion': 0, 'seconds': 0.0}
     for t in range(tries):
-        content, reasoning, usage, timings, secs = ask(messages, TEMPS[min(t, len(TEMPS) - 1)], think)
+        content, reasoning, usage, timings, secs = ask(messages, TEMPS[min(t, len(TEMPS) - 1)], think, t > 0)
         capped = usage.get('finish_reason') == 'length'
         total['prompt'] += usage.get('prompt_tokens', 0)
         total['completion'] += usage.get('completion_tokens', 0)
@@ -105,7 +107,8 @@ def solve(bank, addr, tries, keep_existing=False):
                  'addr': '%04X' % addr, 'try': t + 1, 'prompt_tokens': usage.get('prompt_tokens'),
                  'completion_tokens': usage.get('completion_tokens'), 'cached_tokens':
                  timings.get('cache_n'), 'seconds': round(secs, 1), 'outputs': outs, 'thinking': think,
-                 'finish_reason': usage.get('finish_reason'), 'max_tokens': MAX_TOKENS if think else NOTHINK_MAX_TOKENS}
+                 'finish_reason': usage.get('finish_reason'), 'max_tokens': ((RETRY_MAX_TOKENS if t > 0 else MAX_TOKENS) if think else
+                                                NOTHINK_MAX_TOKENS)}
         if capped and code is None:
             result, msg = 'cap', 'hit the %d-token cap without an answer' % entry['max_tokens']
         elif code is None:

@@ -286,7 +286,7 @@ def build(bank, addr):
     mech = mechanical_c(bank, r['start'], r['end'], mem)
     parts = ['Routine %s: bank %d, $%04X-$%04X, %d instructions, called %d times in the 2-player TAS.'
              % (r['name'], bank, r['start'], r['end'], len(ins), calls)]
-    facts = decomp_facts(bank, r['name'])
+    facts = None if os.environ.get('M6_NO_FACTS') else decomp_facts(bank, r['name'])
     if facts:
         parts.append('Facts about it from the decomp (tools/facts.py):\n```\n%s\n```' % facts)
     if r.get('proposed'):
