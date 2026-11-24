@@ -7,6 +7,10 @@
   Checked by `tools/apudiff.py`. The reference log varies a lot (about 800 different pitches per pulse
   channel, all 16 volume levels), so this is a real test of envelopes, sweeps, length/linear counters and
   the frame counter timing.
+- **Same for the 1P TAS on the new-PPU model**: a fresh `musiclog.lua` capture from the stock FCEUX (newppu 1),
+  `..\Gamefiles\Movies\m3\musiclog_1p\apu.csv`, is identical on all 83,576 rows
+  (`btdd_apu_check ... --movie tasvideos-2312S-1p.fm2 --ppu new`), and that capture's ram.bin matches our RAM
+  on every frame as well.
 - With the APU attached (frame/DMC IRQ lines, DMC fetch stalls), the RAM is still identical to FCEUX on every
   frame of the 2P TAS; the `btdd_headless` RAM gates (2P old PPU, 1P new PPU) are unchanged.
 - `apu_synth_test`: silence at power-on and with channels off, pulse at 440 Hz, triangle at 220 Hz, noise
@@ -39,9 +43,8 @@ NESdev documentation; no FCEUX code.
   0.011 (they are printed with 2 decimals), everything else exact.
 
 ## Not covered yet
-- The 2P TAS never plays a DMC sample (it only uses raw `$4011` writes), so DMC fetch/IRQ/loop are
-  implemented but not checked against FCEUX. No 1P APU log exists yet (run `musiclog.lua` with the 1P
-  movie in the stock FCEUX folder, newppu 1, to get one).
+- Neither TAS plays a DMC sample (the game only uses raw `$4011` writes), so DMC fetch/IRQ/loop are
+  implemented but not checked against FCEUX.
 - The waveform itself is only unit-tested, not compared sample by sample with FCEUX (FCEUX's Lua cannot
   record audio). FCEUX's own synthesis differs in details (its triangle/noise phase, its filters), so a
   sample-exact match is not the goal; the per-frame state is.
