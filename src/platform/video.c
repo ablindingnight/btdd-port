@@ -18,6 +18,7 @@ int video_filter_from_name(const char *name)
 int video_open(Video *v, const char *title, int scale, int aspect, int fullscreen, int filter, int scanlines,
                const char *renderer, int use_gpu, int preset)
 {
+    Uint64 t0 = SDL_GetTicksNS(), t1;
     memset(v, 0, sizeof *v);
     v->filter = filter;
     v->aspect = aspect;
@@ -26,6 +27,8 @@ int video_open(Video *v, const char *title, int scale, int aspect, int fullscree
                               SDL_WINDOW_RESIZABLE | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
     if (!v->win)
         return -1;
+    t1 = SDL_GetTicksNS();
+    SDL_Log("window created in %llu ms", (unsigned long long)((t1 - t0) / 1000000));
     v->preset = preset;
     if (use_gpu && (v->gpu = gpu_open(v->win)) != NULL)
         return 0;
@@ -37,7 +40,8 @@ int video_open(Video *v, const char *title, int scale, int aspect, int fullscree
     v->tex = SDL_CreateTexture(v->ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, NES_W, NES_H);
     if (!v->tex)
         return -1;
-    SDL_Log("renderer: %s", SDL_GetRendererName(v->ren));
+    SDL_Log("renderer: %s (created in %llu ms)", SDL_GetRendererName(v->ren),
+            (unsigned long long)((SDL_GetTicksNS() - t1) / 1000000));
     return 0;
 }
 

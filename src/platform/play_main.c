@@ -431,6 +431,35 @@ static int states_script(int phase, long *frame, const char *sha1, uint8_t *ram_
     return phase;
 }
 
+/* The audio device can take seconds to open on a busy machine; it is opened on its own thread while the window and
+ * renderer are created. */
+static SDL_AudioStream *audio_opened;
+
+static int SDLCALL open_audio_thread(void *spec)
+{
+    audio_opened = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, (const SDL_AudioSpec *)spec, NULL, NULL);
+    if (!audio_opened)
+        SDL_Log("no audio (%s); pacing by timer", SDL_GetError());
+    return 0;
+}
+
+/* startup timing: one log line with the time of each stage (the window/renderer stage can take seconds while the
+ * GPU is busy) */
+static Uint64 stage_t0, stage_last;
+static char stage_text[400];
+
+static void stage(const char *name)
+{
+    Uint64 now = SDL_GetTicksNS();
+    size_t n = strlen(stage_text);
+    if (!stage_t0)
+        stage_t0 = stage_last = now;
+    if (name && n + 40 < sizeof stage_text)
+        snprintf(stage_text + n, sizeof stage_text - n, "%s%s %llu ms", n ? ", " : "", name,
+                 (unsigned long long)((now - stage_last) / 1000000));
+    stage_last = now;
+}
+
 static int fail(const char *what)
 {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "btdd", what, NULL);
@@ -446,7 +475,7 @@ int main(int argc, char **argv)
     const char *movie_path = NULL, *dump_path = NULL;
     long max_frames = -1, frame = 0, dumped = 0;
     int i, quit = 0, paused = 0, have_cfg, no_audio = 0, selftest_on = 0, seen[SELFTEST_STEPS] = {0};
-    int slot = 0, states_test = 0, st_phase = 0, st_fail = 0, rewinding = 0, ff = 0, step, steps;
+    int slot = 0, states_test = 0, st_phase = 0, st_fail = 0, rewinding = 0, ff = 0, step, steps, pads_ready = 0;
     static uint8_t st_ram_a[0x800], st_ram_r[0x800];
     FILE *dump = NULL;
     SDL_Joystick *vjoy = NULL;
@@ -459,10 +488,14 @@ int main(int argc, char **argv)
     RomResult rr;
 
     memset(&rb, 0, sizeof rb);
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
+    stage(NULL);
+    /* Gamepads are initialized after the first frame is on screen (see the frame loop): their init enumerates
+     * DirectInput devices, 1-3 s on a busy machine, and the game's first frames are a black boot screen anyway. */
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
         fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
         return 1;
     }
+    stage("SDL_Init");
     have_cfg = config_load(&cfg) == 0;
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--movie") && i + 1 < argc)
@@ -511,22 +544,34 @@ int main(int argc, char **argv)
             cfg.ppu_new = 1;
     }
     load_palette(cfg.palette);
-
-    if (video_open(&video, TITLE, cfg.scale, cfg.aspect, cfg.fullscreen, cfg.filter, cfg.scanlines,
-                   cfg.renderer, cfg.gpu, cfg.shader) != 0) {
-        snprintf(msg, sizeof msg, "cannot open the window: %s", SDL_GetError());
-        return fail(msg);
+    stage("config+rom");
+    {
+        /* the audio device opens on its own thread while the window and renderer are created */
+        SDL_Thread *t = no_audio ? NULL : SDL_CreateThread(open_audio_thread, "btdd audio open", &spec);
+        if (video_open(&video, TITLE, cfg.scale, cfg.aspect, cfg.fullscreen, cfg.filter, cfg.scanlines,
+                       cfg.renderer, cfg.gpu, cfg.shader) != 0) {
+            snprintf(msg, sizeof msg, "cannot open the window: %s", SDL_GetError());
+            return fail(msg);
+        }
+        stage("window+renderer");
+        if (t)
+            SDL_WaitThread(t, NULL);
+        else if (!no_audio)
+            open_audio_thread(&spec); /* no thread: open it here */
     }
-    audio = no_audio ? NULL : SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+    audio = audio_opened;
     if (audio) {
         SDL_SetAudioStreamGain(audio, cfg.volume);
         SDL_ResumeAudioStreamDevice(audio);
-    } else {
-        SDL_Log("no audio (%s); pacing by timer", SDL_GetError());
+    } else if (no_audio) {
+        SDL_Log("no audio (--no-audio); pacing by timer");
     }
     if (selftest_on) {
         SDL_VirtualJoystickDesc d;
         SDL_JoystickID id;
+        if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
+            return fail("cannot initialize gamepads");
+        pads_ready = 1;
         /* the test window is usually not focused; SDL drops pad input for unfocused apps otherwise */
         SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
         SDL_INIT_INTERFACE(&d);
@@ -542,7 +587,9 @@ int main(int argc, char **argv)
             return fail("cannot create the virtual gamepad");
         max_frames = 450;
     }
-    open_gamepads(gp);
+    stage("audio");
+    if (pads_ready)
+        open_gamepads(gp);
     if (vjoy) { /* the self-test pad is player 1 even if real pads are connected */
         if (gp[0])
             SDL_CloseGamepad(gp[0]);
@@ -568,6 +615,8 @@ int main(int argc, char **argv)
     rewind_setup(&cfg);
     power_on(cfg.ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD);
     rewind_record(0);
+    stage("gamepads+console");
+    SDL_Log("startup: %s; total %llu ms", stage_text, (unsigned long long)((SDL_GetTicksNS() - stage_t0) / 1000000));
     next_tick = SDL_GetTicksNS();
 
     while (!quit) {
@@ -753,6 +802,14 @@ int main(int argc, char **argv)
         }
         screen_to_rgb(&screen, pixels, PPU_W);
         video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
+        if (!pads_ready) { /* first frame is on screen: now the slow gamepad init (see SDL_Init above) */
+            Uint64 t = SDL_GetTicksNS();
+            if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
+                SDL_Log("gamepad init: %s", SDL_GetError());
+            pads_ready = 1;
+            open_gamepads(gp);
+            SDL_Log("gamepads ready after %llu ms", (unsigned long long)((SDL_GetTicksNS() - t) / 1000000));
+        }
 
         if (max_frames >= 0 && frame >= max_frames)
             quit = 1;
