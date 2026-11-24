@@ -88,6 +88,19 @@ def extract_c(text):
     return blocks[-1].strip() + '\n' if blocks else None
 
 
+def tried_before():
+    """Routine names with at least one model try in runs.jsonl (readability-pass tries excluded)."""
+    if not os.path.isfile(LOG):
+        return set()
+    out = set()
+    for line in open(LOG, encoding='utf-8'):
+        if line.strip():
+            e = json.loads(line)
+            if e.get('tag') != 'simplify':
+                out.add(e['routine'])
+    return out
+
+
 def log(entry):
     os.makedirs(M6, exist_ok=True)
     with open(LOG, 'a') as f:
@@ -185,6 +198,8 @@ def main():
                     help='also run routines that already pass (measurements); their passing file is kept')
     ap.add_argument('--stub-callees', action='store_true',
                     help='with --callgraph: do not wait for callees; those without passing C run as original code')
+    ap.add_argument('--new-only', action='store_true',
+                    help='skip routines that already have a try in runs.jsonl (failed before)')
     ap.add_argument('--callgraph', action='store_true',
                     help='after the list: routines whose callees all have passing C, re-ranked after every pass')
     a = ap.parse_args()
@@ -207,6 +222,8 @@ def main():
                     None)
         if name in done and not a.rerun:
             continue
+        if a.new_only and name in tried_before():
+            continue
         if not m6_test.corpus_files(bank, addr, [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]):
             continue
         print('%s (bank %d $%04X)' % (name, bank, addr))
@@ -225,7 +242,8 @@ def callgraph_mode(a):
     while len(results) < a.routines:
         passing = set(os.path.splitext(n)[0] for n in os.listdir(PRIVATE)) if os.path.isdir(PRIVATE) else set()
         ready = [(c, r, names) for c, r, names in m6_prompt.m6_pick.callgraph_ready(passing, stubs=a.stub_callees)
-                 if r['name'] not in tried and m6_test.corpus_files(r['bank'], r['start'], dirs)]
+                 if r['name'] not in tried and m6_test.corpus_files(r['bank'], r['start'], dirs)
+                 and not (a.new_only and r['name'] in tried_before())]
         if not ready:
             print('no more routines whose callees all pass (and that have a corpus)')
             break
