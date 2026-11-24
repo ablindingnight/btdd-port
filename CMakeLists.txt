@@ -202,7 +202,11 @@ if(BTDD_SDL)
     btdd_warnings(btdd_sdl_probe)
 
     # M2: the game in a window
-    add_executable(btdd_play src/platform/play_main.c src/platform/config.c src/platform/video.c)
+    add_executable(btdd_play src/platform/play_main.c src/platform/config.c src/platform/video.c src/platform/gpu.c)
+    # M10 prototype: offscreen renders of the GPU shader presets (PNG files for comparing display options)
+    add_executable(btdd_gfxshot tools/gfxshot/gfxshot_main.c src/platform/gpu.c)
+    target_link_libraries(btdd_gfxshot PRIVATE btdd_screen SDL3::SDL3-static)
+    btdd_warnings(btdd_gfxshot)
     target_link_libraries(btdd_play PRIVATE btdd_screen SDL3::SDL3-static)
     btdd_warnings(btdd_play)
 endif()
