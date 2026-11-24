@@ -100,13 +100,44 @@ The cartridge has CHR-RAM: every tile is copied from PRG to the PPU.
 
 | fmt | where | layout | conf |
 |---|---|---|---|
-| `chr_set` | 1:`$8193` table (+ sets after it), 7:`$825B` table | word pointers by set number; a set = PPU target address (2 bytes) then entries of 4 bytes (tile count, method, source pointer); method 0 ends the set; methods select a handler from a 4-entry table (1:`$8094`, 7:`$815C`) | medium |
+| `chr_set` / `chr_list_*` | 1:`$8193`, 7:`$825B`, 4:`$80C9`, 5:`$83C1` pointer tables, lists after them | word pointers by set number; a list = PPU target address (2 bytes) then entries. Banks 1/7: 4-byte entries (tile count, mode, source pointer); the mode picks raw 2-bit tiles, 1-bit tiles to one plane, 1-bit tiles to both planes, or the escape-coded stream (handler tables 1:`$8094`, 7:`$815C`); mode 0 ends the list. Banks 4/5: 3-byte entries, always escape-coded | high for banks 1/7 (pokes on the escape and 1-bit modes), medium for 4/5 |
 | `chr_rle` | banks 1, 4, 7 (data_kinds.tsv) | **escape-coded stream**: 2 header bytes give two escape values; in the data an escape byte is followed by a run length and writes that many `$00` (first escape) or `$FF` (second escape) bytes; every other byte is copied. Ends after tile count x 16 output bytes. Decoders: 1:`sub_809c`, 7:`sub_8164`, 4:`sub_802b` | high (code + every byte read by these loops) |
-| `chr_raw` | bank 1 (`sub_8174`), bank 2 (most of the bank) | plain 16-byte tiles. Bank 2 is streamed during play by an unrolled copy routine in RAM (`$0782-$07FF`, copied there from 7:`$805F` by 7:`sub_801b`): 16 bytes per call, i.e. one tile, used for animation frames | high |
+| `chr_raw` / `chr_player_frame_ptrs` | bank 1 (`sub_8174`), bank 2 `$8030-$ECAF` (pointers 2:`$FE07`, `$FF07`) | plain 16-byte tiles. Bank 2 holds the **player animation tiles**: bank 2 `sub_fd6c` streams 256 bytes per frame to PPU `$0010` (player 1) or `$0110` (player 2) through an unrolled copy routine in RAM (`$0782-$07FF`, copied there from 7:`$805F` by 7:`sub_801b`) | high (poke) |
 
-## 7-8. Metasprites, text/font
+**Palettes, more**: the 14 palette pointers point at background palettes `$A436-$A4D5` and sprite palettes
+`$A4D6-$A4F5` (`$A416-$A435` is reached only by unused indexes, low). The RAM copy `$5B-$7A` is uploaded by bank 6
+`sub_8f0c`; fades work from the master copy `$0684-$06A3` (`sub_9a54`). Per-character sprite colours: 6:`$E8B6`
+(`sub_9115`); title / intermission screen palettes: 4:`$DDD4-$DFEF` (`sub_c59c`); colour cycling: bank 0
+`$9DF3`, `$9D8C` (medium/low).
 
-Sections 7-8 are filled from the read-hook analysis in progress (`..\Gamefiles\Movies\dataformats\`).
+**Experiment caveat**: the random generator (`$2D`) runs in the idle loop until NMI, so any poke that changes CPU
+timing desyncs the TAS a few frames later; compare only the first frames where the change shows.
+
+## 7. Metasprites (entity animation frame -> OAM)
+
+Full notes: `..\Gamefiles\Movies\dataformats\sprites_palettes_text.md`.
+
+| fmt | where | layout | conf |
+|---|---|---|---|
+| `spr_frame_ptr_*` | 6:`$BFE1-$C388` | split lo/hi pointer tables by frame id: players lo `$BFE1`/hi `$C192`, enemies lo `$C093`/hi `$C244` (same table offset by `$B2` entries), two special entity types lo `$C343`/hi `$C366` | high |
+| `spr_frame` | 6:`$A7A6-$BFE0`, `$C389-$E45D` | **frame record**: X anchor, Y anchor, base attribute, then a group header. Header bit 7 set = tiles are sequential from a start-tile byte; clear = every sprite has its own tile byte. Then per sprite: X offset, Y offset, and an attribute byte when the base attribute has bit 7 set. Horizontal flip and palette EOR come from the entity flags `$04A3,x`; start tiles 0-2 mark player frames (player 2 gets +`$10` on the tile, palette per character) | high (pokes moved anchors, palette bits, start tile and per-sprite Y as predicted) |
+| `spr4_frame` | 4:`$BCA8-$BD43` pointers, `$BD44-$C4C0` records | packed format of the secondary object drawer (bank 4 `draw_metasprite` `$C7B0`) | medium |
+
+Drawer: bank 6 `sub_8c15` writes `$0200-$02FF`. Bank 4 "metasprite_defs" (`$B9C7`) is not metasprite data (decomp
+name to fix).
+
+## 8. Text and font
+
+| fmt | where | layout | conf |
+|---|---|---|---|
+| `text_charmap` | 6:`$EEE0-$EF1A` | strings are ASCII; this table (indexed as `$EEC0` + code) turns a character into a tile number | high |
+| font tiles | 1:`$83BE-$85BD` (`chr_1bpp`) | 1-bit glyphs; the bank 1 loader writes each 8-byte glyph to both bitplanes (PPU `$0D10` on the title, `$1D10`/`$1C50` in play) | high (poke changed exactly the expected PPU bytes) |
+| `text_string_list` | 6:`$E7F3-$E885`, `$E710-$E756` (pointers `$E708`) | per string: PPU address hi, lo, then characters; the last character has bit 7 set. Drawer `sub_eeab` | high |
+| `text_huffman` | 3:`$B5AA-$B679` trees + symbols, `$B67A-$B693` bit offsets per message group, `$B696-$C01B` bit stream | story / dialogue text, Huffman-coded, decoded into a RAM buffer shown by the bank 6 typewriter `sub_9a98` (control codes for new line/position, end `$FD`, page break `$FE`/`$FF`: medium) | high for the decoder, medium for the tree details |
+| `text_bigfont` | 6:`$FB09-$FC4A` strings, `$FC4B-$FD0A` glyphs | large 2x2-tile font of the cast roll / intermission titles (`update_intro_cast_text`) | medium |
+
+The first 3 bytes of the decomp's "title_screen_text" are sound-call offsets, so `draw_title_screen_text` is a
+sound helper (decomp name to fix).
 
 ## 9. Music and sound effects (bank 3)
 
