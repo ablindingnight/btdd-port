@@ -173,7 +173,7 @@ static Uint64 message_until;
 
 static void say(const char *text)
 {
-    snprintf(message, sizeof message, "%s", text);
+    SDL_strlcpy(message, text, sizeof message);
     message_until = SDL_GetTicksNS() + 2500000000ull;
     SDL_Log("%s", text);
 }
@@ -243,9 +243,9 @@ static void load_palette(const char *path)
     if (f)
         fclose(f);
     if (n == 64 * 3 || n == 512 * 3)
-        snprintf(text, sizeof text, "palette: %s (%d colors)", path, (int)(n / 3));
+        snprintf(text, sizeof text, "palette: %.100s (%d colors)", path, (int)(n / 3));
     else
-        snprintf(text, sizeof text, "palette %s not used (needs 192 or 1536 bytes)", path);
+        snprintf(text, sizeof text, "palette %.100s not used (needs 192 or 1536 bytes)", path);
     if ((n == 64 * 3 || n == 512 * 3) && screen_set_palette(buf, (int)(n / 3)) == 0)
         SDL_Log("%s", text);
     else
