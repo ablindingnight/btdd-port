@@ -164,7 +164,34 @@ caller). Per-frame update: `$8CC8` via bank 0 `sub_ff84`. The stage songs are pi
 Tempo: each frame the tempo byte is added to an accumulator; a carry is one tick (poke test). An SFX takes over a
 channel's registers while the music keeps running underneath and is restored when the SFX ends.
 
+## 10. Collision: floor height, walls, pits (bank 5, bank 0)
+
+**Coordinates.** Per entity (15 slots): world X = `$03EF:$03FE` (hi:lo), **depth** (the lane, moved by
+Up/Down) = `$040D:$041C`, **altitude** (jump height) = `$042B:$043A`. Each frame bank 0 `sub_8688` derives the
+screen position: screen X `$0485` = world X - camera X, screen Y `$0494` = depth - altitude (+ `$0476`) - camera
+Y, and sets bit 7 of `$04A3` when the entity is outside the 256-pixel window (high byte of the difference not
+0). Confidence: high (code; Up/Down change `$041C`, the clamps below act on `$043A`).
+
+**Floor value.** The physics step (bank 5 `sub_b856`) finds the floor altitude under an entity and stores it in
+`$26`; `sub_b66e` copies it to `$04EE,x` and bank 0 `sub_9280` keeps the altitude from going below
+`$04EE,x - $1A` (landing). A floor value of `$F0` is a **wall**: the entity is put back to its previous depth
+(`$B9A2`). Confidence: high (code + the experiment below).
+
+**Per-level handler.** `sub_b856` dispatches on the level (`$B8AF`): level 4 -> `$BA99`, 3 -> `$B4EB`, 6 ->
+`$B7C6`, 2 -> `$AE61`, 8 -> `$B7BB` (uses the generic bands outside the `$EA` sub-areas), 9 -> `$B7C3`, 5 and
+the rest -> the generic band lookup. So collision is **partly data, partly code**:
+
+| level (stage) | how the floor/walls are defined | fmt | conf |
+|---|---|---|---|
+| generic (levels 5 = stage 2, 8 = stage 5) | **depth bands**: base pointer by level from 5:`$BA41` (lo) / `$BA4D` (hi) (`coll_ptrs`); per 32-pixel column of world X a list of 2-byte entries (`sub_b412`: level 8 = 2 entries per column, 4 bytes; others 3 entries, 6 bytes; level 5 = one fixed list of 2 entries for the whole level). Entry byte 0 = depth limit in 4-pixel units (the band ends there); byte 1 high nibble = floor altitude / 16 (`$F` = wall), low nibble = edge shape: 0 flat, 1 the limit rises with X inside the column, 2 it falls (diagonal edges, `sub_ba5a`). The first entry whose limit is beyond the entity's depth gives the floor | `coll_bands` | high (poke: level 5 first band altitude 4 -> 6 moved the resting altitude from `$40` to `$60`; the second band is a wall) |
+| level 3 (stage 1, ship deck) | segment list by world X: 5:`$B470-$B4A6` (decomp `stage1_table_b470`/`b479`), 5-byte records = segment end X (hi, lo), floor altitude, near and far deck-edge depths (bit 0 = shape variant); past an edge the player falls (`loc_b5ec`, with the `$C7` = 2 check) | `coll_stage1_segments` | high for end X and floor altitude (poke: +`$20` on every segment's altitude byte raised the floor value `$04EE` from `$60` to `$80`), medium for the edge bytes |
+| level 4 (stage 4, space) | **the background is the collision**: `$BA99` turns screen X/Y + camera into a block of the RAM map (`$0600`) and a tile of that block (`$BC` block set); a non-zero tile is an obstacle (hit, knock-back) | (uses `lvl_map`/`lvl_blocks`) | high for the lookup, medium for the effect |
+| level 2 (stage 3, vertical) | code constants: world X clamped to the shaft (`$AE61`: limits `$2C`/`$4C`/`$D8` by position) | code | medium |
+| levels 6, 9 (stages 7, 6) | code thresholds on depth and X (`$B7C3`/`$B7C6`, constants `$B6`, `$C0`, `$20`) plus the generic path for parts | code | low |
+
+**Widescreen/mods**: only levels 5 and 8 (and stage 1's segment list) have editable collision data; the others
+need code overrides. Data ranges: `meta/data_kinds.tsv` (`coll_*`).
+
 ## Not found yet
-- **Collision / floor height**: no per-block collision table was found; the attribute byte per block is the only
-  other per-block data. Entity bounds look like level-specific code (bank 0/4). Open.
+- Pits in stages 2/5 (if any) beyond the band walls: not traced.
 - Spawn lists of the unused levels 0, 1, 7 point at code or garbage (as their maps do).

@@ -122,6 +122,13 @@ enters the `$FFCB`/`$FFCD` trampoline: site = the JSR/JMP before it, target = ba
   bank 6 `$80AA` -> `$80AD-$80CE` (step 3) and `$810A`; `$9992` -> `$9A8E`, `$9A94`; `$9995` -> `$8EFD`, `$8F0C`,
   `$E75E`. Bank 0 `$FE20` (`jmp ($2A)` in the other NMI path) never ran in any log; the only values the game ever
   stores in `$2A/$2B` (bank 0 `$85D1/$85D3`) are `$D241` and `$8397`, so those are its likely targets.
+  **Forced (2026-11-24):** `sub_fe05` is entered from the bank 0 NMI only when `$09` bit 7 is clear, and reaches
+  `$FE20` only when it is set, so `$FE20` runs only when an NMI arrives through another bank's NMI stub
+  (`$FF9C`-style: switch to bank 0, `jmp $FE05`) while the main loop is idle; that never happened in any log.
+  With bank 0 `$FDE2` patched in memory to `lda #0` (`btdd_headless --prg-poke 0:FDE2=A9,0:FDE3=00`, every NMI
+  then takes this path) the game keeps running and `$FE20` jumps to `$8397` (19,020x) and `$D241` (745x) in
+  20,000 frames: the same two targets as `$FDFD`. Confidence: high for the target set (RAM differs from the
+  normal run only by timing: the random generator first, then the TAS desyncs).
 - The 6 dynamic far calls: all resolved. Bank 0 `$84C4` -> bank 3 slots `$800C-$8015`; `$9F6C` -> bank 5 `$801E`,
   `$8021`; bank 2 `$FD49` -> bank 4 `$8015`, `$8027`; bank 4 `$ABB9` -> bank 3 `$8003-$8015`; `$C599` -> bank 1
   `$8003`, bank 7 `$8003`; bank 6 `$E7ED` -> bank 3 `$800C`, `$800F`, `$8015` (slot JMP targets in the TSV).
@@ -156,7 +163,25 @@ and 2P, the ending and credits. In rough order of bytes at stake:
    and stage intro to the end without pressing anything (bank 2 `$F7CC-$F93F` read at section 00 of levels 2, 5,
    8, 9, 6; bank 4 `$BDE6`, `$BEC5`, `$C043-$C1FC` metasprites read by bank 4 `load_metasprite_c6c5` / `$C7B0`
    during `$FD/$FF` transitions; ~600 B). If an intermission differs between 1P and 2P or after a death, that is
-   the case to log.
+   the case to log. **Done by script (2026-11-24, `Debugger\agent-intermissions.cdl`)**: the TAS up to every stage
+   end (2P and 1P), then no input for 4,000-8,000 frames: **+1,147 bytes** (bank 4 545, bank 2 370, bank 6 232;
+   all data, no code). Forced 1P (`$16`=0) and both players on their last life gave nothing more. Scripted idle,
+   walk-left, slow-right, punch/jump, up/down and Start-every-300-frames play from all 20 section starts
+   (`agent-checklist-play.cdl`, 120 runs) gave nothing new, so items 1-3 and 5 really need varied human play.
+   Seen after this: 98.1% (5,022 bytes unseen, 30 gaps >= 32 bytes = 2,000 bytes).
+   **Varied play by script (round h, 2026-11-24)**: `btdd_explore` (held directions, attack/jump rhythms, idle
+   pads, pause) from 2,668 fresh gameplay snapshots of every stage (2P TAS, 1P TAS old PPU, forced 1P stages
+   4-7), god mode off, 20% deliberate deaths, 4 cores x 1 h = 34M frames: **+2 bytes**. Random play is
+   exhausted. **Forced songs** (`agent-songs-forced.cdl`: stage 1's song slot bank 0 `$838C` poked in memory to
+   the songs the TAS never requests, `$03 $05 $0B $11 $14`): +93 bytes of bank 3 song headers/pointers and song
+   `$0B`'s stream. Unseen now: 4,929 bytes. What is left in items 1-3 is specific: e.g. bank 6 `$A4F6-$A79D`
+   (the overlay table that `sub_8c15` draws on top of a **player** frame only while `$04B2,x` bit 5 is set,
+   indexed by the player animation `$03D1,x` * 4): ~110 player animations never happened in that state. Finding
+   what sets bit 5 (an item/hold/ride state in stages 2 and 6) is the next lead for a human or a targeted script.
+   Bit 5 is set by bank 0 `sub_9718` (2P TAS: 21 / 19 / 33 player animations seen with it in levels 5 / 8 / 9).
+   Round i explored only from 221 snapshots inside the two long hold periods of the TAS (frames 10,543-11,598,
+   53,989-55,058), short bursts, god off: 21M frames, **+1 byte**. So most of those overlay entries are most likely
+   animations that cannot happen in that state (unused data), not missed play.
 5. **Stage 4 (level 4) section 06 and stage 1 (level 3) sections 04/05**: slow play (bank 5 `$FF32`, bank 3
    `$9C69`, bank 4 `$B8B6`).
 6. **Title text, bank 4 `$CBF0-$CDFF` (528 B) and `$CE0C`**: drawn by bank 4 `sub_c5fe`/`sub_c61a` (screen text);
