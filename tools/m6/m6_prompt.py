@@ -253,6 +253,96 @@ def ram_reads(bank, addr):
     return out[:16]
 
 
+def api_calls(mech, targets):
+    """Mechanical C with the exits written as the C API: JSR -> NAME(m), far calls -> far_call, jumps out of the
+    routine -> NAME(m); return;, jmp (ptr) -> jump_to(m, ea); return;, RTS -> return;"""
+    names = {a: nm for nm, a, how in targets if how in ('call', 'tail', 'alt')}
+
+    def jsr(mo):
+        a = int(mo.group(2), 16)
+        if a == m6_pick.FARCALL:
+            return '%sfar_call(m, m->y, m->x); /* jsr $FFCB: far call, bank_index in Y, slot in X */' % mo.group(1)
+        return '%s%s(m); /* jsr $%04X */' % (mo.group(1), names.get(a, 'entry_%04x' % a), a)
+    mech = re.sub(r'n_push\(c, 0x[0-9A-F]{2}\); n_push\(c, 0x[0-9A-F]{2}\);\n(\s*)c->pc = 0x([0-9A-F]{4}); return;',
+                  jsr, mech)
+
+    def jmp(mo):
+        a = int(mo.group(1), 16)
+        if a not in names:  # the generator's guard after a final RTS/JMP: never reached
+            return '/* (end of the routine) */'
+        return '%s(m); return; /* jumps to $%04X: tail call */' % (names[a], a)
+    mech = re.sub(r'c->pc = 0x([0-9A-F]{4}); return;( /\* falls out of the routine \*/)?', jmp, mech)
+    mech = mech.replace('c->pc = ea; return;', 'jump_to(m, ea); return; /* jmp (ptr) */')
+    mech = re.sub(r'ea = n_pop\(c\); ea \|= \(uint16_t\)\(n_pop\(c\) << 8\); c->pc = \(uint16_t\)\(ea \+ 1\); return;',
+                  'return; /* rts */', mech)
+    return mech
+
+
+_INDIRECT = {}
+
+
+def indirect_targets():
+    """(kind, bank, site) -> [(target bank, target pc, slot target, count)] from coverage/indirect_targets.tsv."""
+    if not _INDIRECT:
+        path = os.path.join(m6_test.REPO, '..', 'Gamefiles', 'Movies', 'coverage', 'indirect_targets.tsv')
+        if os.path.isfile(path):
+            for line in open(path, encoding='utf-8').read().splitlines()[1:]:
+                f = line.split('\t')
+                if len(f) >= 7:
+                    key = (f[0], int(f[1]), int(f[2].lstrip('$'), 16))
+                    _INDIRECT.setdefault(key, []).append(
+                        (int(f[3]), int(f[4].lstrip('$'), 16), None if f[5] == '-' else int(f[5].lstrip('$'), 16),
+                         int(f[6])))
+        _INDIRECT.setdefault(None, [])
+    return _INDIRECT
+
+
+def exits_text(bank, r, ins, mem):
+    """Prompt section for tail jumps, alternate entries, far calls and jmp (ptr)."""
+    out = []
+    how = {nm: h for nm, a, h in r['targets']}
+    tails = [(nm, a) for nm, a, h in r['targets'] if h == 'tail']
+    alts = [(nm, a) for nm, a, h in r['targets'] if h == 'alt']
+    if tails:
+        out.append('Tail jumps: where it jumps (or runs on) to %s, that is a call followed by return: write '
+                   '`NAME(m); return;`.' % ', '.join('%s ($%04X)' % t for t in tails))
+    if alts:
+        ent = m6_pick.entries()
+        out.append('Entry points inside other routines (calling them runs the original code from there; when the '
+                   '6502 jumps there instead of JSR, write `NAME(m); return;`): ' + ', '.join(
+                       '`%s` ($%04X%s)' % (nm, a, '' if (bank, a) not in ent else ', inside its containing routine')
+                       for nm, a in alts))
+    tsv = indirect_targets()
+    if 'far_call' in how:
+        lines = ['Far calls: `ldx #slot / ldy #bank_index / jsr $FFCB` calls routine slot `slot` of bank '
+                 '`byte[$FFB3 + bank_index]` through the trampoline. Write `far_call(m, bank_index, slot);` (it sets '
+                 'm->x = slot and m->y = bank_index itself, runs the call and leaves the registers/flags in m). Do not '
+                 're-implement the trampoline. Sites:']
+        for i, (a, (m, mode, n, v)) in enumerate(ins):
+            if m == 'jsr' and v == m6_pick.FARCALL:
+                x = next((d[3] for aa, d in reversed(ins[:i]) if d[0] == 'ldx' and d[1] == 'imm'), None)
+                y = next((d[3] for aa, d in reversed(ins[:i]) if d[0] == 'ldy' and d[1] == 'imm'), None)
+                seen = tsv.get(('farcall', bank, a), [])
+                tgt = ', '.join('bank %d %s ($%04X)' % (tb, m6_pick.target_name(tb, st) if st else '?', st or tp)
+                                for tb, tp, st, cnt in seen[:3])
+                lines.append('- $%04X: far_call(m, %s, %s)%s' % (
+                    a, '0x%02X' % y if y is not None else 'm->y', '0x%02X' % x if x is not None else 'm->x',
+                    ' -> ' + tgt if tgt else ''))
+        out.append('\n'.join(lines))
+    if 'jump_to' in how:
+        lines = ['Indirect jumps: `jmp ($pp)` jumps to the 16-bit address stored at RAM $pp/$pp+1. Write '
+                 '`jump_to(m, target); return;` with target = RAM(pp) | RAM(pp + 1) << 8 read at that point (after '
+                 'the code stored it); jump_to runs the target with the registers in m.']
+        for a, (m, mode, n, v) in ins:
+            if m == 'jmp' and mode == 'ind':
+                seen = sorted(tsv.get(('jmpind', bank, a), []), key=lambda t: -t[3])
+                lines.append('- $%04X: jmp ($%04X)%s' % (a, v, ('; targets seen in play: ' + ', '.join(
+                    '%s ($%04X)' % (m6_pick.target_name(tb, tp), tp) for tb, tp, st, cnt in seen[:8]) +
+                    (' and %d more' % (len(seen) - 8) if len(seen) > 8 else '')) if seen else ''))
+        out.append('\n'.join(lines))
+    return '\n\n'.join(out)
+
+
 def build(bank, addr):
     raw = open(m6_test.ROM, 'rb').read()[16:]
     mem = raw[bank * 0x8000:(bank + 1) * 0x8000]
@@ -264,9 +354,10 @@ def build(bank, addr):
             break
         ins.append((a, d))
         a += d[2]
-    starts = {x['start']: x for x in m6_pick.routines() if x['bank'] == bank}
-    ok, callee_addrs = m6_pick.callees_of(mem, r, set(starts))
-    r['callees'] = [(starts[c]['name'], c) for c in callee_addrs] if ok else []
+    ok, kind, targets, why = m6_pick.classify(mem, r)
+    r['kind'] = kind if ok else 'unsupported:' + why
+    r['targets'] = targets if ok else []
+    r['callees'] = list(dict.fromkeys((nm, a) for nm, a, how in r['targets'] if how in ('call', 'tail', 'alt')))
     spans = [(a, a + size - 1, n, kind) for n, a, size, kind, naming in m6_test.ram_names()]
     used, tables = [], []
     for a, (m, mode, n, v) in ins:
@@ -283,7 +374,7 @@ def build(bank, addr):
         outs = outputs_of(ins)
     calls = m6_pick.call_counts().get((bank, addr), 0)
     asm = asm_listing(bank, r['name']) or '(decomp listing not found)'
-    mech = mechanical_c(bank, r['start'], r['end'], mem)
+    mech = api_calls(mechanical_c(bank, r['start'], r['end'], mem), r['targets'])
     parts = ['Routine %s: bank %d, $%04X-$%04X, %d instructions, called %d times in the 2-player TAS.'
              % (r['name'], bank, r['start'], r['end'], len(ins), calls)]
     # off by default: the A/B (docs/M6_HARNESS.md) found no gain from it; M6_FACTS=1 turns it on
@@ -312,6 +403,9 @@ def build(bank, addr):
                  'n_adc/n_sbc/n_cmp/n_rol... do exactly what the 6502 instruction does including flags, n_rdram/'
                  'n_wrram are RAM, n_rd/n_wr are the bus, `goto L....` are branches, n_cyc is timing: ignore it). '
                  'Use it to check the semantics, then write clean C:\n```c\n%s\n```' % mech)
+    extra = exits_text(bank, r, ins, mem)
+    if extra:
+        parts.append(extra)
     if r['callees']:
         lines = ['It calls other routines. Call each as a C function instead of a JSR; they take and return the '
                  'registers and flags in m exactly like the 6502 subroutine (set m->a/x/y before the call if the '

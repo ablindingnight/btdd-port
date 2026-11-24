@@ -6,7 +6,7 @@ Compiles tools/m6/m6_harness.c + the candidate (+ the reference interpreter) wit
 it over the routine's corpus files (default: both movies under ..\\Gamefiles\\Movies\\m6\\corpus). Prints the
 harness's last line: "PASS n/n ..." or one compact "FAIL state ..." line. Exit code: 0 pass, 1 mismatch,
 2 setup problem, 3 the candidate does not compile (the compiler's first errors are printed).
-m6_names.h (RAM names from meta/btdd.meta, reviewed + proposed) is written into the work folder.
+m6_names_N.h (RAM names from decomp HEAD, older btdd.meta names as aliases) is written per compile unit.
 """
 import argparse
 import os
@@ -22,10 +22,33 @@ CC = os.environ.get('CC', 'zig cc').split()
 TIMEOUT = 120  # seconds for one harness run (normal runs take a few seconds)
 
 
-def ram_names(meta=os.path.join(REPO, 'meta', 'btdd.meta')):
+_RAM_CACHE = {}
+
+
+def ram_lines(meta=None):
+    """btdd.meta-syntax ram records. Default: built from the decomp's current HEAD (src/ram.inc and
+    docs/RAM_PROPOSALS.md, read through git show) with the meta exporter's own build_ram, so names graded after
+    the meta export reach the prompts; falls back to meta/btdd.meta (M6_META_NAMES=1 forces it)."""
+    if meta is None and not os.environ.get('M6_META_NAMES'):
+        if 'head' not in _RAM_CACHE:
+            try:
+                sys.path.insert(0, os.path.join(REPO, 'tools'))
+                import export_meta
+                dec = os.path.join(REPO, '..', 'btdd-decomp')
+                _RAM_CACHE['head'] = export_meta.build_ram(export_meta.git_show(dec, 'HEAD', 'src/ram.inc'),
+                                                           export_meta.git_show(dec, 'HEAD', 'docs/RAM_PROPOSALS.md'))
+            except (SystemExit, OSError, ImportError):
+                _RAM_CACHE['head'] = None
+        if _RAM_CACHE['head']:
+            return _RAM_CACHE['head']
+    meta = meta or os.path.join(REPO, 'meta', 'btdd.meta')
+    return [l for l in open(meta, encoding='utf-8') if l.startswith('ram ')]
+
+
+def ram_names(meta=None):
     """-> [(name, addr, size, kind, naming)] unique names (first wins), skipping aliases."""
     out, seen = [], set()
-    for line in open(meta, encoding='utf-8'):
+    for line in ram_lines(meta):
         f = line.split()
         if not f or f[0] != 'ram':
             continue
@@ -38,11 +61,21 @@ def ram_names(meta=os.path.join(REPO, 'meta', 'btdd.meta')):
     return out
 
 
-def write_names(path):
+def write_names(path, exclude=()):
     lines = ['/* RAM names from meta/btdd.meta (addresses only). naming=proposed names are unreviewed hints. */',
              '#ifndef M6_NAMES_H', '#define M6_NAMES_H']
-    for name, addr, size, kind, naming in ram_names():
+    names = ram_names()
+    for name, addr, size, kind, naming in names:
+        if name in exclude:  # a local of the same name in the code being built: the #define would break it
+            continue
         lines.append('#define %-24s 0x%04X /* %s, %d byte(s), %s */' % (name, addr, kind, size, naming))
+    have = {n for n, a, size, kind, naming in names}
+    meta = os.path.join(REPO, 'meta', 'btdd.meta')
+    if not os.environ.get('M6_META_NAMES') and os.path.isfile(meta):  # older names (passing C may use them)
+        for name, addr, size, kind, naming in ram_names(meta):
+            if name not in have and name not in exclude:
+                have.add(name)
+                lines.append('#define %-24s 0x%04X /* older name (btdd.meta) */' % (name, addr))
     lines.append('#endif')
     with open(path, 'w', newline='\n') as f:
         f.write('\n'.join(lines) + '\n')
@@ -52,7 +85,7 @@ def corpus_files(bank, addr, dirs):
     out = []
     for d in dirs:
         p = os.path.join(d, 'b%d_%04x.m6c' % (bank, addr))
-        if os.path.isfile(p):
+        if os.path.isfile(p) and os.path.getsize(p) > 12:  # 12 = header only: the routine never ran in that movie
             out.append(p)
     return out
 
@@ -60,18 +93,19 @@ def corpus_files(bank, addr, dirs):
 PRIVATE = os.path.join(REPO, 'private', 'm6')
 
 
-def callee_sources(callees, work, bank=None):
+def callee_sources(callees, work, bank=None, candidate=None):
     """One C file per callee: its passing C from private/m6 renamed to the callee's name, or a stub that runs the
     original code through m6_call. Plus m6_callees.h with the prototypes (included into every unit)."""
     files, protos = [], []
-    callees = list(callees)
+    callees = list(dict.fromkeys(callees))  # a callee reached by JSR and by a tail jump is one function
     if bank is not None:  # passing callee C calls its own callees: add them too (transitively)
         import m6_pick
         by_name = {r['name']: r['start'] for r in m6_pick.routines() if r['bank'] == bank}
+        by_name.update({n: a for (b, a), n in m6_pick.entries().items() if b == bank})
         seen = {n for n, a in callees}
-        i = 0
+        i = -1 if candidate else 0  # -1: the candidate itself (older passing C may call e.g. sub_ffcb by name)
         while i < len(callees):
-            mine = os.path.join(PRIVATE, callees[i][0] + '.c')
+            mine = candidate if i < 0 else os.path.join(PRIVATE, callees[i][0] + '.c')
             if os.path.isfile(mine):
                 for n in re.findall(r'\b([A-Za-z_]\w*)\s*\(\s*m\s*\)', open(mine, encoding='utf-8').read()):
                     if n in by_name and n not in seen:
@@ -95,13 +129,24 @@ def callee_sources(callees, work, bank=None):
 
 def build(candidate, work, callees=None, bank=None):
     os.makedirs(work, exist_ok=True)
-    write_names(os.path.join(work, 'm6_names.h'))
-    extra = callee_sources(callees or [], work, bank)
+    extra = callee_sources(callees or [], work, bank, candidate)
+    units = []
+    for i, unit in enumerate([candidate] + extra):  # each unit gets its own names header: a local in one
+        text = open(unit, encoding='utf-8', errors='replace').read()  # must not drop a #define another needs
+        for inc in re.findall(r'#include "([^"]+)"', text):
+            if os.path.isfile(inc):
+                text += open(inc, encoding='utf-8', errors='replace').read()
+        decl = set(re.findall(r'\b(?:u?int(?:8|16|32)_t|int|unsigned|char|bool|long)\s+([A-Za-z_]\w*)', text))
+        write_names(os.path.join(work, 'm6_names_%d.h' % i), decl)
+        wrap = os.path.join(work, 'unit_%d.c' % i)
+        with open(wrap, 'w', newline='\n') as f:
+            f.write('#include "m6_names_%d.h"\n#include "%s"\n' % (i, os.path.abspath(unit).replace('\\', '/')))
+        units.append(wrap)
     exe = os.path.join(work, 'm6_harness.exe')
     src = os.path.join(REPO, 'src')
     cmd = CC + ['-O1', '-std=c11', '-w', '-D_CRT_SECURE_NO_WARNINGS', '-I' + src, '-I' + HERE, '-I' + work,
-                '-include', 'm6_api.h', '-include', 'm6_names.h', '-include', 'm6_callees.h',
-                os.path.join(HERE, 'm6_harness.c'), candidate] + extra + [
+                '-include', 'm6_api.h', '-include', 'm6_callees.h',
+                os.path.join(HERE, 'm6_harness.c')] + units + [
                 os.path.join(src, 'runtime', 'cpu.c'), os.path.join(src, 'rom', 'rom.c'),
                 os.path.join(src, 'rom', 'sha1.c'), '-o', exe]
     r = subprocess.run(cmd, capture_output=True, text=True)
