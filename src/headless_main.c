@@ -11,6 +11,11 @@
  *                                                  level/section change and camera lock/unlock; gate log
  *                                                  gates.txt/gates.tsv + gate-*.ram in D)
  *                     [--load X.snap]             (start from a snapshot; the movie continues at its frame)
+ *                     [--warp L[:S]] [--warp-every]  (start the next stage as level L, section S; see cov/play.h)
+ *                     [--god]                     (refill players' HP and lives after every frame)
+ *                     [--poke 11=00,12=00@900]    (RAM writes after frame N; "@N+" keeps them frozen)
+ *                     [--movie-until N]           (movie input only for frames < N, then no input)
+ *                     [--shot-every N DIR]        (picture data every N frames for tools/shots.py)
  *
  * RAM dump format (shared with tools/fceux/ramdump.lua and tools/ramdiff.py): a sequence of records,
  * each a little-endian uint32 frame number followed by the 2048 bytes of CPU RAM. The frame number is
@@ -20,6 +25,7 @@
 #include "cov/coverage.h"
 #include "cov/snapshot.h"
 #include "cov/tracker.h"
+#include "cov/play.h"
 #include "nes/nes.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
@@ -52,6 +58,23 @@ static void print_exec(void *ctx, Cpu *c)
            n->ppu.scanline, (unsigned long long)c->cycles, n->prg_bank, c->pc, c->a, c->x, c->y, c->p);
 }
 
+/* Picture data for tools/shots.py: background (NES colors), CHR-RAM, OAM, palette, PPUCTRL. */
+static void write_shot(Nes *n, const char *dir, long frame)
+{
+    char path[1024];
+    FILE *f;
+    snprintf(path, sizeof path, "%s/f%06ld-L%02X-S%02X.shot", dir, frame, n->ram[0x0D], n->ram[0x15]);
+    f = fopen(path, "wb");
+    if (!f)
+        return;
+    fwrite(n->ppu.fb, 1, PPU_W * PPU_H, f);
+    fwrite(n->ppu.chr, 1, sizeof n->ppu.chr, f);
+    fwrite(n->ppu.oam, 1, sizeof n->ppu.oam, f);
+    fwrite(n->ppu.pal, 1, sizeof n->ppu.pal, f);
+    fwrite(&n->ppu.ctrl, 1, 1, f);
+    fclose(f);
+}
+
 static int write_record(FILE *f, uint32_t frame, const uint8_t *ram)
 {
     uint8_t hdr[4] = {(uint8_t)frame, (uint8_t)(frame >> 8), (uint8_t)(frame >> 16), (uint8_t)(frame >> 24)};
@@ -71,6 +94,10 @@ int main(int argc, char **argv)
     const char *snap_dir = NULL, *load_path = NULL;
     long snap_every = 60, start = 0;
     static Tracker trk;
+    static Play play;
+    int use_play = 0;
+    long movie_until = -1, shot_every = 0;
+    const char *shot_dir = NULL;
     static Coverage cov;
     char hash[41] = "", err[256];
     Fm2 movie = {0};
@@ -103,7 +130,35 @@ int main(int argc, char **argv)
             snap_every = strtol(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--load") && i + 1 < argc)
             load_path = argv[++i];
-        else if (!strcmp(argv[i], "--cdl-fceux-clear"))
+        else if (!strcmp(argv[i], "--warp") && i + 1 < argc) {
+            char *e;
+            if (!use_play)
+                play_init(&play);
+            use_play = 1;
+            play.warp_level = (int)strtol(argv[++i], &e, 16);
+            if (*e == ':')
+                play.warp_section = (int)strtol(e + 1, NULL, 16);
+        } else if (!strcmp(argv[i], "--warp-every"))
+            play.warp_every = 1;
+        else if (!strcmp(argv[i], "--god")) {
+            if (!use_play)
+                play_init(&play);
+            use_play = 1;
+            play.god = 1;
+        } else if (!strcmp(argv[i], "--poke") && i + 1 < argc) {
+            if (!use_play)
+                play_init(&play);
+            use_play = 1;
+            if (play_parse_pokes(&play, argv[++i]) != 0) {
+                fprintf(stderr, "bad --poke %s\n", argv[i]);
+                return 2;
+            }
+        } else if (!strcmp(argv[i], "--movie-until") && i + 1 < argc)
+            movie_until = strtol(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--shot-every") && i + 2 < argc) {
+            shot_every = strtol(argv[++i], NULL, 10);
+            shot_dir = argv[++i];
+        } else if (!strcmp(argv[i], "--cdl-fceux-clear"))
             cdl_clear = 1;
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
@@ -169,6 +224,10 @@ int main(int argc, char **argv)
         nes.cpu.exec_watch = exec_map;
         nes.cpu.exec_hook = print_exec;
     }
+    if (use_play) {
+        play_install(&play, &nes);
+        play_after_frame(&play, &nes, 0);
+    }
     if (load_path) {
         SnapInfo si;
         int lr = snap_load(&nes, &si, load_path);
@@ -200,7 +259,7 @@ int main(int argc, char **argv)
     t0 = clock();
     for (i = start; i < frames; i++) {
         cur_frame = i;
-        if (movie.frames && i < movie.count) {
+        if (movie.frames && i < movie.count && (movie_until < 0 || i < movie_until)) {
             const Fm2Frame *fr = &movie.frames[i];
             if (fr->cmd & (FM2_CMD_RESET | FM2_CMD_POWER)) {
                 fprintf(stderr, "frame %ld: movie reset/power command not supported yet\n", i);
@@ -211,6 +270,10 @@ int main(int argc, char **argv)
             nes_set_pads(&nes, 0, 0);
         }
         nes_run_frame(&nes);
+        if (use_play)
+            play_after_frame(&play, &nes, i + 1);
+        if (shot_every > 0 && (i + 1) % shot_every == 0)
+            write_shot(&nes, shot_dir, i + 1);
         if (watch_spec || exec_spec)
             printf("f %ld cyc %llu\n", i + 1, (unsigned long long)nes.cpu.cycles);
         if (dump && ((every > 0 && (i + 1) % every == 0) || i + 1 == frames)) {

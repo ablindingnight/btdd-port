@@ -41,6 +41,7 @@ add_library(btdd_cov STATIC
     src/cov/coverage.c
     src/cov/snapshot.c
     src/cov/tracker.c
+    src/cov/play.c
 )
 target_link_libraries(btdd_cov PUBLIC btdd_core)
 btdd_warnings(btdd_cov)
