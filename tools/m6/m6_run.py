@@ -38,13 +38,19 @@ RETRY_MAX_TOKENS = 24000    # retries after a wrong answer: harder routines need
 RETRY_THINK_BUDGET = 20000  # two routines that had passed with 14-19k); prompt + 24k stays under the 40k slot limit
 NOTHINK_MAX_TOKENS = 6000
 SERVER_WAIT = 1800
+# A/B switches: M6_LEGACY=1 = the night's first setting (32k cap, no thinking budget, no thinking-off fallback);
+# M6_TAG=<name> is written into every log line so m6_stats.py --tag can compare settings.
+LEGACY = os.environ.get('M6_LEGACY') == '1'
+TAG = os.environ.get('M6_TAG', '')
+if LEGACY:
+    MAX_TOKENS = RETRY_MAX_TOKENS = 32000
 
 
 def ask(messages, temperature, think=True, retry=False):
     body = {'messages': messages, 'temperature': temperature, 'cache_prompt': True,
             'max_tokens': (RETRY_MAX_TOKENS if retry else MAX_TOKENS) if think else NOTHINK_MAX_TOKENS,
             'chat_template_kwargs': {'enable_thinking': bool(think)}}
-    if think:
+    if think and not LEGACY:
         body['thinking_budget_tokens'] = RETRY_THINK_BUDGET if retry else THINK_BUDGET
     body = json.dumps(body).encode()
     t0 = time.time()
@@ -107,7 +113,7 @@ def solve(bank, addr, tries, keep_existing=False):
                  'addr': '%04X' % addr, 'try': t + 1, 'prompt_tokens': usage.get('prompt_tokens'),
                  'completion_tokens': usage.get('completion_tokens'), 'cached_tokens':
                  timings.get('cache_n'), 'seconds': round(secs, 1), 'outputs': outs, 'thinking': think,
-                 'finish_reason': usage.get('finish_reason'), 'max_tokens': ((RETRY_MAX_TOKENS if t > 0 else MAX_TOKENS) if think else
+                 'tag': TAG, 'finish_reason': usage.get('finish_reason'), 'max_tokens': ((RETRY_MAX_TOKENS if t > 0 else MAX_TOKENS) if think else
                                                 NOTHINK_MAX_TOKENS)}
         if capped and code is None:
             result, msg = 'cap', 'hit the %d-token cap without an answer' % entry['max_tokens']
@@ -146,7 +152,7 @@ def solve(bank, addr, tries, keep_existing=False):
                      'write the corrected complete function.' % (last_code, last_msg))
         else:
             retry = '\n\nA previous attempt gave no usable ```c block (%s). Keep the reasoning short this time.' % msg
-        if result in ('cap', 'noanswer') and think:
+        if result in ('cap', 'noanswer') and think and not LEGACY:
             # thinking ran away: one try without thinking, on the shorter prompt
             think = False
             messages = short_prompt(base)

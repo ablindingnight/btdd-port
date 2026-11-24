@@ -37,11 +37,12 @@ def kind(e):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--since', default='')
+    ap.add_argument('--tag', help='only tries logged with this M6_TAG')
     ap.add_argument('--total', type=int, default=1143)
     ap.add_argument('--log', default=LOG)
     a = ap.parse_args()
     rows = [json.loads(l) for l in open(a.log) if l.strip()]
-    rows = [r for r in rows if r['time'] >= a.since]
+    rows = [r for r in rows if r['time'] >= a.since and (a.tag is None or r.get('tag') == a.tag)]
     series = collections.OrderedDict()  # routine -> list of tries of its last series
     for r in rows:
         key = r['routine']
@@ -59,6 +60,8 @@ def main():
     print('routines: %d   passed on try 1: %d (%.0f%%)   after retries: %d   failed: %d   pass rate %.0f%%' % (
         n, first, 100.0 * first / max(n, 1), later, failed, 100.0 * (first + later) / max(n, 1)))
     print('tries per routine: mean %.2f' % (sum(tries) / max(n, 1)))
+    if sum(sec):
+        print('passes per GPU-hour: %.1f' % ((first + later) / (sum(sec) / 3600.0)))
     print('per routine: mean %.0f completion tokens, %.0f s of model time (median %.0f s)' % (
         sum(tok) / max(n, 1), sum(sec) / max(n, 1), sorted(sec)[n // 2] if n else 0))
     print('failed tries by kind:')
