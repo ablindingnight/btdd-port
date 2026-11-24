@@ -14,7 +14,8 @@ should merge are published as `..\Gamefiles\Debugger\auto-*.cdl` (its `tools/cdl
 | `btdd_headless --warp L[:S] --god --poke A=V@F[+] --movie-until N --press-every N P1[,P2]` | Stage warp, god mode, RAM pokes, scripted presses (src/cov/play.h) |
 | `btdd_headless --shot-every N DIR` + `tools/shots.py DIR` | Pictures (background + sprites) as PNG |
 | `btdd_explore` + `tools/explore.py` | Coverage-guided random play from snapshots, one process per core |
-| `tools/forced_paths.py` | Attract mode, Start-only play (1P, game over, continue), 2P game over, mode B, ending, 1P TAS, koh movies |
+| `tools/forced_paths.py` | Attract mode, Start-only play (1P, game over, continue), 2P game over, mode B, ending, 1P TAS, koh, feos, lamp and sub635 movies |
+| `tools/fm3tofm2.py`, `tools/fcm2fm2.py` | TAS Editor (.fm3, binary) and old FCEU (.fcm v2) movies to text .fm2 |
 | `btdd_static` | Static completion probe: never-executed branch/JSR/JMP targets of executed code, decoded and probed |
 | `tools/covreport.py` | Coverage per bank and per source, still-unseen runs |
 
@@ -62,18 +63,33 @@ Exploration starts from these snapshots, so gates the TAS passed are already ope
 | | code bytes | data-only | seen |
 |---|---|---|---|
 | before (13 existing logs) | 56,168 (21.4%) | 190,302 (72.6%) | 246,470 (94.0%) |
-| after (+ auto-*) | 59,463 (22.7%) | 195,434 (74.6%) | 254,897 (97.2%) |
+| after (+ auto-*) | 59,808 (22.8%) | 195,837 (74.7%) | 255,645 (97.5%) |
 
-New bytes per source, in the order added: explore-a +2,358 code / +5,019 data; explore-b +64 / +140; explore-c +2 / +16;
-static probe +866 code (116 candidates: 15 rejected by decoding, 101 clean; the cpu_call probe almost always
-returns, so decoding is the real filter; fall-throughs of always-taken branches are skipped); tas1p-oldppu +5 / +5; 2P TAS, attract, Start-only 1P, Select+Start, 2P game over, mode B,
-ending, 1P TAS (new PPU), koh movies: 0 new code (the hand-play/FCEUX logs already had them). Random exploration
-saturates within minutes; the remaining 7,247 unseen bytes (99 runs >= 16 bytes, mostly bank 4 $CBF0 528 bytes,
-bank 6 $F4FE 210, bank 4 $C16D 160) are listed in `..\Gamefiles\Movies\coverage\report\final.txt`.
+Per bank, seen before -> after: 0 89.8 -> 97.4%, 1 99.3 -> 99.3%, 2 93.5 -> 98.3%, 3 92.5 -> 97.0%, 4 95.0 -> 96.0%,
+5 94.6 -> 97.0%, 6 87.7 -> 95.5%, 7 99.7 -> 99.7%.
 
-btdd-decomp frontier (tools/frontier_count.py, same rules as cdlfrontier/datacarve, read-only): with the old logs
-0 carvable executed runs and 0 data tables in raw blocks; with the new logs 29 runs (399 bytes) and 136 data
-tables (5,124 bytes), and raw bytes no log has seen drop from 12,210 to 6,584 (of 14,191 raw).
+New code / data-only bytes of each source compared with the 13 old logs (sources overlap: exploration round A
+found most of what feos-2p and lamp have before those movies arrived):
+- explore-a 2,363 / 5,027; later rounds b, c, d add 64, 2 and 31 code bytes no other log has.
+- feos-2p (2011 2P route that uses deaths) 853 / 403; its truncated version adds nothing more.
+- lamp (evgs TAS Editor glitch route, converted with tools/fm3tofm2.py; reaches level 9 by frame 1,275, then
+  runs bank 6 sub_f4fe / sub_f7bc / $F363) 447 / 231, 8 code bytes only it has.
+- static probe 727 code (109 candidates, 15 rejected by decoding, 94 clean; the cpu_call probe almost always
+  returns, so decoding is the real filter; fall-throughs of always-taken branches are skipped).
+- sub635 (2005 1P FCM, converted with tools/fcm2fm2.py; stage 1 and part of stage 2 on the new PPU, then it
+  desyncs) 15 / 72; tas1p-oldppu 5 / 6.
+- No new code: 2P TAS, 1P TAS (new PPU), koh movies, attract, Start-only 1P, Select+Start, 2P game over, mode B,
+  ending (the hand-play/FCEUX logs already had them). sub553 (2005 1P FCM) desyncs on the title screen on both
+  PPU models and is not used.
+
+Random exploration saturates within minutes. Still unseen: 6,499 bytes (92 runs >= 16 bytes = 3,872 bytes,
+largest bank 4 $CBF0 528), listed in `..\Gamefiles\Movies\coverage\report\final.txt`; per-source tables in
+`report\incremental.txt`.
+
+btdd-decomp frontier (tools/frontier_count.py, same run rules as cdlfrontier/datacarve, read-only; decomp state
+of 2026-11-23 ~23:00 with 13,972 raw bytes): old logs 0 carvable executed runs and 0 data tables in raw blocks;
+new logs 11 runs (267 bytes; the Qwen loop had already carved the earlier ones) and 156 data tables (5,513
+bytes); raw bytes no log has seen 11,995 -> 6,083.
 
 ## Rerun everything
 ```
