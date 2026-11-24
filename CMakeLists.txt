@@ -102,4 +102,9 @@ if(BTDD_SDL)
     add_executable(btdd_sdl_probe EXCLUDE_FROM_ALL src/platform/sdl_probe.c)
     target_link_libraries(btdd_sdl_probe PRIVATE SDL3::SDL3-static)
     btdd_warnings(btdd_sdl_probe)
+
+    # M2: the game in a window
+    add_executable(btdd_play src/platform/play_main.c src/platform/config.c)
+    target_link_libraries(btdd_play PRIVATE btdd_screen SDL3::SDL3-static)
+    btdd_warnings(btdd_play)
 endif()
