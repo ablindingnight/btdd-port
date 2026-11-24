@@ -55,6 +55,14 @@ add_executable(mods_test tests/mods/mods_test.c)
 target_link_libraries(mods_test PRIVATE btdd_screen btdd_mods)
 btdd_warnings(mods_test)
 
+# M13 netplay core (no SDL, no sockets) and its two-peer test over a simulated link
+add_library(btdd_net STATIC src/net/netplay.c)
+target_link_libraries(btdd_net PUBLIC btdd_core)
+btdd_warnings(btdd_net)
+add_executable(nettest tools/nettest/nettest_main.c)
+target_link_libraries(nettest PRIVATE btdd_net)
+btdd_warnings(nettest)
+
 add_executable(rewind_test tests/state/rewind_test.c)
 target_link_libraries(rewind_test PRIVATE btdd_screen)
 btdd_warnings(rewind_test)
