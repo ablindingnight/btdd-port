@@ -57,9 +57,16 @@ What the run taught (fixed in the harness/prompt during the night):
   passes. The first version of `sub_a305`/`sub_d73f` runs failed on extraction (prose taken as code), the 16k
   token cap, and missing declarations; the extractor now takes only a block that defines `void routine(`, the cap is
   32k and the prompt asks for short reasoning.
-- `sub_d73f` still fails: wrong A on try 1 (callers read A), then two retries spent the full 32k tokens thinking
-  without an answer. Next: retry with a fresh conversation (prompt + previous code + FAIL line) instead of the
-  growing chat, and cap thinking on retries.
+- `sub_d73f` still fails, but for understood reasons, each now handled:
+  1. it ends `lda #$00 / rts` and its caller writes A to the bank register, so A is a real output; the decomp
+     source shows those bytes as `.byte $A9` / `brk` (they double as table data) and the model trusted it. The
+     prompt now adds an authoritative ROM disassembly whenever the listing contains `.byte`; after that, A is right;
+  2. a growing retry chat made the model re-think everything until the 32k cap; retries now start a fresh
+     conversation (prompt + last code + its FAIL line);
+  3. the last answer passed all 4,000 corpus states and failed random state 3: its `(ptr),y` read hit `$3FBD`
+     where the original reads `$3EBD` (page carry of the indirect address). The corpus alone would have accepted
+     it; the random states caught it. Not fixed by the model within 3 tries tonight.
+  4. it used `ptr_1f_hi`, which `m6_names.h` lacked (aliases were skipped): all RAM-map names are included now.
 - Readability: the passing C is correct but mostly instruction-by-instruction with explicit flag updates. A second,
   "simplify" pass (same test as the gate) is the cheap next step once correctness is in hand.
 

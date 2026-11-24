@@ -69,6 +69,8 @@ def log(entry):
 
 def solve(bank, addr, tries):
     messages, outs, r = m6_prompt.build(bank, addr)
+    base = messages
+    last_code = last_msg = None
     work = os.path.join(M6, 'work', 'b%d_%04x' % (bank, addr))
     os.makedirs(work, exist_ok=True)
     total = {'prompt': 0, 'completion': 0, 'seconds': 0.0}
@@ -104,10 +106,17 @@ def solve(bank, addr, tries):
             return True, t + 1, total
         if result == 'setup':
             return False, t + 1, total
-        messages = messages + [
-            {'role': 'assistant', 'content': '```c\n%s```' % code if code else content[-2000:]},
-            {'role': 'user', 'content': 'The differential test failed:\n%s\nFix the function and answer with the '
-                                        'complete corrected ```c block.' % msg}]
+        # retry from a fresh conversation: the original prompt + the best code so far + its failure (a growing
+        # chat made the model re-derive everything and run out of tokens while thinking)
+        if code:
+            last_code, last_msg = code, msg
+        if last_code:
+            retry = ('\n\nA previous answer:\n```c\n%s```\nfailed the differential test:\n%s\nFind the bug (check it '
+                     'against the 6502 listing instruction by instruction around what the failure points at) and '
+                     'write the corrected complete function.' % (last_code, last_msg))
+        else:
+            retry = '\n\nA previous attempt gave no usable ```c block (%s). Keep the reasoning short this time.' % msg
+        messages = [base[0], {'role': 'user', 'content': base[1]['content'] + retry}]
     return False, tries, total
 
 

@@ -271,6 +271,15 @@ def build(bank, addr):
         parts.append('It reads ROM at: ' + ', '.join('$%04X' % t for t in sorted(set(tables))) +
                      ' (use bus_read for these)')
     parts.append('6502 source (ca65):\n```\n%s\n```' % asm)
+    if re.search(r'^\s*(@\w+:\s*)?\.byte', asm, flags=re.M):
+        # the decomp writes instructions as .byte where their bytes double as table data: show the real ones
+        fmt = {'imp': '', 'acc': ' a', 'imm': ' #$%02X', 'zp': ' $%02X', 'zpx': ' $%02X,x', 'zpy': ' $%02X,y',
+               'abs': ' $%04X', 'absx': ' $%04X,x', 'absy': ' $%04X,y', 'ind': ' ($%04X)', 'indx': ' ($%02X,x)',
+               'indy': ' ($%02X),y', 'rel': ' $%04X'}
+        dis = '\n'.join('$%04X  %s%s' % (a, m, (fmt[mode] % v) if '%' in fmt[mode] else fmt[mode])
+                        for a, (m, mode, n, v) in ins)
+        parts.append('NOTE: the source above writes some instructions as .byte (their bytes are also read as table '
+                     'data). The disassembly of the ROM is authoritative:\n```\n%s\n```' % dis)
     parts.append('The same code translated mechanically, one block per instruction (c->a/x/y/p are the registers, '
                  'n_adc/n_sbc/n_cmp/n_rol... do exactly what the 6502 instruction does including flags, n_rdram/'
                  'n_wrram are RAM, n_rd/n_wr are the bus, `goto L....` are branches, n_cyc is timing: ignore it). '

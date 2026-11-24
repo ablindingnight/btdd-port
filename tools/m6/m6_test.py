@@ -30,7 +30,7 @@ def ram_names(meta=os.path.join(REPO, 'meta', 'btdd.meta')):
             continue
         name = f[3]
         kv = dict(x.split('=', 1) for x in f[4:] if '=' in x)
-        if name in seen or not re.match(r'^[A-Za-z_]\w*$', name) or kv.get('kind') in ('alias', 'io'):
+        if name in seen or not re.match(r'^[A-Za-z_]\w*$', name):  # aliases (ptr_xx_hi) and io names included
             continue
         seen.add(name)
         out.append((name, int(f[1][1:], 16), int(f[2]), kv.get('kind'), kv.get('naming')))
