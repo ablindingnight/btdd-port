@@ -41,7 +41,13 @@ typedef struct ModDef {
     int hook_count;
 } ModDef;
 
-enum { MODS_DISPLAY_NO_SPRITE_LIMIT = 1 };
+enum {
+    MODS_DISPLAY_NO_SPRITE_LIMIT = 1,
+    MODS_DISPLAY_WIDESCREEN = 2,   /* M9: src/platform/wide.c */
+    MODS_DISPLAY_WIDE_SPRITES = 4,
+    MODS_DISPLAY_WIDE_HUD = 8,
+    MODS_DISPLAY_WIDE_FADE = 16,
+};
 
 int mods_count(void);
 /* Adds a mod defined elsewhere (tests, future plugin code); returns its index or -1. */

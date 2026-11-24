@@ -73,6 +73,7 @@ add_library(btdd_mods STATIC
     src/mods/mods.c
     src/mods/mod_lives.c
     src/mods/mod_nolimit.c
+    src/mods/mod_wide.c
 )
 target_link_libraries(btdd_mods PUBLIC btdd_core)
 btdd_warnings(btdd_mods)

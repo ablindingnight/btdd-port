@@ -8,7 +8,7 @@
  * players 1 and 2 (east button = A, south button = B, Back = Select, Start, d-pad or left stick).
  * Hotkeys: Esc settings menu (gamepad: Guide, or Back+Start), P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter
  * (nearest / sharp / bilinear), F4 scanlines, F5 redefine keys, F11 or Alt+Enter fullscreen, F12 screenshot.
- * Mods (M7, docs/M7_MODS.md): F8 no sprite flicker, F9 starting lives (mod_* keys in btdd.cfg, --mod ID[=N]).
+ * Mods (M7, docs/M7_MODS.md): F8 no sprite flicker, F9 starting lives, F10 widescreen (M9) (mod_* keys in btdd.cfg, --mod ID[=N]).
  * States (M8): F6 save / F7 load the current slot, 0-9 or Shift+F6 / Shift+F7 pick the slot (10 slots, in
  * <settings folder>\states\<ROM SHA-1>); hold Backspace to rewind (rewind_seconds of history, sound muted),
  * hold Tab to fast-forward (ff_speed x; one frame's sound in ff_speed is played, so pacing stays on the sound
@@ -30,6 +30,7 @@
 #include "platform/png.h"
 #include "platform/rewind.h"
 #include "platform/screen.h"
+#include "platform/wide.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
 #include "video.h"
@@ -47,7 +48,8 @@
 static Rom rom;
 static Nes nes;
 static Screen screen;
-static uint32_t pixels[PPU_W * PPU_H];
+static uint32_t pixels[WIDE_W * PPU_H]; /* 256 wide, or WIDE_W with the widescreen mod */
+static int pixels_w = PPU_W;
 static float samples[AUDIO_RATE / 10];
 
 /* ---- APU: owned by Nes (nes_enable_apu); the frame loop collects its samples ---- */
@@ -70,6 +72,26 @@ static void power_on(PpuModel model)
 static void say(const char *text);
 
 /* F8 / F9: toggle a mod, apply it at once, keep it in btdd.cfg */
+/* The finished frame as RGB in `pixels`: the game's 256x240 picture, or the 424x240 one with the widescreen mod
+ * (M9, src/platform/wide.c) when the video path supports it. */
+static void make_picture(Video *v)
+{
+    static WideState ws;
+    static uint8_t widx[PPU_H][WIDE_W];
+    int f = mods_display_flags();
+    if ((f & MODS_DISPLAY_WIDESCREEN) && video_set_width(v, WIDE_W) == 0) {
+        ws.sprites = (f & MODS_DISPLAY_WIDE_SPRITES) != 0;
+        ws.hud = (f & MODS_DISPLAY_WIDE_HUD) != 0;
+        wide_render(&ws, &nes, &screen, widx);
+        wide_to_rgb(&screen, widx, pixels, WIDE_W, (f & MODS_DISPLAY_WIDE_FADE) != 0);
+        pixels_w = WIDE_W;
+    } else {
+        video_set_width(v, PPU_W);
+        screen_to_rgb(&screen, pixels, PPU_W);
+        pixels_w = PPU_W;
+    }
+}
+
 static void toggle_mod(const char *id, Config *cfg, int have_cfg)
 {
     int i = mods_find(id);
@@ -396,7 +418,7 @@ static void save_screenshot(const Config *cfg)
         return;
     snprintf(slash + 1, sizeof path - (size_t)(slash + 1 - path), "shot_%llu_%d.png",
              (unsigned long long)nes.ppu.frame, n++);
-    if (png_write_rgb(path, pixels, PPU_W, PPU_H, PPU_W) == 0) {
+    if (png_write_rgb(path, pixels, pixels_w, PPU_H, pixels_w) == 0) {
         snprintf(text, sizeof text, "screenshot saved (settings folder)");
         SDL_Log("screenshot: %s", path);
         say(text);
@@ -1115,6 +1137,8 @@ int main(int argc, char **argv)
                     toggle_mod("nolimit", &cfg, have_cfg);
                 } else if (ev.key.key == SDLK_F9) {
                     toggle_mod("lives", &cfg, have_cfg);
+                } else if (ev.key.key == SDLK_F10) {
+                    toggle_mod("widescreen", &cfg, have_cfg);
                 } else if (ev.key.key == SDLK_F12) {
                     save_screenshot(&cfg);
                 } else if (ev.key.key == SDLK_F6 || ev.key.key == SDLK_F7) {
@@ -1190,7 +1214,7 @@ int main(int argc, char **argv)
             } else {
                 say("<< rewind: start of the history");
             }
-            screen_to_rgb(&screen, pixels, PPU_W);
+            make_picture(&video);
             video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
             continue;
         }
@@ -1263,7 +1287,7 @@ int main(int argc, char **argv)
             if (states_test && st_phase == 4)
                 steps = cfg.ff_speed; /* the rest of the movie with fast-forward's frame loop */
         }
-        screen_to_rgb(&screen, pixels, PPU_W);
+        make_picture(&video);
         video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
         if (!pads_ready) { /* first frame is on screen: now the slow gamepad init (see SDL_Init above) */
             Uint64 t = SDL_GetTicksNS();

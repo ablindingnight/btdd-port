@@ -23,8 +23,12 @@
 typedef struct WideState {
     int dy, dx, have_dy;      /* calibration, kept between frames */
     int retry_wait;           /* frames until the next full search after a miss */
+    int sprites;              /* draw the entities the game culls (outside its window) into the margins */
+    int hud;                  /* move the status bar halves to the edges */
+    int hud_lines;            /* last frame: lines treated as the status bar */
     /* last frame's statistics */
     int lines_widened;        /* lines whose margins were drawn from the map */
+    int margin_entities;      /* entities drawn into the margins */
     int calib_match;          /* per mille of matching sample pixels at the chosen dx, dy */
     int level, map_cols, map_rows;
 } WideState;
@@ -33,6 +37,6 @@ typedef struct WideState {
 void wide_render(WideState *ws, const Nes *nes, const Screen *s, uint8_t out[PPU_H][WIDE_W]);
 /* 0xFFRRGGBB conversion like screen_to_rgb, for a WIDE_W-wide index picture */
 void wide_debug(const Nes *nes); /* development: stderr dump of the map/nametable relation */
-void wide_to_rgb(const Screen *s, const uint8_t idx[PPU_H][WIDE_W], uint32_t *out, int pitch);
+void wide_to_rgb(const Screen *s, const uint8_t idx[PPU_H][WIDE_W], uint32_t *out, int pitch, int fade);
 
 #endif

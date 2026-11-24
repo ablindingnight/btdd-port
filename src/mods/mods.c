@@ -6,9 +6,11 @@
 /* ---- the built-in mods (mod_*.c) ---- */
 extern const ModDef mod_lives;
 extern const ModDef mod_nolimit;
+extern const ModDef mod_widescreen, mod_widesprites, mod_widehud, mod_widefade;
 #define MAX_MODS 32
-static const ModDef *all[MAX_MODS] = {&mod_nolimit, &mod_lives};
-static int n_mods = 2; /* built-in mods first, then mods_add() */
+static const ModDef *all[MAX_MODS] = {&mod_nolimit, &mod_lives, &mod_widescreen, &mod_widesprites, &mod_widehud,
+                                      &mod_widefade};
+static int n_mods = 6; /* built-in mods first, then mods_add() */
 
 static int enabled[MAX_MODS];
 static int values[MAX_MODS];
@@ -85,8 +87,18 @@ int mods_display_flags(void)
 {
     int i, f = 0;
     for (i = 0; i < n_mods; i++)
-        if (enabled[i] && all[i] == &mod_nolimit)
-            f |= MODS_DISPLAY_NO_SPRITE_LIMIT;
+        if (enabled[i]) {
+            if (all[i] == &mod_nolimit)
+                f |= MODS_DISPLAY_NO_SPRITE_LIMIT;
+            else if (all[i] == &mod_widescreen)
+                f |= MODS_DISPLAY_WIDESCREEN;
+            else if (all[i] == &mod_widesprites)
+                f |= MODS_DISPLAY_WIDE_SPRITES;
+            else if (all[i] == &mod_widehud)
+                f |= MODS_DISPLAY_WIDE_HUD;
+            else if (all[i] == &mod_widefade)
+                f |= MODS_DISPLAY_WIDE_FADE;
+        }
     return f;
 }
 

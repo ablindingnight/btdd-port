@@ -37,6 +37,7 @@ int video_open(Video *v, const char *title, int scale, int aspect, int fullscree
         v->ren = SDL_CreateRenderer(v->win, NULL); /* unknown driver name: fall back */
     if (!v->ren)
         return -1;
+    v->pic_w = NES_W;
     v->tex = SDL_CreateTexture(v->ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, NES_W, NES_H);
     if (!v->tex)
         return -1;
@@ -50,12 +51,13 @@ int video_open(Video *v, const char *title, int scale, int aspect, int fullscree
 static SDL_FRect output_rect(const Video *v, int ww, int wh)
 {
     SDL_FRect r;
-    float pic_w = v->aspect ? NES_H * 4.0f / 3.0f : (float)NES_W, pic_h = NES_H;
+    int w = v->pic_w ? v->pic_w : NES_W; /* 256, or 424 with the M9 widescreen mod */
+    float pic_w = v->aspect ? w * (NES_H * 4.0f / 3.0f) / NES_W : (float)w, pic_h = NES_H;
     if (v->filter == FILTER_NEAREST && !v->aspect) {
-        int k = SDL_min(ww / NES_W, wh / NES_H);
+        int k = SDL_min(ww / w, wh / NES_H);
         if (k < 1)
             k = 1;
-        r.w = (float)(NES_W * k);
+        r.w = (float)(w * k);
         r.h = (float)(NES_H * k);
     } else {
         float k = SDL_min(ww / pic_w, wh / pic_h);
@@ -73,7 +75,7 @@ static void ensure_big(Video *v, int k)
         return;
     if (v->big)
         SDL_DestroyTexture(v->big);
-    v->big = SDL_CreateTexture(v->ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, NES_W * k, NES_H * k);
+    v->big = SDL_CreateTexture(v->ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, v->pic_w * k, NES_H * k);
     v->big_scale = v->big ? k : 0;
 }
 
@@ -121,7 +123,7 @@ void video_present(Video *v, const uint32_t *pixels, const char *const *text, in
         return;
     }
 
-    SDL_UpdateTexture(v->tex, NULL, pixels, NES_W * (int)sizeof(uint32_t));
+    SDL_UpdateTexture(v->tex, NULL, pixels, v->pic_w * (int)sizeof(uint32_t));
     SDL_GetRenderOutputSize(v->ren, &ww, &wh);
     dst = output_rect(v, ww, wh);
 
@@ -140,7 +142,7 @@ void video_present(Video *v, const uint32_t *pixels, const char *const *text, in
                 SDL_SetRenderDrawBlendMode(v->ren, SDL_BLENDMODE_BLEND);
                 SDL_SetRenderDrawColor(v->ren, 0, 0, 0, 96);
                 for (i = 0; i < NES_H; i++) {
-                    SDL_FRect line = {0, (float)(i * k + k - SDL_max(1, k / 3)), (float)(NES_W * k),
+                    SDL_FRect line = {0, (float)(i * k + k - SDL_max(1, k / 3)), (float)(v->pic_w * k),
                                       (float)SDL_max(1, k / 3)};
                     SDL_RenderFillRect(v->ren, &line);
                 }
@@ -169,6 +171,31 @@ void video_present(Video *v, const uint32_t *pixels, const char *const *text, in
         SDL_SetRenderScale(v->ren, 1, 1);
     }
     SDL_RenderPresent(v->ren);
+}
+
+int video_set_width(Video *v, int w)
+{
+    SDL_Texture *t;
+    if (v->gpu || !v->ren)
+        return w == NES_W ? 0 : -1; /* the GPU path is 256 wide for now (M10 prototype) */
+    if (w == v->pic_w)
+        return 0;
+    t = SDL_CreateTexture(v->ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, w, NES_H);
+    if (!t)
+        return -1;
+    SDL_DestroyTexture(v->tex);
+    v->tex = t;
+    if (!(SDL_GetWindowFlags(v->win) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED))) {
+        int ww, wh; /* keep the height, follow the picture's width */
+        SDL_GetWindowSize(v->win, &ww, &wh);
+        SDL_SetWindowSize(v->win, ww * w / (v->pic_w ? v->pic_w : NES_W), wh);
+    }
+    v->pic_w = w;
+    if (v->big)
+        SDL_DestroyTexture(v->big);
+    v->big = NULL;
+    v->big_scale = 0;
+    return 0;
 }
 
 void video_close(Video *v)
