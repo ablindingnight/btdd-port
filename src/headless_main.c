@@ -21,6 +21,8 @@
  *                     [--ram-pcs out.txt]         (RAM addresses where instructions started; the explorer uses
  *                                                  the TAS list to spot crashes)
  *                     [--ppu old|new|auto]        (FCEUX PPU timing model; auto = the movie's NewPPU flag)
+ *                     [--prg-poke 6:9B52=00,...]  (change PRG bytes in memory only, for data-format experiments;
+ *                                                  the ROM file is never written)
  *
  * RAM dump format (shared with tools/fceux/ramdump.lua and tools/ramdiff.py): a sequence of records,
  * each a little-endian uint32 frame number followed by the 2048 bytes of CPU RAM. The frame number is
@@ -104,7 +106,7 @@ int main(int argc, char **argv)
     static Play play;
     int use_play = 0;
     long movie_until = -1, shot_every = 0, press_every = 0, press1 = 0, press2 = 0;
-    const char *shot_dir = NULL, *ram_pcs_path = NULL, *ind_path = NULL;
+    const char *shot_dir = NULL, *ram_pcs_path = NULL, *ind_path = NULL, *prg_poke = NULL;
     static Coverage cov;
     char hash[41] = "", err[256];
     Fm2 movie = {0};
@@ -179,6 +181,8 @@ int main(int argc, char **argv)
             cdl_clear = 1;
         else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
             ppu_opt = argv[++i];
+        else if (!strcmp(argv[i], "--prg-poke") && i + 1 < argc)
+            prg_poke = argv[++i];
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
         else if (argv[i][0] != '-' && !rom_path)
@@ -196,6 +200,27 @@ int main(int argc, char **argv)
     if (r != ROM_OK) {
         fprintf(stderr, "ROM rejected: %s\n", rom_result_text(r));
         return 1;
+    }
+    if (prg_poke) { /* bank:addr=value[,bank:addr=value...], hex; in memory only */
+        const char *s = prg_poke;
+        while (*s) {
+            char *e;
+            long b = strtol(s, &e, 16), a, v;
+            if (*e != ':')
+                break;
+            a = strtol(e + 1, &e, 16);
+            if (*e != '=')
+                break;
+            v = strtol(e + 1, &e, 16);
+            if (b < 0 || b >= ROM_BANKS || a < 0x8000 || a > 0xFFFF || v < 0 || v > 255)
+                break;
+            rom.prg[b][a & 0x7FFF] = (uint8_t)v;
+            s = *e ? e + 1 : e;
+        }
+        if (*s) {
+            fprintf(stderr, "bad --prg-poke at \"%s\"\n", s);
+            return 2;
+        }
     }
     if (movie_path) {
         if (fm2_load(movie_path, &movie, err, sizeof err) != 0) {
