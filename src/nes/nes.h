@@ -42,6 +42,7 @@ struct Nes {
     /* debugging: called on every CPU write to RAM addresses with watch[addr & 0x7FF] set */
     uint8_t watch[0x800];
     void (*watch_hook)(Nes *nes, uint16_t addr, uint8_t value);
+    void *user;              /* for tools (coverage recorder etc.) */
 };
 
 void nes_init(Nes *nes, const Rom *rom);

@@ -3,12 +3,17 @@
  *   btdd_headless ROM [--movie X.fm2] [--frames N] [--dump-ram out.bin] [--dump-every K] [--quiet]
  *                     [--watch 05,1F,0300-030F]   (print every CPU write to those RAM addresses)
  *                     [--exec 8291,82AC]          (print when an instruction at that address starts)
+ *                     [--cdl out.cdl]             (code/data log, FCEUX format; see src/cov/coverage.h)
+ *                     [--cdl-mesen out.cdl]       (same run as a Mesen-format log: adds jump-target/entry bits)
+ *                     [--cdl-fceux-clear]         (clear a byte's FCEUX flags when the game writes to it, as FCEUX)
+ *                     [--reads out.tsv]           (PRG data reads: byte, reader PC, routine, $000D, $0015, count)
  *
  * RAM dump format (shared with tools/fceux/ramdump.lua and tools/ramdiff.py): a sequence of records,
  * each a little-endian uint32 frame number followed by the 2048 bytes of CPU RAM. The frame number is
  * the number of frames emulated so far (FCEUX's emu.framecount() after emu.frameadvance()).
  * --dump-every K writes a record every K frames; the final frame is always written.
  */
+#include "cov/coverage.h"
 #include "nes/nes.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
@@ -55,6 +60,9 @@ int main(int argc, char **argv)
     long frames = -1, every = 0, i;
     int quiet = 0;
     const char *watch_spec = NULL, *exec_spec = NULL;
+    const char *cdl_path = NULL, *cdl_mesen_path = NULL, *reads_path = NULL;
+    int cdl_clear = 0;
+    static Coverage cov;
     char hash[41] = "", err[256];
     Fm2 movie = {0};
     FILE *dump = NULL;
@@ -74,6 +82,14 @@ int main(int argc, char **argv)
             watch_spec = argv[++i];
         else if (!strcmp(argv[i], "--exec") && i + 1 < argc)
             exec_spec = argv[++i];
+        else if (!strcmp(argv[i], "--cdl") && i + 1 < argc)
+            cdl_path = argv[++i];
+        else if (!strcmp(argv[i], "--cdl-mesen") && i + 1 < argc)
+            cdl_mesen_path = argv[++i];
+        else if (!strcmp(argv[i], "--reads") && i + 1 < argc)
+            reads_path = argv[++i];
+        else if (!strcmp(argv[i], "--cdl-fceux-clear"))
+            cdl_clear = 1;
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
         else if (argv[i][0] != '-' && !rom_path)
@@ -138,6 +154,12 @@ int main(int argc, char **argv)
         nes.cpu.exec_watch = exec_map;
         nes.cpu.exec_hook = print_exec;
     }
+    if (cdl_path || cdl_mesen_path || reads_path) {
+        cov_init(&cov, &rom);
+        cov.fceux_clear_on_write = cdl_clear;
+        cov.log_reads = reads_path != NULL;
+        cov_attach(&cov, &nes);
+    }
     t0 = clock();
     for (i = 0; i < frames; i++) {
         cur_frame = i;
@@ -167,6 +189,27 @@ int main(int argc, char **argv)
     }
     if (dump)
         fclose(dump);
+    if ((cdl_path && cov_write_fceux(&cov, cdl_path) != 0) ||
+        (cdl_mesen_path && cov_write_mesen(&cov, cdl_mesen_path) != 0) ||
+        (reads_path && cov_write_reads(&cov, reads_path) != 0)) {
+        fprintf(stderr, "cannot write the coverage output\n");
+        return 1;
+    }
+    if (cdl_path || cdl_mesen_path || reads_path) {
+        int b;
+        long code, data, both, seen, tot = 0;
+        for (b = 0; b < 8; b++) {
+            cov_count(cov.fceux, b, &code, &data, &both, &seen);
+            tot += seen;
+            if (!quiet)
+                printf("cdl bank %d: code %ld  data %ld  both %ld  seen %ld (%.1f%%)\n", b, code, data, both, seen,
+                       100.0 * seen / 0x8000);
+        }
+        if (!quiet)
+            printf("cdl total seen %ld of %d (%.1f%%), reads table %u rows\n", tot, COV_PRG_SIZE,
+                   100.0 * tot / COV_PRG_SIZE, cov.reads_used);
+        cov_free(&cov);
+    }
 
     if (!quiet) {
         double secs = (double)(clock() - t0) / CLOCKS_PER_SEC;
