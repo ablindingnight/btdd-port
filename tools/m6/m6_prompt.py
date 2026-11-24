@@ -241,8 +241,16 @@ def build(bank, addr):
     raw = open(m6_test.ROM, 'rb').read()[16:]
     mem = raw[bank * 0x8000:(bank + 1) * 0x8000]
     r = next(x for x in m6_pick.routines() if x['bank'] == bank and x['start'] == addr)
-    leaf, flags, ins = m6_pick.analyse(mem, r)
-    names = {a: n for n, a, size, kind, naming in m6_test.ram_names() if size >= 1}
+    ins, a = [], r['start']
+    while a <= r['end']:
+        d = decode(mem, a)
+        if d is None:
+            break
+        ins.append((a, d))
+        a += d[2]
+    starts = {x['start']: x for x in m6_pick.routines() if x['bank'] == bank}
+    ok, callee_addrs = m6_pick.callees_of(mem, r, set(starts))
+    r['callees'] = [(starts[c]['name'], c) for c in callee_addrs] if ok else []
     spans = [(a, a + size - 1, n, kind) for n, a, size, kind, naming in m6_test.ram_names()]
     used, tables = [], []
     for a, (m, mode, n, v) in ins:
@@ -284,6 +292,20 @@ def build(bank, addr):
                  'n_adc/n_sbc/n_cmp/n_rol... do exactly what the 6502 instruction does including flags, n_rdram/'
                  'n_wrram are RAM, n_rd/n_wr are the bus, `goto L....` are branches, n_cyc is timing: ignore it). '
                  'Use it to check the semantics, then write clean C:\n```c\n%s\n```' % mech)
+    if r['callees']:
+        lines = ['It calls other routines. Call each as a C function instead of a JSR; they take and return the '
+                 'registers and flags in m exactly like the 6502 subroutine (set m->a/x/y before the call if the '
+                 'callee reads them, and use what it leaves in m afterwards):']
+        for name, ca in r['callees']:
+            co, _ = caller_outputs(bank, ca, mem)
+            lines.append('- `void %s(M6 *m);` ($%04X), callers use its: %s' % (
+                name, ca, ', '.join('m->' + o for o in co) or 'nothing (only its RAM/hardware effects)'))
+            mine = os.path.join(m6_test.PRIVATE, name + '.c')
+            if os.path.isfile(mine):
+                body = [l for l in open(mine, encoding='utf-8').read().splitlines()[1:]]
+                if len(body) <= 60:
+                    lines.append('  its C (`routine` is `%s`):\n```c\n%s\n```' % (name, '\n'.join(body)))
+        parts.append('\n'.join(lines))
     parts.append('Outputs the test compares besides RAM and hardware accesses: %s.' %
                  (', '.join('m->' + o for o in outs) if outs else 'none (registers are not compared)'))
     parts.append('Write `void routine(M6 *m)` now.')

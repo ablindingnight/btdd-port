@@ -56,14 +56,37 @@ def corpus_files(bank, addr, dirs):
     return out
 
 
-def build(candidate, work):
+PRIVATE = os.path.join(REPO, 'private', 'm6')
+
+
+def callee_sources(callees, work):
+    """One C file per callee: its passing C from private/m6 renamed to the callee's name, or a stub that runs the
+    original code through m6_call. Plus m6_callees.h with the prototypes (included into every unit)."""
+    files, protos = [], []
+    for name, addr in callees:
+        protos.append('void %s(M6 *m); /* $%04X */' % (name, addr))
+        path = os.path.join(work, 'callee_%s.c' % name)
+        mine = os.path.join(PRIVATE, name + '.c')
+        with open(path, 'w', newline='\n') as f:
+            if os.path.isfile(mine):
+                f.write('#define routine %s\n#include "%s"\n#undef routine\n' % (name, mine.replace('\\', '/')))
+            else:
+                f.write('void %s(M6 *m) { m6_call(m, 0x%04X); }\n' % (name, addr))
+        files.append(path)
+    with open(os.path.join(work, 'm6_callees.h'), 'w', newline='\n') as f:
+        f.write('\n'.join(protos) + '\n')
+    return files
+
+
+def build(candidate, work, callees=None):
     os.makedirs(work, exist_ok=True)
     write_names(os.path.join(work, 'm6_names.h'))
+    extra = callee_sources(callees or [], work)
     exe = os.path.join(work, 'm6_harness.exe')
     src = os.path.join(REPO, 'src')
     cmd = CC + ['-O1', '-std=c11', '-w', '-D_CRT_SECURE_NO_WARNINGS', '-I' + src, '-I' + HERE, '-I' + work,
-                '-include', 'm6_api.h', '-include', 'm6_names.h',
-                os.path.join(HERE, 'm6_harness.c'), candidate,
+                '-include', 'm6_api.h', '-include', 'm6_names.h', '-include', 'm6_callees.h',
+                os.path.join(HERE, 'm6_harness.c'), candidate] + extra + [
                 os.path.join(src, 'runtime', 'cpu.c'), os.path.join(src, 'rom', 'rom.c'),
                 os.path.join(src, 'rom', 'sha1.c'), '-o', exe]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -73,14 +96,16 @@ def build(candidate, work):
     return exe, ''
 
 
-def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000, show=None):
+def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000, show=None, callees=None):
     """-> (code, message). code 0 pass, 1 mismatch, 2 setup, 3 compile error."""
     dirs = dirs or [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
     work = work or os.path.join(M6, 'work')
     files = corpus_files(bank, addr, dirs)
     if not files:
         return 2, 'no corpus for bank %d $%04X' % (bank, addr)
-    exe, err = build(candidate, work)
+    if 'm6_call' in open(candidate, encoding='utf-8', errors='replace').read():
+        return 3, 'COMPILE ERROR: the routine must not use m6_call (that runs the original code); call callees by name'
+    exe, err = build(candidate, work, callees)
     if not exe:
         return 3, 'COMPILE ERROR: ' + err
     env = dict(os.environ, M6_FUZZ=str(fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])))

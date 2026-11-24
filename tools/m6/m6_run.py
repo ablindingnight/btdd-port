@@ -90,7 +90,8 @@ def solve(bank, addr, tries):
             cand = os.path.join(work, 'try%d.c' % (t + 1))
             with open(cand, 'w', newline='\n') as f:
                 f.write(code)
-            rc, msg = m6_test.run_test(bank, addr, cand, outs or '-', work=work, show=m6_prompt.ram_reads(bank, addr))
+            rc, msg = m6_test.run_test(bank, addr, cand, outs or '-', work=work, show=m6_prompt.ram_reads(bank, addr),
+                                       callees=r.get('callees'))
             result = {0: 'pass', 1: 'mismatch', 3: 'compile'}.get(rc, 'setup')
         entry.update({'result': result, 'message': msg[:400]})
         log(entry)
@@ -126,7 +127,11 @@ def main():
     ap.add_argument('--list', default=os.path.join(M6, 'leaf40.txt'))
     ap.add_argument('--only')
     ap.add_argument('--tries', type=int, default=3)
+    ap.add_argument('--callgraph', action='store_true',
+                    help='after the list: routines whose callees all have passing C, re-ranked after every pass')
     a = ap.parse_args()
+    if a.callgraph and not a.only:
+        return callgraph_mode(a)
     if a.only:
         todo = [(int(x.split(':')[0]), int(x.split(':')[1], 16)) for x in a.only.split(',')]
     else:
@@ -144,9 +149,34 @@ def main():
                     None)
         if name in done:
             continue
+        if not m6_test.corpus_files(bank, addr, [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]):
+            continue
         print('%s (bank %d $%04X)' % (name, bank, addr))
         ok, n, tot = solve(bank, addr, a.tries)
         results.append((name, ok, n, tot))
+    summary(results)
+
+
+def callgraph_mode(a):
+    """Non-leaf routines whose callees all pass, one at a time (the ready set grows as routines pass)."""
+    tried, results = set(), []
+    dirs = [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
+    while len(results) < a.routines:
+        passing = set(os.path.splitext(n)[0] for n in os.listdir(PRIVATE)) if os.path.isdir(PRIVATE) else set()
+        ready = [(c, r, names) for c, r, names in m6_prompt.m6_pick.callgraph_ready(passing)
+                 if r['name'] not in tried and m6_test.corpus_files(r['bank'], r['start'], dirs)]
+        if not ready:
+            print('no more routines whose callees all pass (and that have a corpus)')
+            break
+        c, r, names = ready[0]
+        tried.add(r['name'])
+        print('%s (bank %d $%04X) calls %s' % (r['name'], r['bank'], r['start'], ', '.join(names)))
+        ok, n, tot = solve(r['bank'], r['start'], a.tries)
+        results.append((r['name'], ok, n, tot))
+    summary(results)
+
+
+def summary(results):
     passed = sum(1 for r in results if r[1])
     print('\n%d/%d passed' % (passed, len(results)))
     for name, ok, n, tot in results:

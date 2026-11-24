@@ -71,6 +71,54 @@ def analyse(mem, r):
     return ins[-1][1][0] == 'rts', flags, ins
 
 
+def callees_of(mem, r, starts):
+    """-> (ok, [callee start addresses]) for a routine whose only way out besides RTS is JSR to routine starts of
+    the same bank (no far calls, indirect jumps, jumps out of its range)."""
+    a, out = r['start'], []
+    last = None
+    while a <= r['end']:
+        d = decode(mem, a)
+        if d is None:
+            return False, []
+        m, mode, n, v = d
+        if m in ('brk', 'rti') or (m == 'jmp' and mode == 'ind'):
+            return False, []
+        if m == 'jsr':
+            if v not in starts:
+                return False, []
+            if v not in out:
+                out.append(v)
+        elif (m == 'jmp' or m in BRANCHES) and not (r['start'] <= v <= r['end']):
+            return False, []
+        last = m
+        a += n
+    return last == 'rts', out
+
+
+def callgraph_ready(passing, max_size=128):
+    """Non-leaf routines (conf=verified) all of whose callees have passing C, ranked by call count.
+    passing: set of routine names with passing C. -> [(calls, routine, [callee names])]"""
+    raw = open(ROM, 'rb').read()[16:]
+    mems = [raw[b * 0x8000:(b + 1) * 0x8000] for b in range(8)]
+    rs = routines()
+    by_start = {(r['bank'], r['start']): r for r in rs}
+    calls = call_counts()
+    out = []
+    for r in rs:
+        size = r['end'] - r['start'] + 1
+        if r['conf'] != 'verified' or size > max_size or r['name'] in passing:
+            continue
+        starts = set(a for (b, a) in by_start if b == r['bank'])
+        ok, cs = callees_of(mems[r['bank']], r, starts)
+        if not ok or not cs:
+            continue
+        names = [by_start[(r['bank'], c)]['name'] for c in cs]
+        if all(n in passing for n in names):
+            out.append((calls.get((r['bank'], r['start']), 0), r, names))
+    out.sort(key=lambda x: -x[0])
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--max-size', type=int, default=96)

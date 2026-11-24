@@ -26,4 +26,8 @@ void bus_write(M6 *m, uint16_t addr, uint8_t value);
 
 void routine(M6 *m);
 
+/* For routines that call others: each callee is a C function of the same shape, e.g. sub_8624(m). Callees
+ * without a passing C translation run as original code through m6_call (provided by the harness). */
+void m6_call(M6 *m, uint16_t addr);
+
 #endif
