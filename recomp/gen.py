@@ -4,7 +4,7 @@ The output is derived from the ROM, so it is written OUTSIDE the repo (default .
 and must never be committed.
 
   python recomp/gen.py [--rom PATH] [--meta meta/btdd.meta] [--out DIR] [--conf verified,static]
-                       [--exclude-timing] [--list]
+                       [--exclude-timing] [--exclude b:addr,...]
 
 Each routine becomes `void r<bank>_<addr>(Cpu *c)`: a switch on c->pc to the instruction it should start at,
 then straight-line C with gotos for branches/jumps inside the routine. Every instruction is an entry point
@@ -30,7 +30,6 @@ DEF_ROM = os.path.join(REPO, '..', 'Gamefiles', 'Battletoads-Double Dragon (USA)
 DEF_META = os.path.join(REPO, 'meta', 'btdd.meta')
 DEF_OUT = os.path.join(REPO, '..', 'Gamefiles', 'Movies', 'm5', 'generated')
 
-BASE = None  # cpu_base_cycles, filled from the opcode table below (must equal src/runtime/cpu.c)
 BASE_CYCLES = [
     7, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6, 2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,
     6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6, 2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,

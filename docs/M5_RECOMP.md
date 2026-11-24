@@ -1,7 +1,7 @@
 # M5 prototype: ROM + btdd.meta -> native C (2026-11-23)
 
 ## Result
-- **Both TAS gates are exact with native dispatch on.** CPU RAM equals FCEUX 2.6.6 after every frame of the 2P
+- **Both TAS gates are exact with native dispatch on**, also when the C is produced by `btdd_gen` (the C port). CPU RAM equals FCEUX 2.6.6 after every frame of the 2P
   TAS on the old PPU (59,351/59,351 frames) and of the 1P TAS on the new PPU (83,576/83,576), checked with
   `tools/ramdiff.py` against `..\Gamefiles\Movies\m1\fceux_2p.bin` / `fceux_1p.bin`.
 - **Share of executed instructions run natively** (default: routines with `conf=verified|static`):
