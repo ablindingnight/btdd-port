@@ -63,9 +63,14 @@ What the run taught (fixed in the harness/prompt during the night):
      prompt now adds an authoritative ROM disassembly whenever the listing contains `.byte`; after that, A is right;
   2. a growing retry chat made the model re-think everything until the 32k cap; retries now start a fresh
      conversation (prompt + last code + its FAIL line);
-  3. the last answer passed all 4,000 corpus states and failed random state 3: its `(ptr),y` read hit `$3FBD`
-     where the original reads `$3EBD` (page carry of the indirect address). The corpus alone would have accepted
-     it; the random states caught it. Not fixed by the model within 3 tries tonight.
+  3. the last answer passed all 4,000 corpus states and failed random state 3 with "read of `$3FBD` where the
+     original's next access was `$3EBD`". **That was a harness artifact, not a model bug**: the random state put
+     `ptr_1f` into PPU register space, and a page-crossing `lda (ptr),y` makes a 6502 *dummy read* at the
+     unfixed address (`$3EBD`) before the real one (`$3FBD`). C cannot express that read, and the game never
+     does it (this routine's corpus has no hardware access at all; the pointer always points at ROM tables).
+     The harness now skips random states that touch a hardware address the corpus never shows the routine
+     touching; with that, this answer passes (4,000 corpus + 1,272 random states, 728 skipped). It is in
+     `private/m6/` as passing (the run log still shows it as failed, since it was re-tested after the run).
   4. it used `ptr_1f_hi`, which `m6_names.h` lacked (aliases were skipped): all RAM-map names are included now.
 - Readability: the passing C is correct but mostly instruction-by-instruction with explicit flag updates. A second,
   "simplify" pass (same test as the gate) is the cheap next step once correctness is in hand.
@@ -73,6 +78,18 @@ What the run taught (fixed in the harness/prompt during the night):
 ## Not done / next
 - `facts.py` output is not in the prompt: running decomp tools needs the user's OK (AGENTS.md); the prompt uses
   the meta's facts (names, RAM map, call counts) instead.
-- Non-leaf routines: the callee interface (a C prototype per callee, with the corpus recording calls as events) is
-  the next step; leaf routines prove the loop first.
+- Non-leaf routines: done for same-bank callees (below). Far calls (`$FFCB`), indirect jumps and tail jumps out
+  of the routine are not handled yet, which leaves few non-leaf routines ready: with 100 leaf routines passing,
+  only 18 more become ready in call-graph order.
+
+## Call-graph order (added 2026-11-24 ~01:50)
+- A JSR becomes a C call `sub_xxxx(m)` with the same register/flag contract as the 6502 subroutine. `m6_test.py`
+  links each callee's passing C from `private/m6/` (renamed from `routine`), or, for a callee without one, a stub
+  that runs the original callee on the interpreter against the same RAM and recorded hardware (`m6_call`).
+  Candidates may not call `m6_call` themselves (that would just run the original code).
+- `m6_pick.callgraph_ready()` lists non-leaf routines whose callees all have passing C; `m6_run.py --callgraph`
+  works through them, re-ranking after each pass. The prompt lists each callee with the outputs its callers use
+  and its C.
+- A candidate that never returns (seen on the first batch: an 8-bit loop counter compared with `>= 0`) is killed
+  after 120 s and reported as a FAIL naming the state it hung on; batches log unexpected errors and go on.
 - Cycle mode: the harness is cycle-free; candidates that must keep timing (PCM, raster waits) stay asm.
