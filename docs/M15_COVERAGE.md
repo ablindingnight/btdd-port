@@ -106,5 +106,51 @@ python tools/covreport.py --new "auto-*" --regions
 python tools/frontier_count.py %C%\baseline %G%\Debugger
 btdd_headless ROM --movie ... --movie-until 800 --frames 2400 --warp 7 --god --shot-every 200 DIR ; python tools/shots.py DIR
 ```
-Not done: a dedicated character-choice matrix (characters are only varied by exploration bursts from the title
-/ menu snapshots), and bots per stage type (random bursts + god mode replaced them).
+Bots per stage type were not written (random bursts + god mode replaced them).
+
+## Night run 2026-11-24 (indirect targets, gap hunting)
+**Indirect-target log** (`btdd_headless --indirect`, always on in `btdd_explore`; merged with
+`tools/indirect_merge.py` into `..\Gamefiles\Movies\coverage\indirect_targets.tsv`: kind, site bank/PC,
+target bank/PC, for far calls the slot's own JMP target, count, sources). Far calls are logged when execution
+enters the `$FFCB`/`$FFCD` trampoline: site = the JSR/JMP before it, target = bank (`$FFB3,y`) and slot `$14:X`.
+- The 8 unknown `jmp (ptr)` sites of M4: 7 got targets. Bank 0 `$FDFD` -> `$8397`, `$D241`; bank 3 `$89A6` ->
+  `$89A9-$89AC` (4); bank 5 `$80B8` -> 18 targets `$812A-$81AA` (step 4) and `$8127` -> 28 targets `$8132-$81AA`;
+  bank 6 `$80AA` -> `$80AD-$80CE` (step 3) and `$810A`; `$9992` -> `$9A8E`, `$9A94`; `$9995` -> `$8EFD`, `$8F0C`,
+  `$E75E`. Bank 0 `$FE20` (`jmp ($2A)` in the other NMI path) never ran in any log; the only values the game ever
+  stores in `$2A/$2B` (bank 0 `$85D1/$85D3`) are `$D241` and `$8397`, so those are its likely targets.
+- The 6 dynamic far calls: all resolved. Bank 0 `$84C4` -> bank 3 slots `$800C-$8015`; `$9F6C` -> bank 5 `$801E`,
+  `$8021`; bank 2 `$FD49` -> bank 4 `$8015`, `$8027`; bank 4 `$ABB9` -> bank 3 `$8003-$8015`; `$C599` -> bank 1
+  `$8003`, bank 7 `$8003`; bank 6 `$E7ED` -> bank 3 `$800C`, `$800F`, `$8015` (slot JMP targets in the TSV).
+
+**Gap hunting.** Exploration rounds: e (title/menu/transition snapshots, single-button menu taps, 9M frames):
+0 new code; f (stage 2 sections 08/09, stage 5 0B/0C, stage 6 0D; 13M frames): 0 new code; g (every snapshot
+source incl. forced 1P / mode B states in stages 2-7, 2.5 h on 4 cores): see the results line below. Forcing 1P
+(`$16`=0) or mode B (`$16`=2) at the start of stages 2-7, all 25 character pairs (`$05F0/$05F1`) through the stage
+1 -> 2 intermission, and 1P / other characters / the `$06A6` and `$0683` branches of the ending choice (bank 6
+`sub_f3ca`) added nothing either: the ending is always level `$0B` (reached via `$10` = 7 at bank 6 `$9731`).
+The static probe now also takes never-called slots of jump lists and the targets of never-read entries of
+pointer tables (e.g. bank 6 `$997D` table: entry `$9986` -> `$9B52`, 96 bytes; `$9C58` -> `$9E3E`, 47 bytes):
+106 clean candidates, 951 bytes.
+
+## Human-play checklist (Mesen, code/data logger on, save as a NEW .cdl in Gamefiles\Debugger)
+What automation cannot reach is mostly data selected by game situations (`tools/gap_context.py` lists every gap
+with its readers and the stage/section where neighbouring bytes are read). Already covered automatically, no
+need to repeat: title/menus/attract, every character pair, 1P and mode B starts, pause, game over/continue in 1P
+and 2P, the ending and credits. In rough order of bytes at stake:
+1. **Stage 2 (Colossus interior, level 5), sections 08 and 09, and stage 6 (level 9) section 0D, 1P, play slowly**:
+   let every enemy wave spawn, wait at each scroll lock until enemies stop coming, walk back left, get hit by
+   every enemy type, use every move (bank 6 tables `$A552-$A7xx`, `$CAA9`, `$CC2E` read by bank 6 `$8C15`; ~330 B).
+2. **Stage 5 (level 8), sections 0B and 0C**: same, plus lose a life there and continue (bank 3 `$CE93`, `$E7BD`,
+   `$DD30` read by bank 3 `$8CFB`/`$D73F`; bank 5 `$C80F`; ~230 B).
+3. **Stage 3 (level 2), sections 01-03**: slow play, all enemies (bank 5 `$E41A`, `$E29A` read by bank 5 `$B151`;
+   bank 3 `$DC02`; ~140 B).
+4. **Between stages**: reach each stage normally (not by a TAS route) in 1P and 2P and watch every intermission
+   and stage intro to the end without pressing anything (bank 2 `$F7CC-$F93F` read at section 00 of levels 2, 5,
+   8, 9, 6; bank 4 `$BDE6`, `$BEC5`, `$C043-$C1FC` metasprites read by bank 4 `load_metasprite_c6c5` / `$C7B0`
+   during `$FD/$FF` transitions; ~600 B). If an intermission differs between 1P and 2P or after a death, that is
+   the case to log.
+5. **Stage 4 (level 4) section 06 and stage 1 (level 3) sections 04/05**: slow play (bank 5 `$FF32`, bank 3
+   `$9C69`, bank 4 `$B8B6`).
+6. **Title text, bank 4 `$CBF0-$CDFF` (528 B) and `$CE0C`**: drawn by bank 4 `sub_c5fe`/`sub_c61a` (screen text);
+   every menu path was tried automatically, so this is probably unused text (or a screen behind an input code).
+   Only worth a try if someone knows of a secret code or alternate screen.
