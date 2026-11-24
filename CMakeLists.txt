@@ -52,6 +52,20 @@ btdd_warnings(cpu_call_test)
 # Room for M5 (load-time recompiler): libtcc compiles generated C in-process. Not fetched yet; when it is,
 # set BTDD_LIBTCC=ON, provide a target named libtcc (FetchContent or a prebuilt import) and link it to the
 # recompiler target. Generated code links against btdd_core (Cpu, cpu_bus_read/write, cpu_add_cycles, cpu_call).
+# M5 prototype: native test exe from recomp/gen.py output (ROM-derived, kept outside the repo, e.g.
+# -DBTDD_NATIVE_GEN=C:/.../Gamefiles/Movies/m5/generated). recomp/native_cpu.c replaces src/runtime/cpu.c
+# (it compiles it in with cpu_run renamed), so this target lists the core sources itself.
+set(BTDD_NATIVE_GEN "" CACHE PATH "Folder with recomp/gen.py output; adds the btdd_native target")
+if(BTDD_NATIVE_GEN)
+    file(GLOB BTDD_NATIVE_SOURCES "${BTDD_NATIVE_GEN}/native_*.c")
+    add_executable(btdd_native src/headless_main.c src/rom/rom.c src/rom/sha1.c src/runtime/fm2.c
+        src/nes/ppu.c src/nes/ppu_new.c src/nes/nes.c recomp/native_cpu.c ${BTDD_NATIVE_SOURCES})
+    target_include_directories(btdd_native PRIVATE src recomp)
+    if(MSVC)
+        target_compile_definitions(btdd_native PRIVATE _CRT_SECURE_NO_WARNINGS)
+    endif()
+endif()
+
 option(BTDD_LIBTCC "Build the load-time recompiler with embedded libtcc (M5; not available yet)" OFF)
 if(BTDD_LIBTCC)
     message(FATAL_ERROR "BTDD_LIBTCC: libtcc integration is planned for M5 and not set up yet")
