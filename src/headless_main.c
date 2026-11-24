@@ -17,6 +17,7 @@
  *                     [--movie-until N]           (movie input only for frames < N, then no input)
  *                     [--press-every N P1[,P2]]   (without movie input: press these pad bits (hex) every N frames)
  *                     [--shot-every N DIR]        (picture data every N frames for tools/shots.py)
+ *                     [--indirect out.tsv]        (jmp (ptr) and $FFCB far-call sites -> targets, with counts)
  *                     [--ram-pcs out.txt]         (RAM addresses where instructions started; the explorer uses
  *                                                  the TAS list to spot crashes)
  *                     [--ppu old|new|auto]        (FCEUX PPU timing model; auto = the movie's NewPPU flag)
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
     static Play play;
     int use_play = 0;
     long movie_until = -1, shot_every = 0, press_every = 0, press1 = 0, press2 = 0;
-    const char *shot_dir = NULL, *ram_pcs_path = NULL;
+    const char *shot_dir = NULL, *ram_pcs_path = NULL, *ind_path = NULL;
     static Coverage cov;
     char hash[41] = "", err[256];
     Fm2 movie = {0};
@@ -172,6 +173,8 @@ int main(int argc, char **argv)
                 press2 = strtol(e + 1, NULL, 16);
         } else if (!strcmp(argv[i], "--ram-pcs") && i + 1 < argc)
             ram_pcs_path = argv[++i];
+        else if (!strcmp(argv[i], "--indirect") && i + 1 < argc)
+            ind_path = argv[++i];
         else if (!strcmp(argv[i], "--cdl-fceux-clear"))
             cdl_clear = 1;
         else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
@@ -273,10 +276,11 @@ int main(int argc, char **argv)
         }
         tracker_init(&trk, &nes, start);
     }
-    if (cdl_path || cdl_mesen_path || reads_path || ram_pcs_path) {
+    if (cdl_path || cdl_mesen_path || reads_path || ram_pcs_path || ind_path) {
         cov_init(&cov, &rom);
         cov.fceux_clear_on_write = cdl_clear;
         cov.log_reads = reads_path != NULL;
+        cov.log_indirect = ind_path != NULL;
         cov_attach(&cov, &nes);
     }
     t0 = clock();
@@ -336,11 +340,12 @@ int main(int argc, char **argv)
     if ((cdl_path && cov_write_fceux(&cov, cdl_path) != 0) ||
         (cdl_mesen_path && cov_write_mesen(&cov, cdl_mesen_path) != 0) ||
         (reads_path && cov_write_reads(&cov, reads_path) != 0) ||
-        (ram_pcs_path && cov_write_ram_pcs(&cov, ram_pcs_path) != 0)) {
+        (ram_pcs_path && cov_write_ram_pcs(&cov, ram_pcs_path) != 0) ||
+        (ind_path && cov_write_indirect(&cov, &rom, ind_path) != 0)) {
         fprintf(stderr, "cannot write the coverage output\n");
         return 1;
     }
-    if (cdl_path || cdl_mesen_path || reads_path || ram_pcs_path) {
+    if (cdl_path || cdl_mesen_path || reads_path || ram_pcs_path || ind_path) {
         int b;
         long code, data, both, seen, tot = 0;
         for (b = 0; b < 8; b++) {

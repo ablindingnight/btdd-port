@@ -202,6 +202,7 @@ int main(int argc, char **argv)
     nes_power(&work, PPU_MODEL_OLD); /* the snapshots bring their own model */
     cov_init(&cov, &rom);
     cov_attach(&cov, &work);
+    cov.log_indirect = 1;
     work.log_traps = 0;
     if (ram_pcs) {
         if (cov_load_ram_pcs(allowed, ram_pcs) != 0) {
@@ -340,6 +341,8 @@ int main(int argc, char **argv)
             write_outputs(&cov, prefix);
     }
     write_outputs(&cov, prefix);
+    snprintf(p, sizeof p, "%s-indirect.tsv", prefix);
+    cov_write_indirect(&cov, &rom, p);
     fclose(finds);
     printf("worker %d: %ld bursts, %llu frames, %ld kept, %ld crashes, new code %llu, new data %llu, %.0f s\n", worker,
            bursts, frames_run, kept, crashes, (unsigned long long)cov.new_code, (unsigned long long)cov.new_data,

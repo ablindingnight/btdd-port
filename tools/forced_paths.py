@@ -69,6 +69,7 @@ def run(name, args, out, exe):
     cmd = [exe, ROM] + args + ['--cdl', os.path.join(out, name + '.cdl'),
                                '--cdl-mesen', os.path.join(out, name + '-m.cdl'),
                                '--reads', os.path.join(out, name + '-reads.tsv'),
+                               '--indirect', os.path.join(out, name + '-indirect.tsv'),
                                '--snap-dir', sd, '--snap-every', '120']
     r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     open(os.path.join(out, name + '.txt'), 'w').write(' '.join(cmd) + '\n' + r.stdout)

@@ -106,6 +106,96 @@ void cov_free(Coverage *cov)
     free(cov->reads);
     cov->reads = NULL;
     cov->reads_cap = cov->reads_used = 0;
+    free(cov->ind_key);
+    free(cov->ind_count);
+    cov->ind_key = NULL;
+    cov->ind_count = NULL;
+    cov->ind_cap = cov->ind_used = 0;
+}
+
+static void ind_add(Coverage *cov, uint64_t key)
+{
+    uint32_t h, i;
+    if ((cov->ind_used + 1) * 2 > cov->ind_cap) {
+        uint32_t ncap = cov->ind_cap ? cov->ind_cap * 2 : 1024;
+        uint64_t *nk = calloc(ncap, sizeof *nk);
+        uint32_t *nc = calloc(ncap, sizeof *nc);
+        if (!nk || !nc) {
+            fprintf(stderr, "coverage: out of memory for the indirect table\n");
+            exit(1);
+        }
+        for (i = 0; i < cov->ind_cap; i++)
+            if (cov->ind_count[i]) {
+                h = (uint32_t)((cov->ind_key[i] * 0x9E3779B97F4A7C15ull) >> 40) & (ncap - 1);
+                while (nc[h])
+                    h = (h + 1) & (ncap - 1);
+                nk[h] = cov->ind_key[i];
+                nc[h] = cov->ind_count[i];
+            }
+        free(cov->ind_key);
+        free(cov->ind_count);
+        cov->ind_key = nk;
+        cov->ind_count = nc;
+        cov->ind_cap = ncap;
+    }
+    h = (uint32_t)((key * 0x9E3779B97F4A7C15ull) >> 40) & (cov->ind_cap - 1);
+    while (cov->ind_count[h]) {
+        if (cov->ind_key[h] == key) {
+            cov->ind_count[h]++;
+            return;
+        }
+        h = (h + 1) & (cov->ind_cap - 1);
+    }
+    cov->ind_key[h] = key;
+    cov->ind_count[h] = 1;
+    cov->ind_used++;
+}
+
+static uint64_t ind_make(int kind, int sb, uint16_t sp, int tb, uint16_t tp)
+{
+    return (uint64_t)kind << 38 | (uint64_t)(sb & 7) << 35 | (uint64_t)sp << 19 | (uint64_t)(tb & 7) << 16 | tp;
+}
+
+static int ind_cmp(const void *a, const void *b)
+{
+    uint64_t x = *(const uint64_t *)a, y = *(const uint64_t *)b;
+    return x < y ? -1 : x > y;
+}
+
+int cov_write_indirect(const Coverage *cov, const Rom *rom, const char *path)
+{
+    FILE *f = fopen(path, "w");
+    uint64_t *v;
+    uint32_t i, n = 0;
+    int ok;
+    if (!f)
+        return -1;
+    v = malloc(((size_t)cov->ind_used + 1) * 2 * sizeof *v);
+    if (!v) {
+        fclose(f);
+        return -1;
+    }
+    for (i = 0; i < cov->ind_cap; i++)
+        if (cov->ind_count[i]) {
+            v[n * 2] = cov->ind_key[i];
+            v[n * 2 + 1] = cov->ind_count[i];
+            n++;
+        }
+    qsort(v, n, 2 * sizeof *v, ind_cmp);
+    fprintf(f, "kind\tsite_bank\tsite_pc\ttarget_bank\ttarget_pc\tslot_jmp_target\tcount\n");
+    for (i = 0; i < n; i++) {
+        uint64_t k = v[i * 2];
+        int kind = (int)(k >> 38), sb = (int)(k >> 35 & 7), tb = (int)(k >> 16 & 7);
+        unsigned sp = (unsigned)(k >> 19 & 0xFFFF), tp = (unsigned)(k & 0xFFFF);
+        char slot[16] = "-";
+        if (kind == 1 && tp >= 0x8000 && rom->prg[tb][tp & 0x7FFF] == 0x4C && tp <= 0xFFFD)
+            snprintf(slot, sizeof slot, "$%04X", rom->prg[tb][(tp + 1) & 0x7FFF] | rom->prg[tb][(tp + 2) & 0x7FFF] << 8);
+        fprintf(f, "%s\t%d\t$%04X\t%d\t$%04X\t%s\t%llu\n", kind ? "farcall" : "jmpind", sb, sp, tb, tp, slot,
+                (unsigned long long)v[i * 2 + 1]);
+    }
+    ok = !ferror(f);
+    free(v);
+    return (fclose(f) == 0 && ok) ? 0 : -1;
 }
 
 void cov_reset_tracking(Coverage *cov)
@@ -206,6 +296,15 @@ static void insn_hook(void *ctx, Cpu *c)
     /* shadow call stack: drop routines whose frame S has risen above */
     while (cov->sp > 0 && c->s > cov->stack[cov->sp - 1].s)
         cov->sp--;
+    if (cov->log_indirect && cov->have_last && !cov->pending_entry) {
+        if (cov->last_op == 0x6C)
+            ind_add(cov, ind_make(0, cov->last_bank, cov->last_pc, bank, pc));
+        if ((pc == 0xFFCB || pc == 0xFFCD) && (cov->last_op == 0x20 || cov->last_op == 0x4C)) {
+            /* far call: the trampoline maps bank ($FFB3,y) and jumps through ($13) = $14:X */
+            int tb = nes_peek(n, (uint16_t)(0xFFB3 + c->y)) & 7;
+            ind_add(cov, ind_make(1, cov->last_bank, cov->last_pc, tb, (uint16_t)(n->ram[0x14] << 8 | c->x)));
+        }
+    }
     if (cov->pending_entry || (cov->have_last && cov->last_op == 0x20)) {
         if (cov->sp < 256) {
             cov->stack[cov->sp].entry = pc;
@@ -273,6 +372,7 @@ static void insn_hook(void *ctx, Cpu *c)
 
     cov->last_pc = pc;
     cov->last_op = op;
+    cov->last_bank = (uint8_t)bank;
     cov->last_size = (uint8_t)size;
     cov->have_last = 1;
     cov->pending_entry = 0;

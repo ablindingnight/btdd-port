@@ -58,6 +58,13 @@ typedef struct Coverage {
     CovRead *reads;
     uint32_t reads_cap, reads_used;
     uint32_t prg_crc;
+    /* indirect targets: jmp (ptr) site -> target, and far calls through the $FFCB/$FFCD trampoline
+     * (caller site -> bank Y, slot $14:X), key = kind(1) site bank(3) site pc(16) target bank(3) target pc(16) */
+    int log_indirect;
+    uint8_t last_bank;
+    uint64_t *ind_key;
+    uint32_t *ind_count;
+    uint32_t ind_cap, ind_used;
 } Coverage;
 
 void cov_init(Coverage *cov, const Rom *rom);
@@ -71,6 +78,9 @@ int cov_merge_file(Coverage *cov, const char *path);
 int cov_write_fceux(const Coverage *cov, const char *path);
 int cov_write_mesen(const Coverage *cov, const char *path);
 int cov_write_reads(const Coverage *cov, const char *path);
+/* indirect targets: kind (jmpind / farcall), site bank, site pc, target bank, target pc, count;
+ * a far call's target is the slot at $8000+X of bank Y, followed by the slot's own JMP target */
+int cov_write_indirect(const Coverage *cov, const Rom *rom, const char *path);
 /* RAM instruction addresses: one hex address per line */
 int cov_write_ram_pcs(const Coverage *cov, const char *path);
 int cov_load_ram_pcs(uint8_t map[0x800], const char *path);
