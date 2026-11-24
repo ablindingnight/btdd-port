@@ -10,6 +10,7 @@
 #include "mods/mods.h"
 #include "nes/nes.h"
 #include "platform/screen.h"
+#include "platform/wide.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
 #include <stdio.h>
@@ -118,6 +119,50 @@ static void test_before_replace(const Fm2 *m2p)
     mods_enable(ir, 0);
 }
 
+/* widescreen (M9, display only): over a movie, two consoles in lockstep (one rendered wide, with sprites): RAM
+ * identical; the wide picture's middle (columns 8-255) is the game's own picture on every frame; and some frames of
+ * the widening stages get margins drawn from the map. */
+static void test_widescreen(const Fm2 *m, PpuModel model, long frames, const char *label)
+{
+    static Nes a, b;
+    static Screen sa, sb;
+    static uint8_t widx[PPU_H][WIDE_W];
+    static WideState ws;
+    char text[300];
+    long f, ram_diff = -1, center_bad = -1, widened = 0, margin_entities = 0;
+
+    nes_init(&a, &rom);
+    nes_power(&a, model);
+    screen_attach(&sa, &a.ppu);
+    nes_init(&b, &rom);
+    nes_power(&b, model);
+    screen_attach(&sb, &b.ppu);
+    ws.sprites = 1;
+    for (f = 0; f < frames && f < m->count; f++) {
+        int y;
+        nes_set_pads(&a, m->frames[f].pad[0], m->frames[f].pad[1]);
+        nes_set_pads(&b, m->frames[f].pad[0], m->frames[f].pad[1]);
+        nes_run_frame(&a);
+        nes_run_frame(&b);
+        wide_render(&ws, &b, &sb, widx);
+        if (ram_diff < 0 && memcmp(a.ram, b.ram, sizeof a.ram))
+            ram_diff = f + 1;
+        for (y = 0; y < PPU_H && center_bad < 0; y++)
+            if (memcmp(widx[y] + WIDE_MARGIN + 8, sa.idx[y] + 8, PPU_W - 8))
+                center_bad = f + 1;
+        widened += ws.lines_widened > 150;
+        margin_entities += ws.margin_entities;
+    }
+    snprintf(text, sizeof text, "widescreen %s: RAM identical with and without the wide picture over %ld frames", label,
+             f);
+    check(ram_diff < 0, text);
+    snprintf(text, sizeof text, "widescreen %s: the wide picture's middle is the game's picture on every frame", label);
+    check(center_bad < 0, text);
+    snprintf(text, sizeof text, "widescreen %s: %ld of %ld frames widened, %ld entity draws in the margins", label,
+             widened, f, margin_entities);
+    check(widened > 0, text);
+}
+
 static void test_nolimit(const Fm2 *m, PpuModel model, long frames, const char *label)
 {
     static Nes a, b;
@@ -195,6 +240,8 @@ int main(int argc, char **argv)
     test_before_replace(&m2p);
     test_nolimit(&m2p, PPU_MODEL_OLD, frames, "2P old PPU");
     test_nolimit(&m1p, PPU_MODEL_NEW, frames, "1P new PPU");
+    test_widescreen(&m2p, PPU_MODEL_OLD, 60000, "2P old PPU");
+    test_widescreen(&m1p, PPU_MODEL_NEW, frames, "1P new PPU");
     printf("%s\n", failed ? "FAIL" : "PASS");
     fm2_free(&m2p);
     fm2_free(&m1p);
