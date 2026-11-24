@@ -95,9 +95,11 @@ def callees_of(mem, r, starts):
     return last == 'rts', out
 
 
-def callgraph_ready(passing, max_size=128):
+def callgraph_ready(passing, max_size=128, stubs=False):
     """Non-leaf routines (conf=verified) all of whose callees have passing C, ranked by call count.
-    passing: set of routine names with passing C. -> [(calls, routine, [callee names])]"""
+    passing: set of routine names with passing C. -> [(calls, routine, [callee names])]
+    stubs=True: every non-leaf routine with same-bank callees qualifies (callees without passing C run as the
+    original code through the interpreter stub); ranked by the share of callees with passing C, then calls."""
     raw = open(ROM, 'rb').read()[16:]
     mems = [raw[b * 0x8000:(b + 1) * 0x8000] for b in range(8)]
     rs = routines()
@@ -113,10 +115,11 @@ def callgraph_ready(passing, max_size=128):
         if not ok or not cs:
             continue
         names = [by_start[(r['bank'], c)]['name'] for c in cs]
-        if all(n in passing for n in names):
-            out.append((calls.get((r['bank'], r['start']), 0), r, names))
-    out.sort(key=lambda x: -x[0])
-    return out
+        share = sum(1 for n in names if n in passing) / len(names)
+        if stubs or share == 1:
+            out.append((calls.get((r['bank'], r['start']), 0), r, names, share))
+    out.sort(key=lambda x: (-x[3], -x[0]))
+    return [x[:3] for x in out]
 
 
 def main():

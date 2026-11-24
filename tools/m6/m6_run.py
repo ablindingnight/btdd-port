@@ -138,6 +138,8 @@ def main():
     ap.add_argument('--list', default=os.path.join(M6, 'leaf40.txt'))
     ap.add_argument('--only')
     ap.add_argument('--tries', type=int, default=3)
+    ap.add_argument('--stub-callees', action='store_true',
+                    help='with --callgraph: do not wait for callees; those without passing C run as original code')
     ap.add_argument('--callgraph', action='store_true',
                     help='after the list: routines whose callees all have passing C, re-ranked after every pass')
     a = ap.parse_args()
@@ -174,7 +176,7 @@ def callgraph_mode(a):
     dirs = [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
     while len(results) < a.routines:
         passing = set(os.path.splitext(n)[0] for n in os.listdir(PRIVATE)) if os.path.isdir(PRIVATE) else set()
-        ready = [(c, r, names) for c, r, names in m6_prompt.m6_pick.callgraph_ready(passing)
+        ready = [(c, r, names) for c, r, names in m6_prompt.m6_pick.callgraph_ready(passing, stubs=a.stub_callees)
                  if r['name'] not in tried and m6_test.corpus_files(r['bank'], r['start'], dirs)]
         if not ready:
             print('no more routines whose callees all pass (and that have a corpus)')
