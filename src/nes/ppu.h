@@ -93,6 +93,11 @@ typedef struct Ppu {
     uint64_t oam_reads_rendering;  /* $2004 reads during rendering (approximated: not used by the game) */
 
     struct Cpu *cpu;
+
+    /* M2 hook (display only, no effect on emulation): called when line y's pixels in fb are final for
+     * this model (old model: background only, line_sprites hold that line's sprites). */
+    void (*line_done)(struct Ppu *ppu, int y, void *user);
+    void *line_done_user;
 } Ppu;
 
 void ppu_power(Ppu *ppu, struct Cpu *cpu, PpuModel model);

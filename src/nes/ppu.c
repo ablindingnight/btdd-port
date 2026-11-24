@@ -192,6 +192,8 @@ static void end_line(Ppu *p)
         fix_vertical(p);
     check_sprite_hit(p, LINE_END_PIXEL);
     p->line_active = 0;
+    if (p->line_done) /* M2 hook: display only */
+        p->line_done(p, p->line_base / PPU_W, p->line_done_user);
 }
 
 /* ---- sprites ---- */

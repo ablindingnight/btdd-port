@@ -40,6 +40,18 @@ if(NOT WIN32 OR NOT MSVC)
 endif()
 btdd_warnings(btdd_core)
 
+# Display layer without SDL: picture from the PPU, palette, PNG (M2)
+add_library(btdd_screen STATIC
+    src/platform/screen.c
+    src/platform/png.c
+)
+target_link_libraries(btdd_screen PUBLIC btdd_core)
+btdd_warnings(btdd_screen)
+
+add_executable(btdd_shot tools/shot/shot_main.c)
+target_link_libraries(btdd_shot PRIVATE btdd_screen)
+btdd_warnings(btdd_shot)
+
 add_executable(btdd src/main.c)
 target_link_libraries(btdd PRIVATE btdd_core)
 btdd_warnings(btdd)
