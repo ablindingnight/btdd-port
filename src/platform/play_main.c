@@ -6,7 +6,7 @@
  * Keys (defaults, changeable in btdd.cfg or with F5): player 1 arrows, X = A, Z = B, Right Shift = Select,
  * Enter = Start; player 2 W/A/S/D, H = A, G = B, T = Select, Y = Start. Gamepads: the first two are
  * players 1 and 2 (east button = A, south button = B, Back = Select, Start, d-pad or left stick).
- * Hotkeys: Esc quit, P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter
+ * Hotkeys: Esc settings menu (gamepad: Guide, or Back+Start), P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter
  * (nearest / sharp / bilinear), F4 scanlines, F5 redefine keys, F11 or Alt+Enter fullscreen, F12 screenshot.
  * States (M8): F6 save / F7 load the current slot, 0-9 or Shift+F6 / Shift+F7 pick the slot (10 slots, in
  * <settings folder>\states\<ROM SHA-1>); hold Backspace to rewind (rewind_seconds of history, sound muted),
@@ -852,6 +852,7 @@ int main(int argc, char **argv)
     long max_frames = -1, frame = 0, dumped = 0;
     int i, quit = 0, paused = 0, have_cfg, no_audio = 0, selftest_on = 0, seen[SELFTEST_STEPS] = {0};
     int slot = 0, states_test = 0, st_phase = 0, st_fail = 0, rewinding = 0, ff = 0, step, steps, pads_ready = 0;
+    int menu_step = 0, menu_nav_ok = 0, menu_close_ok = 0; /* --selftest-gamepad, menu part */
     static uint8_t st_ram_a[0x800], st_ram_r[0x800];
     FILE *dump = NULL;
     SDL_Joystick *vjoy = NULL;
@@ -1104,6 +1105,15 @@ int main(int argc, char **argv)
             if (audio)
                 SDL_ClearAudioStream(audio);
             if (menu.open) {
+                if (vjoy) { /* --selftest-gamepad, menu part: release Guide, d-pad down, then East (back = close) */
+                    menu_step++;
+                    SDL_SetJoystickVirtualButton(vjoy, SDL_GAMEPAD_BUTTON_GUIDE, 0);
+                    SDL_SetJoystickVirtualButton(vjoy, SDL_GAMEPAD_BUTTON_DPAD_DOWN, menu_step >= 3 && menu_step < 6);
+                    if (menu_step == 9)
+                        menu_nav_ok = menu.page == PG_MAIN && menu.cursor[PG_MAIN] == 1;
+                    SDL_SetJoystickVirtualButton(vjoy, SDL_GAMEPAD_BUTTON_EAST, menu_step >= 9 && menu_step < 12);
+                    SDL_UpdateJoysticks();
+                }
                 build_page(&menu, &ctx);
                 video_present(&video, pixels, menu.lines, menu_render(&menu));
             } else {
@@ -1178,7 +1188,12 @@ int main(int argc, char **argv)
                     for (k = 0; k < SELFTEST_STEPS; k++)
                         SDL_SetJoystickVirtualButton(vjoy, selftest[k].button,
                                                      frame >= selftest[k].start && frame < selftest[k].start + 8);
+                    SDL_SetJoystickVirtualButton(vjoy, SDL_GAMEPAD_BUTTON_GUIDE, frame == 435); /* opens the menu */
+                    if (menu_step)
+                        SDL_SetJoystickVirtualButton(vjoy, SDL_GAMEPAD_BUTTON_EAST, 0); /* East closed the menu */
                     SDL_UpdateJoysticks();
+                    if (menu_step >= 9 && !menu.open)
+                        menu_close_ok = 1;
                 }
                 nes_set_pads(&nes, read_pad(&cfg, 0, gp[0]), read_pad(&cfg, 1, gp[1]));
             }
@@ -1244,6 +1259,9 @@ int main(int argc, char **argv)
                    SDL_GetGamepadStringForButton(selftest[k].button), selftest[k].expect);
             ok &= seen[k];
         }
+        printf("%s: gamepad Guide opens the settings, d-pad down moves the cursor\n", menu_nav_ok ? "ok  " : "FAIL");
+        printf("%s: gamepad East closes the settings, the game continues\n", menu_close_ok ? "ok  " : "FAIL");
+        ok &= menu_nav_ok && menu_close_ok;
         SDL_CloseJoystick(vjoy);
         if (!ok)
             quit = 2;

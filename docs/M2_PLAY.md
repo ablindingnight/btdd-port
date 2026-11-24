@@ -43,7 +43,7 @@ btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] [--full
 - Default keys: player 1 arrows, X = A, Z = B, Right Shift = Select, Enter = Start; player 2 W/A/S/D,
   H = A, G = B, T = Select, Y = Start. Gamepads: first two pads are players 1 and 2; right face button = A,
   bottom face button = B, Back = Select, Start, d-pad or left stick.
-- Hotkeys: Esc quit, P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter, F4
+- Hotkeys: Esc settings menu (see "Settings menu" below), P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter, F4
   scanlines, F5 redefine keys (on-screen prompts for both players; Backspace keeps a key, Esc cancels; saved
   to btdd.cfg), F11 or Alt+Enter fullscreen, F12 screenshot (saved in the settings folder). Save states, rewind and fast-forward:
   docs/M8_FEATURES.md.
@@ -57,6 +57,20 @@ btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] [--full
 - The APU is attached the same way as in `btdd_apu_check` (per-instruction `Cpu.exec_hook` + `Nes.apu_hook`),
   so no runtime file changed. At merge time these become a dedicated tick in `cpu.c` and an `Apu` owned by
   `nes.c` (see docs/M3_APU.md).
+
+## Settings menu (2026-11-24)
+Esc (gamepad: Guide, or Back+Start) opens an overlay; the game pauses. Arrows / d-pad move, left/right change a
+value, Enter / Space / south button accepts, Esc / Backspace / east button goes back (Guide or Start closes).
+Pages: Save states (slot, save, load), Display (window size, fullscreen, aspect, filter, scanlines), Graphics
+(renderer sdl/gpu, shader preset), Audio (volume), Controls (each key of both players, redefine all, connected
+pads), Gameplay (rewind length, fast-forward speed), Mods (the mod registry, when the build has src/mods), Reset,
+Power cycle, Quit. Changes apply at once; btdd.cfg is written when the menu closes. The model is
+`src/platform/menu.c` (no SDL), meant to be reused by the launcher (M11). `--selftest-gamepad` also opens the menu
+with Guide, moves with the d-pad and closes it with East.
+
+Startup: the audio device opens on its own thread while the window and renderer are created, and gamepads are
+initialized after the first frame (their DirectInput enumeration took 1-3 s on this machine). A `startup:` log line
+gives each stage's time; what remains is the GPU driver creating the renderer (0.7-1.6 s while the GPU runs a model).
 
 ## Known gaps
 - Startup varies from about 2 s to 8 s on this machine tonight; measured per SDL render driver it depends on

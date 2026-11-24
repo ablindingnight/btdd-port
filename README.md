@@ -52,7 +52,7 @@ All gates in one command (builds with every compiler found, runs every check, pr
 .\build\Release\btdd_play.exe "..\Gamefiles\Battletoads-Double Dragon (USA).nes"
 ```
 Player 1: arrows, X = A, Z = B, Right Shift = Select, Enter = Start. Player 2: W/A/S/D, H = A, G = B, T = Select,
-Y = Start. Gamepads work too. Esc quits, P pauses, F11 fullscreen, F2 square pixels / 4:3, F12 screenshot,
+Y = Start. Gamepads work too. Esc opens the settings menu (Guide or Back+Start on a pad; Quit is in it), P pauses, F11 fullscreen, F2 square pixels / 4:3, F12 screenshot,
 F6/F7 save/load state (0-9 pick a slot), hold Backspace to rewind, hold Tab to fast-forward.
 GPU shader path (prototype, Direct3D 12): `video = gpu` and `shader = sharp | crt | smooth | ...` in btdd.cfg, F3 cycles
 presets; see docs/GRAPHICS_RESEARCH.md.
