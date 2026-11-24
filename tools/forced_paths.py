@@ -40,6 +40,14 @@ SCENARIOS = {
     # FCEUX 2.6's new PPU (which we match exactly) desyncs this 2.1.0-era movie in stage 1; on the old-PPU
     # model it happens to get to stage 3 before desyncing, so both runs are kept
     'tas1p-oldppu': ['--movie', M1, '--ppu', 'old'],
+    # extra TASVideos movies (Movies/tasvideos-extra/movies/SOURCES.md): feos 2P 2011 routes that use deaths
+    'feos-2p': ['--movie', os.path.join(MOV, 'tasvideos-extra', 'movies', 'sub3154-feos-battletoadsdoubledragon-2p.fm2')],
+    'feos-2p-trunc': ['--movie', os.path.join(MOV, 'tasvideos-extra', 'movies', 'uf-feos-2p-Truncated.fm2')],
+    # evgs TAS Editor project, converted with tools/fm3tofm2.py (a glitch route: level 9 by frame 1,275)
+    'lamp': ['--movie', os.path.join(MOV, 'tasvideos-extra', 'movies', 'uf-btdd-lamp-conv.fm2')],
+    # 2005 1P FCEU movie converted with tools/fcm2fm2.py: stage 1 and part of stage 2 before it desyncs (the
+    # other one, sub553, desyncs on the title screen on both PPU models and is not used)
+    'sub635': ['--movie', os.path.join(MOV, 'tasvideos-extra', 'movies', 'sub635-conv.fm2'), '--ppu', 'new'],
     # user movies: both end in a glitch that jams the CPU (koh-btdd at frame 38,894, koh-wrongwarp at 32,399);
     # stop 300 frames before so no garbage execution is logged as code
     'koh-btdd': ['--movie', os.path.join(MOV, 'userfiles', 'koh-btdd.fm2'), '--frames', '38594'],
