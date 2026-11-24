@@ -174,6 +174,44 @@ now off by default (`M6_FACTS=1` turns it on). Only `sub_dc11`, `sub_a262` and `
 `sub_8ec8` failed in all three: per-routine outcome is still mostly variance; 12 routines separate settings only
 coarsely. Failure kinds are the same in every setting: RAM values (arithmetic/indexing) first, then flag outputs.
 
+## Non-leaf routines (branch m6-nonleaf, 2026-11-24 afternoon)
+`m6_pick.classify` names every way out of a routine besides its own RTS and gives the routine the hardest kind it
+needs: `leaf`, `calls` (JSR to a routine start of the same bank), `tail` (JMP/branch to another routine's start, or
+running on into the next code), `alt` (JSR/JMP into a meta `entry` inside another routine), `far` (`jsr $FFCB`),
+`dispatch` (`jmp (ptr)`). Not supported: BRK/RTI, TXS, code in RAM, jumps to unknown code, the trampolines
+themselves. 991 of 1,143 meta routines classify (leaf 213, calls 80, tail 277, alt 372, far 37, dispatch 12).
+- C API (`m6_api.h`): `far_call(m, bank_index, slot)` runs the original `$FFCB` trampoline (exact bank writes);
+  `jump_to(m, target)` runs a `jmp (ptr)` target at the routine's own stack level (a JMP, not a JSR: exact for
+  random states too). Tail jumps are `name(m); return;`; entries are callee functions named after the meta
+  `entry` record. Hand-written candidates for `sub_8638` (far) and `sub_8774` (dispatch) pass; a wrong far-call
+  slot fails on the bank write.
+- Prompt: the mechanical C shows exits as these calls; far-call sites list their targets
+  (`coverage/indirect_targets.tsv`), `jmp (ptr)` sites the targets seen in play.
+- RAM names come from the decomp's HEAD (`src/ram.inc` + `docs/RAM_PROPOSALS.md`, read with `git show` through the
+  meta exporter's `build_ram`): 285 names vs 156 in `btdd.meta` (129 new addresses, 23 renamed, e.g. `$8D`
+  `tmp_8d` -> `camera_x_lo`); older names stay as aliases. Each compile unit gets its own names header without the
+  names it declares as locals. `m6_recheck.py` re-tests every passing file: 109/109 pass after the changes.
+- `m6_run --kinds K,... --new-only --shard i/n`: best-first by share of callees with passing C, then calls;
+  `m6_stats --by-kind`. Corpus captured for 697 non-leaf routines (500 samples per movie); 301 files came out empty
+  (never run in that movie) and are now skipped.
+- Batch 12:13-15:10 (tag `batch_nonleaf`, untested-corpus routines left out): 105 routines, 79 passed (75%), 66 on
+  try 1, 17.9 passes per GPU-hour, mean 16.6k tokens / 152 s per routine (median 75 s).
+
+| kind | routines | try 1 | passed | pass rate |
+|---|---|---|---|---|
+| calls | 1 | 1 | 1 | 100% |
+| tail | 28 | 20 | 22 | 79% |
+| alt | 71 | 43 | 53 | 75% |
+| far | 3 | 1 | 1 | 33% |
+| dispatch | 2 | 1 | 2 | 100% |
+
+- One vs two llama-server slots: one process 12:13-13:19, 37.8 routines/h (34.0 passes/h); two processes
+  (`--shard 0/2`, `1/2`) 13:20-15:10, 31.6 routines/h (22.7 passes/h). Per request generation fell from 135 to
+  102 tokens/s, so the two slots together produce ~1.5x the tokens, but the later (lower-ranked) routines needed
+  46% more tokens per try and 19 empty-corpus routines were sent before that fix: the comparison is not like for
+  like. Keep two processes; compare on the same routine set to measure the real gain.
+- 187 routines have passing C now (private/m6, never committed).
+
 ## Not done / next
 - `facts.py` output: allowed and wired in (`M6_FACTS=1`), off by default after the A/B above.
 - Non-leaf routines: done for same-bank callees (below). Far calls (`$FFCB`), indirect jumps and tail jumps out
