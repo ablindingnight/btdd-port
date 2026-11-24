@@ -35,8 +35,11 @@ SCENARIOS = {
     'modeb': ['--movie', M2, '--poke', '16=02@700', '--frames', '59351'],
     # the 2P TAS and then 60,000 frames of no input: ending, credits, what comes after
     'ending': ['--movie', M2, '--frames', '120000'],
-    # other movies (the 1P TAS was made on FCEUX's new PPU: it plays on our old-PPU core until it desyncs)
-    'tas1p': ['--movie', M1],
+    # other movies (the 1P TAS needs the new-PPU timing model; its fm2 header does not say so)
+    'tas1p': ['--movie', M1, '--ppu', 'new'],
+    # FCEUX 2.6's new PPU (which we match exactly) desyncs this 2.1.0-era movie in stage 1; on the old-PPU
+    # model it happens to get to stage 3 before desyncing, so both runs are kept
+    'tas1p-oldppu': ['--movie', M1, '--ppu', 'old'],
     # user movies: both end in a glitch that jams the CPU (koh-btdd at frame 38,894, koh-wrongwarp at 32,399);
     # stop 300 frames before so no garbage execution is logged as code
     'koh-btdd': ['--movie', os.path.join(MOV, 'userfiles', 'koh-btdd.fm2'), '--frames', '38594'],

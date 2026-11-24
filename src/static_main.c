@@ -211,7 +211,7 @@ int main(int argc, char **argv)
     if (ram_pcs && cov_load_ram_pcs(allowed, ram_pcs) == 0)
         pc_cov.ram_pc_allowed = allowed;
     nes_init(&nes, &rom);
-    nes_power(&nes);
+    nes_power(&nes, PPU_MODEL_OLD); /* the snapshots bring their own model */
     cov_init(&pc_cov, &rom);
     if (ram_pcs)
         pc_cov.ram_pc_allowed = allowed;

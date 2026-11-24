@@ -199,7 +199,7 @@ int main(int argc, char **argv)
     }
     rng_s = seed * 0x9E3779B97F4A7C15ull + (unsigned long long)worker * 0xD1B54A32D192ED03ull + 1;
     nes_init(&work, &rom);
-    nes_power(&work);
+    nes_power(&work, PPU_MODEL_OLD); /* the snapshots bring their own model */
     cov_init(&cov, &rom);
     cov_attach(&cov, &work);
     work.log_traps = 0;

@@ -117,7 +117,7 @@ void nes_init(Nes *n, const Rom *rom)
     cpu_init(&n->cpu, n, bus_read, bus_write, trap);
 }
 
-void nes_power(Nes *n)
+void nes_power(Nes *n, PpuModel model)
 {
     int i;
     for (i = 0; i < 0x800; i++)
@@ -128,7 +128,7 @@ void nes_power(Nes *n)
     n->strobe = 0;
     memset(n->apu_regs, 0, sizeof n->apu_regs);
     memset(&n->stats, 0, sizeof n->stats);
-    ppu_power(&n->ppu, &n->cpu);
+    ppu_power(&n->ppu, &n->cpu, model);
     cpu_power(&n->cpu);
 }
 

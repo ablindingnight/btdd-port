@@ -3,9 +3,13 @@
 ## Result
 - **2P TAS (tasvideos-4323M, 59,351 frames, the whole game): the 2 KB CPU RAM is identical to FCEUX 2.6.6
   (old PPU) after every single frame.** Checked with `tools/ramdiff.py` on per-frame dumps from both sides.
+- **Second timing model, FCEUX's "new PPU" (`--ppu new`, added the same day): identical to FCEUX 2.6.6 with
+  newppu 1 on every frame of the 1P TAS (tasvideos-2312S, 83,576 frames) and of the 2P TAS (59,351 frames).**
+  The 1P movie still desyncs from the game's route around frame 40k, in FCEUX too; we match FCEUX through
+  that, so its later frames are valid test data but not a finished run.
 - nestest: all 5,003 official-opcode lines of the reference log match (PC, A, X, Y, P, SP and cycle count).
 - MSVC, clang and gcc builds produce byte-identical dumps; no warnings with any of them.
-- Speed: about 4,500 frames/s headless (75x real time) on this machine.
+- Speed: about 4,500 frames/s headless (75x real time) with the old model, about 1,100-1,300 with the new one.
 - Second, independent check: the coordinator's earlier FCEUX capture `..\Gamefiles\Movies\musiclog\full\ram.bin`
   (made 2026-11-22 on the old PPU) is also identical on every frame. Its record k (offset k*2048) is the RAM
   after frame k, record 0 being FCEUX's pre-movie frame (`emu.framecount()` = 0), so the header comment
@@ -48,6 +52,24 @@ Known differences from real hardware that we keep on purpose (they are what the 
 sprite-0 timing at scanline granularity, OAM DMA = 512 cycles (hardware 513/514), no PPU warm-up period,
 `$2004` reads return the latch, no odd-frame rule tied to rendering.
 
+## The new-PPU model (`src/nes/ppu_new.c`)
+Used for movies made with FCEUX's newppu 1 (the 1P TAS). `btdd_headless --ppu auto` follows the fm2's
+`NewPPU` header, but the 1P movie predates that header line, so pass `--ppu new` for it.
+- The frame starts at vblank: flag set at once, NMI after 20 dots, 20 vblank lines, flags cleared, then one
+  pre-render line and 240 visible lines of 341 dots (340 on the pre-render line of every other frame when
+  rendering is on), then one idle line. After power-on, two frames without vblank.
+- The CPU gets time one dot at a time (`cpu_run(cpu, 1)`), so PPU events land between instructions at dot
+  precision. Background fetches take 2 dots each in the real order (name, attribute, pattern low, high); the
+  coarse-X counter is clocked at the 3rd dot of every tile, fine/coarse Y at dot 251, horizontal bits
+  reloaded at dot 257 of visible lines, everything at dot 305 of the pre-render line.
+- Scroll state is kept as FCEUX's split counters (fine Y, NT Y, NT X, coarse Y, coarse X + their latches).
+  `$2007` uses them; during rendering an access clocks the vertical counter.
+- Pixels are produced 8 at a time right after each tile fetch, sprites from the list evaluated on the
+  previous line; sprite-0 hit = sprite 0 opaque over opaque background, x < 255, left-8 clipping respected.
+  `Ppu.fb` holds final palette values (sprites included) in this model.
+- `$2004` writes mask the attribute byte; `$2004` reads during rendering are counted, not emulated (FCEUX
+  models the evaluation bus there; BTDD never reads `$2004`).
+
 ## Sharing the CPU with generated code (for the M5 load-time recompiler)
 `src/runtime/cpu.h`: native code keeps the registers in `Cpu`, accesses memory through `cpu_bus_read` /
 `cpu_bus_write` (same side effects and open-bus value as the interpreter), charges time with
@@ -57,21 +79,18 @@ limit). Checked by `cpu_call_test`. Open design point for M5: today the PPU fram
 slices (`cpu_run`); native routines must also yield at the same points (or report their cycle cost so the
 PPU can catch up) for lockstep to hold. CMake has a `BTDD_LIBTCC` option reserved (off, not wired yet).
 
-## Not modelled yet (no effect on the 2P TAS)
+## Not modelled yet (no effect on either TAS)
 - DMC DMA cycle stealing and DMC/frame-counter IRQs (`$4015` reads return a stub). The game never enables
   DMC and runs with I set.
 - Unofficial opcodes: trapped (logged, CPU jams). nestest's unofficial section is therefore not run.
 - fm2 reset/power commands mid-movie (neither TAS uses them).
-- FCEUX's **new PPU** (dot-based). The 1P TAS (`tasvideos-2312S-1p.fm2`, `NewPPU 1`) needs it, so it cannot
-  be checked yet. Options: implement a dot-accurate PPU as a second timing mode (also closer to hardware), or
-  re-time the 1P movie.
-- Sprite drawing (only evaluation and sprite-0 hit), color output, APU sound.
+- Old model: sprite drawing (only evaluation and sprite-0 hit). Both models: RGB output, APU sound.
 
 ## How the FCEUX reference dumps are made
 FCEUX's `-cfg` option does not work for this: it prefixes the path with FCEUX's own folder (an absolute
 path is silently ignored) and loading a second config crashed it. So the comparison runs use a private copy
 of the FCEUX folder, `..\Gamefiles\Movies\m1\fceux-oldppu\`, whose `fceux.cfg` has `newppu 0` (everything
-else as in `..\tools\fceux\fceux.cfg`, which keeps `newppu 1` for the 1P movie). Run it from bash so the
+else as in `..\tools\fceux\fceux.cfg`, which keeps `newppu 1` for the 1P movie; new-PPU dumps such as the 1P one use that stock folder). Run it from bash so the
 environment reaches the Lua script:
 ```
 cd /c/Users/theop/claude/Battle/Gamefiles/Movies/m1/fceux-oldppu

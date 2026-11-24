@@ -48,7 +48,7 @@ Targets: `btdd` (M0: ROM check), `btdd_headless` (reference interpreter), `neste
 python tools\ramdiff.py ..\Gamefiles\Movies\m1\fceux_2p.bin ..\Gamefiles\Movies\m1\interp_2p.bin --names ..\btdd-decomp\src\ram.inc
 .\build\Release\nestest_check.exe ..\tools\testroms\nestest.nes ..\tools\testroms\nestest.log
 ```
-How it is timed, how the FCEUX reference dumps are made, and what it does not model yet: `docs/M1_INTERPRETER.md`.
+For the 1P TAS add `--ppu new` (FCEUX new-PPU timing). How it is timed, how the FCEUX reference dumps are made, and what it does not model yet: `docs/M1_INTERPRETER.md`.
 
 ## Folder map
 ```
