@@ -579,11 +579,12 @@ static int net_start(int host, const char *addr, const Config *cfg, const char *
  * state; changes apply at once and are saved to btdd.cfg when the menu closes ---- */
 
 enum {
-    PG_MAIN, PG_STATES, PG_DISPLAY, PG_GRAPHICS, PG_AUDIO, PG_CONTROLS, PG_KEYS1, PG_KEYS2, PG_GAMEPLAY, PG_MODS, PG_CHEATS,
+    PG_MAIN, PG_STATES, PG_DISPLAY, PG_GRAPHICS, PG_AUDIO, PG_CONTROLS, PG_KEYS1, PG_KEYS2, PG_GAMEPLAY, PG_MODS, PG_CHEATS, PG_NET,
 };
 enum {
     ID_RESUME = 1, ID_RESET, ID_POWER, ID_QUIT, ID_SLOT, ID_SAVE, ID_LOAD, ID_SCALE, ID_FULLSCREEN, ID_ASPECT,
     ID_FILTER, ID_SCANLINES, ID_VIDEO, ID_SHADER, ID_VOLUME, ID_REBIND_ALL, ID_REWIND, ID_FF, ID_BACK,
+    ID_NET_HOST, ID_NET_ADDR, ID_NET_JOIN, ID_NET_DELAY, ID_NET_LEAVE,
     ID_KEY_BASE = 100, /* + player * BTN_COUNT + button */
     ID_MOD_BASE = 200, /* + mod index */
 };
@@ -599,6 +600,7 @@ typedef struct PlayCtx {
     const char *hash;
     int have_cfg, dirty;
     int capture; /* key being rebound: ID_KEY_BASE + ..., 0 = none */
+    int text_edit; /* typing the join address */
     char status[64];
 } PlayCtx;
 
@@ -687,6 +689,26 @@ static void build_page(Menu *m, PlayCtx *c)
         add_back(m);
         break;
     }
+    case PG_NET:
+        menu_begin(m, "ONLINE 2-PLAYER");
+        if (net_on) {
+            net_status(&net, h, sizeof h);
+            menu_add(m, ITEM_INFO, 0, h, "", "");
+            menu_add(m, ITEM_ACTION, ID_NET_LEAVE, "Leave online game", "", "back to playing alone");
+        } else {
+            snprintf(v, sizeof v, "port %d", c->cfg->net_port);
+            menu_add(m, ITEM_ACTION, ID_NET_HOST, "Host game", v, "you are player 1; forward this UDP port");
+            menu_add(m, ITEM_CHOICE, ID_NET_ADDR, "Address", c->text_edit ? "type, Enter" : c->cfg->net_join,
+                     c->text_edit ? "IP or IP:port, then Enter" : "Enter to type the host's IP:port");
+            menu_add(m, ITEM_ACTION, ID_NET_JOIN, "Join game", "", "you are player 2");
+        }
+        snprintf(v, sizeof v, "%d", c->cfg->net_delay);
+        menu_add(m, ITEM_CHOICE, ID_NET_DELAY, "Input delay", v, "frames; 1-2 for most connections");
+        menu_add(m, ITEM_INFO, 0, "Host: forward the UDP port on", "", "");
+        menu_add(m, ITEM_INFO, 0, "your router, or use a VPN", "", "");
+        menu_add(m, ITEM_INFO, 0, "(Tailscale, ZeroTier).", "", "");
+        add_back(m);
+        break;
     case PG_GAMEPLAY:
         menu_begin(m, "GAMEPLAY");
         if (c->cfg->rewind_seconds)
@@ -728,6 +750,7 @@ static void build_page(Menu *m, PlayCtx *c)
         menu_add(m, ITEM_PAGE, PG_GAMEPLAY, "Gameplay", "", "");
         menu_add(m, ITEM_PAGE, PG_MODS, "Mods", "", "");
         menu_add(m, ITEM_PAGE, PG_CHEATS, "Cheats", "", "the game's own codes, entered for you");
+        menu_add(m, ITEM_PAGE, PG_NET, "Online 2-player", "", "play with a friend over the internet");
         menu_add(m, ITEM_INFO, 0, "", "", "");
         menu_add(m, ITEM_ACTION, ID_RESET, "Reset", "", "F1 in game");
         menu_add(m, ITEM_ACTION, ID_POWER, "Power cycle", "", "Ctrl+F1 in game");
@@ -893,6 +916,29 @@ static void menu_apply(PlayCtx *c, MenuEvent ev, int id, int dir)
         c->dirty = 1;
         break;
     }
+    case ID_NET_HOST:
+    case ID_NET_JOIN:
+        if (net_start(id == ID_NET_HOST, cfg->net_join, cfg, c->hash, c->status, sizeof c->status) == 0) {
+            c->dirty = 1;
+            menu_leave(c);
+        }
+        say(c->status);
+        break;
+    case ID_NET_ADDR:
+        c->text_edit = 1;
+        SDL_StartTextInput(c->video->win);
+        break;
+    case ID_NET_DELAY:
+        cfg->net_delay = wrap(cfg->net_delay + dir, 0, 3);
+        c->dirty = 1;
+        break;
+    case ID_NET_LEAVE:
+        net_stop();
+        power_on(cfg->ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD);
+        SDL_SetWindowTitle(c->video->win, TITLE);
+        say("left the online game");
+        menu_leave(c);
+        break;
     case ID_FF:
         cfg->ff_speed = wrap(cfg->ff_speed + dir, 2, 16);
         c->dirty = 1;
@@ -914,6 +960,17 @@ static void menu_do(PlayCtx *c, MenuInput in)
 /* Keyboard while the menu is open (or a key is being rebound). */
 static void menu_key(PlayCtx *c, SDL_Scancode sc, SDL_Keycode key)
 {
+    if (c->text_edit) { /* the join address: characters come as text events */
+        size_t n = strlen(c->cfg->net_join);
+        if (key == SDLK_BACKSPACE && n)
+            c->cfg->net_join[n - 1] = 0;
+        else if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) {
+            c->text_edit = 0;
+            c->dirty = 1;
+            SDL_StopTextInput(c->video->win);
+        }
+        return;
+    }
     if (c->capture) {
         int k = c->capture - ID_KEY_BASE;
         if (key != SDLK_ESCAPE) {
@@ -1216,6 +1273,18 @@ int main(int argc, char **argv)
                         (ev.gbutton.button == SDL_GAMEPAD_BUTTON_START && pad &&
                          SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK)))
                         menu_open(&menu, PG_MAIN);
+                }
+                break;
+            case SDL_EVENT_TEXT_INPUT:
+                if (menu.open && ctx.text_edit) { /* join address: digits, letters, dot, colon, dash */
+                    const char *t = ev.text.text;
+                    size_t n = strlen(cfg.net_join);
+                    for (; *t && n + 1 < sizeof cfg.net_join; t++)
+                        if ((*t >= '0' && *t <= '9') || (*t >= 'a' && *t <= 'z') || (*t >= 'A' && *t <= 'Z') ||
+                            *t == '.' || *t == ':' || *t == '-') {
+                            cfg.net_join[n++] = *t;
+                            cfg.net_join[n] = 0;
+                        }
                 }
                 break;
             case SDL_EVENT_KEY_DOWN:
