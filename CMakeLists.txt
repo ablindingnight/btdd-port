@@ -46,6 +46,7 @@ add_library(btdd_screen STATIC
     src/platform/screen.c
     src/platform/png.c
     src/platform/rewind.c
+    src/platform/wide.c
 )
 target_link_libraries(btdd_screen PUBLIC btdd_core)
 btdd_warnings(btdd_screen)
@@ -72,6 +73,8 @@ add_library(btdd_mods STATIC
     src/mods/mods.c
     src/mods/mod_lives.c
     src/mods/mod_nolimit.c
+    src/mods/mod_wide.c
+    src/mods/mod_cheats.c
 )
 target_link_libraries(btdd_mods PUBLIC btdd_core)
 btdd_warnings(btdd_mods)

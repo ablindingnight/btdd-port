@@ -9,6 +9,7 @@
 #include "nes/nes.h"
 #include "platform/png.h"
 #include "platform/screen.h"
+#include "platform/wide.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
 #include <stdio.h>
@@ -27,6 +28,8 @@ int main(int argc, char **argv)
     long wanted[256], nwanted = 0, last = 0, i;
     Fm2 movie = {0};
     PpuModel model = PPU_MODEL_OLD;
+    int wide = 0;
+    static WideState ws;
 
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--movie") && i + 1 < argc)
@@ -37,6 +40,10 @@ int main(int argc, char **argv)
             out_dir = argv[++i];
         else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
             ppu_opt = argv[++i];
+        else if (!strcmp(argv[i], "--wide"))
+            wide = 1, ws.sprites = 1;
+        else if (!strcmp(argv[i], "--wide-nosprites"))
+            wide = 1, ws.sprites = 0;
         else if (!strcmp(argv[i], "--mod") && i + 1 < argc) { /* M7 mods, e.g. --mod nolimit */
             if (mods_apply_arg(argv[++i]) != 0)
                 return 2;
@@ -100,6 +107,25 @@ int main(int argc, char **argv)
                     fprintf(stderr, "cannot write %s\n", path);
                 if (f)
                     fclose(f);
+                if (wide || (mods_display_flags() & MODS_DISPLAY_WIDESCREEN)) { /* M9: the 424-pixel picture */
+                    static uint8_t widx[PPU_H][WIDE_W];
+                    static uint32_t wrgb[PPU_H * WIDE_W];
+                    if (getenv("WIDE_DEBUG"))
+                        wide_debug(&nes);
+                    if (mods_display_flags() & MODS_DISPLAY_WIDESCREEN) { /* --mod widescreen etc. */
+                        ws.sprites = (mods_display_flags() & MODS_DISPLAY_WIDE_SPRITES) != 0;
+                        ws.hud = (mods_display_flags() & MODS_DISPLAY_WIDE_HUD) != 0;
+                    }
+                    ws.retry_wait = 0; /* sparse frames: always allow a full calibration search */
+                    wide_render(&ws, &nes, &screen, widx);
+                    wide_to_rgb(&screen, widx, wrgb, WIDE_W, (mods_display_flags() & MODS_DISPLAY_WIDE_FADE) != 0);
+                    snprintf(path, sizeof path, "%s/wide_%ld.png", out_dir, i + 1);
+                    if (png_write_rgb(path, wrgb, WIDE_W, PPU_H, WIDE_W) != 0)
+                        fprintf(stderr, "cannot write %s\n", path);
+                    printf("frame %ld level %02X section %02X: %d lines widened, %d margin entities, calibration %d/1000 (dx %d dy %d), map %dx%d\n",
+                           i + 1, nes.ram[0x10], nes.ram[0x15], ws.lines_widened, ws.margin_entities, ws.calib_match, ws.dx, ws.dy,
+                           ws.map_cols, ws.map_rows);
+                }
             }
         }
     }

@@ -21,6 +21,7 @@ typedef struct Video {
     SDL_Texture *big;     /* integer-scaled intermediate (sharp filter, scanlines) */
     int big_scale;
     int filter, aspect, scanlines;
+    int pic_w;            /* picture width: 256, or 424 with the widescreen mod (SDL renderer path) */
     Gpu *gpu;             /* M10 GPU shader path (NULL = SDL renderer) */
     int preset;           /* GpuPreset when gpu is set */
     SDL_Surface *overlay; /* text for the GPU path, drawn by a software renderer */
@@ -33,6 +34,8 @@ int video_open(Video *v, const char *title, int scale, int aspect, int fullscree
                const char *renderer, int use_gpu, int preset);
 /* Draws the picture (0xFFRRGGBB, 256x240) plus optional text lines at the top-left, then presents. */
 void video_present(Video *v, const uint32_t *pixels, const char *const *text, int text_lines);
+/* Picture width for the next frames (256 or a wide picture); -1 if this path cannot (GPU path for now). */
+int video_set_width(Video *v, int w);
 void video_close(Video *v);
 int video_filter_from_name(const char *name); /* -1 if unknown */
 

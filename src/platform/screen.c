@@ -236,6 +236,18 @@ int screen_set_palette(const uint8_t *rgb, int count)
     return 0;
 }
 
+void screen_index_to_rgb(const uint8_t *idx, int idx_pitch, const uint8_t *emph, int w, int h, uint32_t *out, int pitch)
+{
+    int x, y;
+    if (!pal_ready) {
+        screen_palette(active_pal);
+        pal_ready = 1;
+    }
+    for (y = 0; y < h; y++)
+        for (x = 0; x < w; x++)
+            out[y * pitch + x] = 0xFF000000u | active_pal[emph[y] & 7][idx[y * idx_pitch + x] & 0x3F];
+}
+
 void screen_to_rgb(const Screen *s, uint32_t *out, int pitch)
 {
     uint32_t(*pal)[64] = active_pal;
