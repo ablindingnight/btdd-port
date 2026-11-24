@@ -25,6 +25,8 @@ void screen_palette(uint32_t rgb[8][64]);     /* 0xRRGGBB for every emphasis com
  * (8 emphasis variants x 64, the usual .pal layouts). rgb holds count*3 bytes. Returns 0 if accepted. */
 int screen_set_palette(const uint8_t *rgb, int count);
 void screen_to_rgb(const Screen *s, uint32_t *out_argb, int pitch_pixels); /* 0xFFRRGGBB */
+/* Same conversion for any index picture (w x h, idx_pitch bytes per row), emphasis per line. */
+void screen_index_to_rgb(const uint8_t *idx, int idx_pitch, const uint8_t *emph, int w, int h, uint32_t *out, int pitch);
 /* M7 mod "nolimit": draw every sprite on every line instead of the PPU's 8 (display only; global setting). */
 void screen_set_no_sprite_limit(int on);
 

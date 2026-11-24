@@ -46,6 +46,7 @@ add_library(btdd_screen STATIC
     src/platform/screen.c
     src/platform/png.c
     src/platform/rewind.c
+    src/platform/wide.c
 )
 target_link_libraries(btdd_screen PUBLIC btdd_core)
 btdd_warnings(btdd_screen)
