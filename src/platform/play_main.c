@@ -1,13 +1,15 @@
 /* btdd_play: the game in a window, running on the reference interpreter (milestone M2).
  *
  *   btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] [--fullscreen] [--no-audio]
+ *             [--selftest-gamepad]
  *
- * Keys (defaults, changeable in btdd.cfg): player 1 arrows, X = A, Z = B, Right Shift = Select,
+ * Keys (defaults, changeable in btdd.cfg or with F5): player 1 arrows, X = A, Z = B, Right Shift = Select,
  * Enter = Start; player 2 W/A/S/D, H = A, G = B, T = Select, Y = Start. Gamepads: the first two are
  * players 1 and 2 (east button = A, south button = B, Back = Select, Start, d-pad or left stick).
- * Esc quits, P pauses, F11 or Alt+Enter toggles fullscreen, F2 toggles square pixels / 4:3, F12 saves a
- * screenshot in the settings folder. --movie plays an fm2 instead of live input (--frames N quits after
- * N frames, for automated checks). --selftest-gamepad checks the gamepad path with a virtual pad.
+ * Hotkeys: Esc quit, P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter
+ * (nearest / sharp / bilinear), F4 scanlines, F5 redefine keys, F11 or Alt+Enter fullscreen, F12 screenshot.
+ * --movie plays an fm2 instead of live input (--frames N quits after N frames, for automated checks);
+ * --selftest-gamepad checks the gamepad path with a virtual pad.
  *
  * Timing: the emulator produces one frame (60.0988 Hz) whenever the audio queue holds less than ~3 frames
  * of sound, so sound never starves and the picture follows the sound card's clock. Without an audio
@@ -19,6 +21,7 @@
 #include "platform/screen.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
+#include "video.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <stdio.h>
@@ -28,6 +31,7 @@
 #define AUDIO_RATE 48000
 #define FRAME_HZ (APU_CPU_HZ / 29780.5)
 #define QUEUE_TARGET_FRAMES 3
+#define TITLE "Battletoads & Double Dragon"
 
 static Rom rom;
 static Nes nes;
@@ -68,18 +72,42 @@ static void host_irq(void *ctx, int frame_irq, int dmc_irq)
                        (dmc_irq ? CPU_IRQ_DMC : 0));
 }
 
-static void power_on(PpuModel model)
+static void attach_apu(void)
 {
     ApuHost host = {&nes, host_read, host_stall, host_irq};
-    nes_init(&nes, &rom);
-    nes_power(&nes, model);
-    screen_attach(&screen, &nes.ppu);
     apu_power(&apu, AUDIO_RATE, &host);
     apu_set_buffer(&apu, samples, sizeof samples / sizeof samples[0]);
     nes.apu_hook = on_apu_write;
     memset(watch_all, 1, sizeof watch_all);
     nes.cpu.exec_watch = watch_all;
     nes.cpu.exec_hook = on_instruction;
+}
+
+static void power_on(PpuModel model)
+{
+    nes_init(&nes, &rom);
+    nes_power(&nes, model);
+    screen_attach(&screen, &nes.ppu);
+    attach_apu();
+}
+
+/* Reset button, as FCEUX does it: CPU takes the reset vector, PPU registers clear and it skips two
+ * frames, the APU restarts; RAM, CHR-RAM, palette, OAM and the mapper bank are kept. */
+static void soft_reset(void)
+{
+    Ppu *p = &nes.ppu;
+    cpu_reset(&nes.cpu);
+    p->read_buf = p->ctrl = p->mask = p->status = p->oam_addr = p->oam_low = p->latch = 0;
+    p->v = p->t = 0;
+    p->toggle = 0;
+    p->dead_frames = 2;
+    p->odd = 0;
+    p->idle_synch = 1;
+    memset(&p->sc, 0, sizeof p->sc);
+    p->sl = 241;
+    p->dot = 0;
+    p->end_dot = 341;
+    attach_apu();
 }
 
 /* ---- input ---- */
@@ -138,19 +166,95 @@ static void open_gamepads(SDL_Gamepad *gp[2])
     SDL_free(ids);
 }
 
-/* ---- video ---- */
+/* ---- on-screen messages and key rebinding ---- */
 
-static void apply_presentation(SDL_Renderer *r, const Config *cfg)
+static char message[160];
+static Uint64 message_until;
+
+static void say(const char *text)
 {
-    if (cfg->aspect)
-        SDL_SetRenderLogicalPresentation(r, 292, 240, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    snprintf(message, sizeof message, "%s", text);
+    message_until = SDL_GetTicksNS() + 2500000000ull;
+    SDL_Log("%s", text);
+}
+
+typedef struct Rebind {
+    int active, step; /* step 0..2*BTN_COUNT-1: player = step / BTN_COUNT, button = step % BTN_COUNT */
+    SDL_Scancode backup[2][BTN_COUNT];
+} Rebind;
+
+static const char *const button_labels[BTN_COUNT] = {"A", "B", "SELECT", "START", "UP", "DOWN", "LEFT", "RIGHT"};
+
+/* Returns 1 if the key was consumed by the rebinding flow. */
+static int rebind_key(Rebind *rb, Config *cfg, SDL_Scancode sc)
+{
+    char text[160];
+    if (!rb->active)
+        return 0;
+    if (sc == SDL_SCANCODE_ESCAPE) {
+        memcpy(cfg->keys, rb->backup, sizeof rb->backup);
+        rb->active = 0;
+        say("key setup cancelled");
+        return 1;
+    }
+    if (sc != SDL_SCANCODE_BACKSPACE) /* Backspace keeps the current key */
+        cfg->keys[rb->step / BTN_COUNT][rb->step % BTN_COUNT] = sc;
+    if (++rb->step == 2 * BTN_COUNT) {
+        rb->active = 0;
+        if (config_save(cfg) == 0)
+            snprintf(text, sizeof text, "keys saved to btdd.cfg");
+        else
+            snprintf(text, sizeof text, "keys set, but btdd.cfg could not be written");
+        say(text);
+    }
+    return 1;
+}
+
+static int overlay(const Rebind *rb, const Config *cfg, int paused, const char *lines[4])
+{
+    static char l0[96], l1[96];
+    int n = 0;
+    if (rb->active) {
+        int p = rb->step / BTN_COUNT, b = rb->step % BTN_COUNT;
+        snprintf(l0, sizeof l0, "PLAYER %d: PRESS KEY FOR %s", p + 1, button_labels[b]);
+        snprintf(l1, sizeof l1, "NOW: %s  BKSP=KEEP ESC=CANCEL", SDL_GetScancodeName(cfg->keys[p][b]));
+        lines[n++] = l0;
+        lines[n++] = l1;
+    } else if (paused) {
+        lines[n++] = "PAUSED (P)";
+    }
+    if (message_until > SDL_GetTicksNS())
+        lines[n++] = message;
+    return n;
+}
+
+/* ---- palette ---- */
+
+static void load_palette(const char *path)
+{
+    static uint8_t buf[512 * 3 + 1];
+    size_t n;
+    char text[160];
+    FILE *f;
+    if (!path[0])
+        return;
+    f = fopen(path, "rb");
+    n = f ? fread(buf, 1, sizeof buf, f) : 0;
+    if (f)
+        fclose(f);
+    if (n == 64 * 3 || n == 512 * 3)
+        snprintf(text, sizeof text, "palette: %s (%d colors)", path, (int)(n / 3));
     else
-        SDL_SetRenderLogicalPresentation(r, PPU_W, PPU_H, SDL_LOGICAL_PRESENTATION_INTEGER_SCALE);
+        snprintf(text, sizeof text, "palette %s not used (needs 192 or 1536 bytes)", path);
+    if ((n == 64 * 3 || n == 512 * 3) && screen_set_palette(buf, (int)(n / 3)) == 0)
+        SDL_Log("%s", text);
+    else
+        say(text);
 }
 
 static void save_screenshot(const Config *cfg)
 {
-    char path[1100], *slash;
+    char path[1100], *slash, text[160];
     static int n;
     snprintf(path, sizeof path, "%s", cfg->path);
     slash = strrchr(path, '\\');
@@ -160,15 +264,18 @@ static void save_screenshot(const Config *cfg)
         return;
     snprintf(slash + 1, sizeof path - (size_t)(slash + 1 - path), "shot_%llu_%d.png",
              (unsigned long long)nes.ppu.frame, n++);
-    if (png_write_rgb(path, pixels, PPU_W, PPU_H, PPU_W) == 0)
+    if (png_write_rgb(path, pixels, PPU_W, PPU_H, PPU_W) == 0) {
+        snprintf(text, sizeof text, "screenshot saved (settings folder)");
         SDL_Log("screenshot: %s", path);
+        say(text);
+    }
 }
 
 /* --selftest-gamepad: a virtual SDL gamepad presses buttons; the game's own input byte ($30, player 1
  * buttons held, bit order A=$80 B=$40 Select=$20 Start=$10 Up=$08 Down=$04 Left=$02 Right=$01) must show
  * them. Exercises SDL gamepad detection, the mapping and the controller port. */
 typedef struct SelfTest {
-    long start;               /* frame the step starts */
+    long start; /* frame the step starts */
     SDL_GamepadButton button;
     uint8_t expect;
 } SelfTest;
@@ -191,21 +298,21 @@ static int fail(const char *what)
 int main(int argc, char **argv)
 {
     Config cfg;
+    Video video;
+    Rebind rb;
     const char *movie_path = NULL;
     long max_frames = -1, frame = 0;
     int i, quit = 0, paused = 0, have_cfg, no_audio = 0, selftest_on = 0, seen[SELFTEST_STEPS] = {0};
     SDL_Joystick *vjoy = NULL;
     char hash[41], msg[1400];
     Fm2 movie = {0};
-    SDL_Window *win;
-    SDL_Renderer *ren;
-    SDL_Texture *tex;
     SDL_AudioStream *audio;
     SDL_AudioSpec spec = {SDL_AUDIO_F32, 1, AUDIO_RATE};
     SDL_Gamepad *gp[2] = {NULL, NULL};
     Uint64 next_tick;
     RomResult rr;
 
+    memset(&rb, 0, sizeof rb);
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
         fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
         return 1;
@@ -230,7 +337,7 @@ int main(int argc, char **argv)
             snprintf(cfg.rom, sizeof cfg.rom, "%s", argv[i]);
         else
             return fail("usage: btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] "
-                        "[--fullscreen]");
+                        "[--fullscreen] [--no-audio] [--selftest-gamepad]");
     }
     if (!have_cfg)
         SDL_Log("could not read or create btdd.cfg; using defaults");
@@ -252,17 +359,13 @@ int main(int argc, char **argv)
         if (movie.new_ppu)
             cfg.ppu_new = 1;
     }
+    load_palette(cfg.palette);
 
-    win = SDL_CreateWindow("Battletoads & Double Dragon", (cfg.aspect ? 292 : PPU_W) * cfg.scale,
-                           PPU_H * cfg.scale, SDL_WINDOW_RESIZABLE | (cfg.fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
-    ren = win ? SDL_CreateRenderer(win, NULL) : NULL;
-    tex = ren ? SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, PPU_W, PPU_H) : NULL;
-    if (!tex) {
+    if (video_open(&video, TITLE, cfg.scale, cfg.aspect, cfg.fullscreen, cfg.filter, cfg.scanlines,
+                   cfg.renderer) != 0) {
         snprintf(msg, sizeof msg, "cannot open the window: %s", SDL_GetError());
         return fail(msg);
     }
-    SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
-    apply_presentation(ren, &cfg);
     audio = no_audio ? NULL : SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
     if (audio) {
         SDL_SetAudioStreamGain(audio, cfg.volume);
@@ -301,7 +404,8 @@ int main(int argc, char **argv)
 
     while (!quit) {
         SDL_Event ev;
-        int run_frame;
+        int run_frame, hold = paused || rb.active;
+        const char *lines[4];
         while (SDL_PollEvent(&ev)) {
             switch (ev.type) {
             case SDL_EVENT_QUIT:
@@ -313,24 +417,39 @@ int main(int argc, char **argv)
                     open_gamepads(gp);
                 break;
             case SDL_EVENT_KEY_DOWN:
-                if (ev.key.repeat)
+                if (ev.key.repeat || rebind_key(&rb, &cfg, ev.key.scancode))
                     break;
-                if (ev.key.key == SDLK_ESCAPE)
+                if (ev.key.key == SDLK_ESCAPE) {
                     quit = 1;
-                else if (ev.key.key == SDLK_P) {
+                } else if (ev.key.key == SDLK_P) {
                     paused = !paused;
-                    SDL_SetWindowTitle(win, paused ? "Battletoads & Double Dragon (paused)"
-                                                   : "Battletoads & Double Dragon");
-                    if (audio)
-                        SDL_ClearAudioStream(audio);
-                    next_tick = SDL_GetTicksNS();
+                    SDL_SetWindowTitle(video.win, paused ? TITLE " (paused)" : TITLE);
+                } else if (ev.key.key == SDLK_F1) {
+                    if (ev.key.mod & SDL_KMOD_CTRL) {
+                        power_on(nes.ppu.model);
+                        say("power cycle");
+                    } else {
+                        soft_reset();
+                        say("reset");
+                    }
                 } else if (ev.key.key == SDLK_F11 ||
                            (ev.key.key == SDLK_RETURN && (ev.key.mod & SDL_KMOD_ALT))) {
                     cfg.fullscreen = !cfg.fullscreen;
-                    SDL_SetWindowFullscreen(win, cfg.fullscreen);
+                    SDL_SetWindowFullscreen(video.win, cfg.fullscreen);
                 } else if (ev.key.key == SDLK_F2) {
-                    cfg.aspect = !cfg.aspect;
-                    apply_presentation(ren, &cfg);
+                    video.aspect = cfg.aspect = !cfg.aspect;
+                    say(cfg.aspect ? "4:3 picture" : "square pixels");
+                } else if (ev.key.key == SDLK_F3) {
+                    video.filter = cfg.filter = (cfg.filter + 1) % FILTER_COUNT;
+                    snprintf(msg, sizeof msg, "filter: %s", video_filter_names[cfg.filter]);
+                    say(msg);
+                } else if (ev.key.key == SDLK_F4) {
+                    video.scanlines = cfg.scanlines = !cfg.scanlines;
+                    say(cfg.scanlines ? "scanlines on" : "scanlines off");
+                } else if (ev.key.key == SDLK_F5) {
+                    rb.active = 1;
+                    rb.step = 0;
+                    memcpy(rb.backup, cfg.keys, sizeof rb.backup);
                 } else if (ev.key.key == SDLK_F12) {
                     save_screenshot(&cfg);
                 }
@@ -339,8 +458,12 @@ int main(int argc, char **argv)
                 break;
             }
         }
-        if (paused) {
-            SDL_Delay(10);
+        if (hold) { /* paused or redefining keys: keep drawing the last picture with the overlay */
+            if (audio)
+                SDL_ClearAudioStream(audio);
+            video_present(&video, pixels, lines, overlay(&rb, &cfg, paused, lines));
+            next_tick = SDL_GetTicksNS();
+            SDL_Delay(15);
             continue;
         }
 
@@ -389,11 +512,7 @@ int main(int argc, char **argv)
             apu_set_buffer(&apu, samples, sizeof samples / sizeof samples[0]);
         }
         screen_to_rgb(&screen, pixels, PPU_W);
-        SDL_UpdateTexture(tex, NULL, pixels, PPU_W * (int)sizeof(uint32_t));
-        SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
-        SDL_RenderClear(ren);
-        SDL_RenderTexture(ren, tex, NULL, NULL);
-        SDL_RenderPresent(ren);
+        video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
 
         if (max_frames >= 0 && frame >= max_frames)
             quit = 1;
@@ -416,9 +535,7 @@ int main(int argc, char **argv)
             SDL_CloseGamepad(gp[i]);
     if (audio)
         SDL_DestroyAudioStream(audio);
-    SDL_DestroyTexture(tex);
-    SDL_DestroyRenderer(ren);
-    SDL_DestroyWindow(win);
+    video_close(&video);
     fm2_free(&movie);
     SDL_Quit();
     return quit == 2 ? 1 : 0;

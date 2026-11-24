@@ -104,7 +104,7 @@ if(BTDD_SDL)
     btdd_warnings(btdd_sdl_probe)
 
     # M2: the game in a window
-    add_executable(btdd_play src/platform/play_main.c src/platform/config.c)
+    add_executable(btdd_play src/platform/play_main.c src/platform/config.c src/platform/video.c)
     target_link_libraries(btdd_play PRIVATE btdd_screen SDL3::SDL3-static)
     btdd_warnings(btdd_play)
 endif()

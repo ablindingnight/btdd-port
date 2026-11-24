@@ -13,6 +13,10 @@ typedef struct Config {
     int fullscreen;
     int ppu_new;          /* 0 = FCEUX old-PPU timing (default), 1 = new-PPU timing */
     float volume;         /* 0..1 */
+    int filter;           /* FILTER_* in video.h: nearest, sharp, bilinear */
+    int scanlines;
+    char palette[1024];   /* optional .pal file (64 or 512 RGB triplets); empty = generated palette */
+    char renderer[64];    /* SDL render driver, "auto" = SDL's choice */
     SDL_Scancode keys[2][BTN_COUNT];
     char path[1024];      /* where the config was read from / written to */
 } Config;
@@ -23,5 +27,6 @@ void config_defaults(Config *c);
 /* Reads btdd.cfg (creating it with defaults when absent). Returns 0 on success, -1 if no file could be
  * read or written (defaults are still set). */
 int config_load(Config *c);
+int config_save(const Config *c); /* writes c->path; 0 on success */
 
 #endif

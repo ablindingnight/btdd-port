@@ -1,4 +1,5 @@
 #include "config.h"
+#include "video.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,8 @@ void config_defaults(Config *c)
     memset(c, 0, sizeof *c);
     c->scale = 3;
     c->volume = 1.0f;
+    c->filter = FILTER_NEAREST;
+    snprintf(c->renderer, sizeof c->renderer, "auto");
     memcpy(c->keys[0], p1, sizeof p1);
     memcpy(c->keys[1], p2, sizeof p2);
 }
@@ -45,6 +48,16 @@ static void apply(Config *c, const char *key, const char *val)
         c->fullscreen = atoi(val) != 0;
     else if (!strcmp(key, "ppu"))
         c->ppu_new = !strcmp(val, "new");
+    else if (!strcmp(key, "filter")) {
+        int f = video_filter_from_name(val);
+        if (f >= 0)
+            c->filter = f;
+    } else if (!strcmp(key, "scanlines"))
+        c->scanlines = atoi(val) != 0;
+    else if (!strcmp(key, "palette"))
+        snprintf(c->palette, sizeof c->palette, "%s", val);
+    else if (!strcmp(key, "renderer"))
+        snprintf(c->renderer, sizeof c->renderer, "%s", val[0] ? val : "auto");
     else if (!strcmp(key, "volume"))
         c->volume = (float)SDL_clamp(atof(val), 0.0, 1.0);
     else
@@ -62,6 +75,13 @@ static void apply(Config *c, const char *key, const char *val)
             }
 }
 
+static int write_file(const Config *c, const char *path);
+
+int config_save(const Config *c)
+{
+    return write_file(c, c->path);
+}
+
 static int write_file(const Config *c, const char *path)
 {
     FILE *f = fopen(path, "w");
@@ -73,6 +93,12 @@ static int write_file(const Config *c, const char *path)
     fprintf(f, "rom = %s\n", c->rom);
     fprintf(f, "scale = %d\naspect = %d\nfullscreen = %d\nppu = %s\nvolume = %.2f\n", c->scale, c->aspect,
             c->fullscreen, c->ppu_new ? "new" : "old", c->volume);
+    fprintf(f, "# filter = nearest | sharp | bilinear; scanlines = 0 | 1\n");
+    fprintf(f, "filter = %s\nscanlines = %d\n", video_filter_names[c->filter], c->scanlines);
+    fprintf(f, "# palette = path to a .pal file (64 or 512 RGB colors); empty = built-in palette\n");
+    fprintf(f, "palette = %s\n", c->palette);
+    fprintf(f, "# renderer = auto, direct3d11, direct3d12, direct3d, opengl, vulkan or software\n");
+    fprintf(f, "renderer = %s\n", c->renderer);
     for (p = 0; p < 2; p++)
         for (b = 0; b < BTN_COUNT; b++)
             fprintf(f, "p%d_%s = %s\n", p + 1, config_button_names[b], SDL_GetScancodeName(c->keys[p][b]));

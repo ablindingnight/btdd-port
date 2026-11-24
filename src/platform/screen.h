@@ -17,6 +17,9 @@ typedef struct Screen {
 
 void screen_attach(Screen *s, Ppu *ppu);      /* call after nes_power (power clears the hook) */
 void screen_palette(uint32_t rgb[8][64]);     /* 0xRRGGBB for every emphasis combination and color */
+/* Replaces the generated palette: 64 colors (emphasis derived by dimming the other channels) or 512
+ * (8 emphasis variants x 64, the usual .pal layouts). rgb holds count*3 bytes. Returns 0 if accepted. */
+int screen_set_palette(const uint8_t *rgb, int count);
 void screen_to_rgb(const Screen *s, uint32_t *out_argb, int pitch_pixels); /* 0xFFRRGGBB */
 
 #endif

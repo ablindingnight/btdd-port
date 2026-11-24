@@ -120,14 +120,39 @@ void screen_palette(uint32_t rgb[8][64])
     }
 }
 
+static uint32_t active_pal[8][64];
+static int pal_ready;
+
+int screen_set_palette(const uint8_t *rgb, int count)
+{
+    int e, c;
+    if (count != 64 && count != 512)
+        return -1;
+    for (e = 0; e < 8; e++)
+        for (c = 0; c < 64; c++) {
+            const uint8_t *p = rgb + 3 * (count == 512 ? e * 64 + c : c);
+            double r = p[0], g = p[1], b = p[2];
+            if (count == 64 && e) { /* emphasis: emphasized channels keep their level, the others dim */
+                if (!(e & 1))
+                    r *= 0.816;
+                if (!(e & 2))
+                    g *= 0.816;
+                if (!(e & 4))
+                    b *= 0.816;
+            }
+            active_pal[e][c] = (uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b;
+        }
+    pal_ready = 1;
+    return 0;
+}
+
 void screen_to_rgb(const Screen *s, uint32_t *out, int pitch)
 {
-    static uint32_t pal[8][64];
-    static int ready;
+    uint32_t(*pal)[64] = active_pal;
     int x, y;
-    if (!ready) {
-        screen_palette(pal);
-        ready = 1;
+    if (!pal_ready) {
+        screen_palette(active_pal);
+        pal_ready = 1;
     }
     for (y = 0; y < PPU_H; y++)
         for (x = 0; x < PPU_W; x++)
