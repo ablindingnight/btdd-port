@@ -40,3 +40,11 @@ Use: gate detection (a section change = a gate passed) and warp targets for the 
   3, or 5 if that player's held buttons (`joy_held,y`) equal `$D8`, but never less than `$0017`. Y is unchanged on
   return. The `lives` mod hooks here (after-hook).
 - An extra life is a plain increment elsewhere (P2 at frame 1152, bank 0 `$91E2`).
+
+## Secrets, cheats and quirks (add every one you find, with how it was found)
+| What | How it works | Found |
+|---|---|---|
+| **5 starting lives** | Hold **Up + A + B** and press **Start** when a player's game starts. Bank 6 `sub_9888` gives 5 lives instead of 3 when that player's held buttons (`joy_held,y`) equal `$D8`. Button bits: A $80, B $40, Select $20, Start $10, Up $08, Down $04, Left $02, Right $01 (ram.inc: Start = $10, Down = $04, A = $80), so $D8 = A+B+Start+Up. | M7 lives mod, 2026-11-24 (code reading; verify in play) |
+| Levels 0, 1 and 7 | Valid level IDs that point at dummy data (no hidden levels). | data formats, 2026-11-24 |
+| 5 unused songs | Songs `$03`, `$05`, `$0B`, `$11`, `$14` are never requested in the TAS route; forcing them plays them (song `$0B` has a full track). | coverage, 2026-11-24 |
+| Unused carry/hold sprite pieces | Bank 6 `$A4F6-$A79D`: extra sprite pieces for ~110 player animations while carrying, never reachable in play. | coverage, 2026-11-24 |
