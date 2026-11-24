@@ -1,6 +1,7 @@
 #include "config.h"
 #include "video.h"
 #include "mods/mods.h"
+#include "gpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +23,7 @@ void config_defaults(Config *c)
     c->volume = 1.0f;
     c->filter = FILTER_NEAREST;
     snprintf(c->renderer, sizeof c->renderer, "auto");
+    c->shader = GPU_PRESET_SHARP;
     c->rewind_seconds = 60;
     c->ff_speed = 4;
     memcpy(c->keys[0], p1, sizeof p1);
@@ -61,7 +63,13 @@ static void apply(Config *c, const char *key, const char *val)
         snprintf(c->palette, sizeof c->palette, "%s", val);
     else if (!strcmp(key, "renderer"))
         snprintf(c->renderer, sizeof c->renderer, "%s", val[0] ? val : "auto");
-    else if (!strcmp(key, "volume"))
+    else if (!strcmp(key, "video"))
+        c->gpu = !SDL_strcasecmp(val, "gpu");
+    else if (!strcmp(key, "shader")) {
+        int preset = gpu_preset_from_name(val);
+        if (preset >= 0)
+            c->shader = preset;
+    } else if (!strcmp(key, "volume"))
         c->volume = (float)SDL_clamp(atof(val), 0.0, 1.0);
     else if (!strcmp(key, "rewind_seconds"))
         c->rewind_seconds = SDL_clamp(atoi(val), 0, 600);
@@ -108,6 +116,9 @@ static int write_file(const Config *c, const char *path)
     fprintf(f, "palette = %s\n", c->palette);
     fprintf(f, "# renderer = auto, direct3d11, direct3d12, direct3d, opengl, vulkan or software\n");
     fprintf(f, "renderer = %s\n", c->renderer);
+    fprintf(f, "# video = sdl | gpu (GPU shader path, Direct3D 12; falls back to sdl); shader = nearest, sharp, bilinear,\n");
+    fprintf(f, "# crt, smooth or smooth-crt (used with video = gpu; F3 cycles them)\n");
+    fprintf(f, "video = %s\nshader = %s\n", c->gpu ? "gpu" : "sdl", gpu_preset_names[c->shader]);
     fprintf(f, "# rewind_seconds = how far Backspace can rewind (0 = off; ~1 MB per second); ff_speed = Tab speed\n");
     fprintf(f, "rewind_seconds = %d\nff_speed = %d\n", c->rewind_seconds, c->ff_speed);
     mods_write_settings(f);

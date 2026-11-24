@@ -17,6 +17,8 @@ typedef struct Config {
     int scanlines;
     char palette[1024];   /* optional .pal file (64 or 512 RGB triplets); empty = generated palette */
     char renderer[64];    /* SDL render driver, "auto" = SDL's choice */
+    int gpu;              /* video = gpu: GPU shader path (M10 prototype) */
+    int shader;           /* GpuPreset for the GPU path */
     int rewind_seconds;   /* rewind history (Backspace), 0 = off */
     int ff_speed;         /* frames per frame while Tab is held */
     SDL_Scancode keys[2][BTN_COUNT];
