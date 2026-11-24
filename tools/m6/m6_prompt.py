@@ -25,6 +25,22 @@ import m6_test  # noqa: E402
 
 DECOMP = os.path.join(REPO, '..', 'btdd-decomp')
 
+
+def decomp_facts(bank, label, max_lines=40):
+    """The decomp's read-only fact tool for one routine, run as `python ../btdd-decomp/tools/facts.py BANK LABEL`
+    from this checkout (a sibling of btdd-decomp; the form the user's permission rule allows). None if it fails."""
+    try:
+        r = subprocess.run(['python', '../btdd-decomp/tools/facts.py', str(bank), label], cwd=REPO,
+                           capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if r.returncode != 0 or not r.stdout.strip():
+        return None
+    lines = r.stdout.strip().splitlines()
+    if len(lines) > max_lines:
+        lines = lines[:max_lines] + ['(... %d more lines)' % (len(lines) - max_lines)]
+    return '\n'.join(lines)
+
 SYSTEM = """You translate one 6502 routine of an NES game into a readable, exactly equivalent C function.
 
 Rules:
@@ -270,6 +286,9 @@ def build(bank, addr):
     mech = mechanical_c(bank, r['start'], r['end'], mem)
     parts = ['Routine %s: bank %d, $%04X-$%04X, %d instructions, called %d times in the 2-player TAS.'
              % (r['name'], bank, r['start'], r['end'], len(ins), calls)]
+    facts = decomp_facts(bank, r['name'])
+    if facts:
+        parts.append('Facts about it from the decomp (tools/facts.py):\n```\n%s\n```' % facts)
     if r.get('proposed'):
         parts.append('Proposed name (unreviewed): %s' % r['proposed'])
     if used:
