@@ -30,6 +30,8 @@ typedef struct Gpu Gpu;
 Gpu *gpu_open(SDL_Window *win);
 void gpu_close(Gpu *g);
 const char *gpu_driver(const Gpu *g);
+/* Picture width of the following frames (256, or 424 with the M9 widescreen mod). 0 on success. */
+int gpu_set_frame_width(Gpu *g, int w);
 
 /* One frame to the window: picture 0xFFRRGGBB 256x240, drawn into dst (window pixels); overlay (may be NULL) is an
  * RGBA surface drawn over dst with alpha. */

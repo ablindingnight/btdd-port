@@ -8,6 +8,7 @@
 #include "platform/gpu.h"
 #include "platform/png.h"
 #include "platform/screen.h"
+#include "platform/wide.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
 #include <SDL3/SDL.h>
@@ -19,13 +20,16 @@
 static Rom rom;
 static Nes nes;
 static Screen screen;
-static uint32_t pixels[PPU_W * PPU_H];
+static uint32_t pixels[WIDE_W * PPU_H];
+static uint8_t widx[PPU_H][WIDE_W];
+static WideState ws;
 
 int main(int argc, char **argv)
 {
     const char *rom_path = NULL, *movie_path = NULL, *frames_spec = NULL, *out_dir = NULL, *presets = NULL;
     int w = 1280, h = 960, i, want[GPU_PRESET_COUNT], model = PPU_MODEL_OLD, rc = 0;
     long frame = 0;
+    int wide = 0;
     char hash[41], err[256];
     Fm2 movie = {0};
     Gpu *g;
@@ -43,6 +47,8 @@ int main(int argc, char **argv)
             sscanf(argv[++i], "%dx%d", &w, &h);
         else if (!strcmp(argv[i], "--presets") && i + 1 < argc)
             presets = argv[++i];
+        else if (!strcmp(argv[i], "--wide")) /* M9: the 424-pixel picture through the presets */
+            wide = 1;
         else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
             model = !strcmp(argv[++i], "new") ? PPU_MODEL_NEW : PPU_MODEL_OLD;
         else if (argv[i][0] != '-' && !rom_path)
@@ -94,7 +100,15 @@ int main(int argc, char **argv)
             nes_set_pads(&nes, movie.frames[frame].pad[0], movie.frames[frame].pad[1]);
             nes_run_frame(&nes);
         }
-        screen_to_rgb(&screen, pixels, PPU_W);
+        if (wide) {
+            ws.sprites = ws.hud = 1;
+            ws.retry_wait = 0;
+            wide_render(&ws, &nes, &screen, widx);
+            wide_to_rgb(&screen, widx, pixels, WIDE_W, 0);
+            gpu_set_frame_width(g, WIDE_W);
+        } else {
+            screen_to_rgb(&screen, pixels, PPU_W);
+        }
         for (i = 0; i < GPU_PRESET_COUNT; i++) {
             char path[1200];
             if (!want[i])

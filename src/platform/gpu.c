@@ -36,7 +36,8 @@ struct Gpu {
     Pipe pipes[MAX_PIPES];
     int pipe_count;
     SDL_GPUSampler *nearest, *linear;
-    SDL_GPUTexture *frame;        /* 256x240 picture */
+    SDL_GPUTexture *frame;        /* frame_w x 240 picture */
+    int frame_w;                  /* 256, or wider with the M9 widescreen mod */
     SDL_GPUTexture *up;           /* 512x480 upscale pass target */
     SDL_GPUTexture *overlay;      /* text overlay */
     int overlay_w, overlay_h;
@@ -175,6 +176,7 @@ Gpu *gpu_open(SDL_Window *win)
         g->frag[i] = make_shader(g->dev, shader_names[i], 1, samplers[i], 1);
     g->nearest = make_sampler(g->dev, SDL_GPU_FILTER_NEAREST);
     g->linear = make_sampler(g->dev, SDL_GPU_FILTER_LINEAR);
+    g->frame_w = NES_W;
     g->frame = make_texture(g->dev, NES_W, NES_H, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER);
     g->up = make_texture(g->dev, NES_W * UP, NES_H * UP, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM,
                          SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
@@ -226,6 +228,36 @@ void gpu_close(Gpu *g)
     SDL_free(g);
 }
 
+int gpu_set_frame_width(Gpu *g, int w)
+{
+    SDL_GPUTexture *f, *u;
+    SDL_GPUTransferBuffer *t;
+    if (w == g->frame_w)
+        return 0;
+    f = make_texture(g->dev, w, NES_H, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM, SDL_GPU_TEXTUREUSAGE_SAMPLER);
+    u = make_texture(g->dev, w * UP, NES_H * UP, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM,
+                     SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET);
+    t = make_transfer(g->dev, (Uint32)(w * NES_H * 4), SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD);
+    if (!f || !u || !t) {
+        if (f)
+            SDL_ReleaseGPUTexture(g->dev, f);
+        if (u)
+            SDL_ReleaseGPUTexture(g->dev, u);
+        if (t)
+            SDL_ReleaseGPUTransferBuffer(g->dev, t);
+        return -1;
+    }
+    SDL_WaitForGPUIdle(g->dev);
+    SDL_ReleaseGPUTexture(g->dev, g->frame);
+    SDL_ReleaseGPUTexture(g->dev, g->up);
+    SDL_ReleaseGPUTransferBuffer(g->dev, g->upload);
+    g->frame = f;
+    g->up = u;
+    g->upload = t;
+    g->frame_w = w;
+    return 0;
+}
+
 const char *gpu_driver(const Gpu *g)
 {
     return g && g->dev ? SDL_GetGPUDeviceDriver(g->dev) : "none";
@@ -240,7 +272,7 @@ static void upload(Gpu *g, SDL_GPUCommandBuffer *cmd, const uint32_t *pixels, SD
     void *p = SDL_MapGPUTransferBuffer(g->dev, g->upload, true);
     if (!p)
         return;
-    memcpy(p, pixels, NES_W * NES_H * 4);
+    memcpy(p, pixels, (size_t)g->frame_w * NES_H * 4);
     SDL_UnmapGPUTransferBuffer(g->dev, g->upload);
     if (overlay && (!g->overlay || g->overlay_w != overlay->w || g->overlay_h != overlay->h)) {
         if (g->overlay)
@@ -266,10 +298,10 @@ static void upload(Gpu *g, SDL_GPUCommandBuffer *cmd, const uint32_t *pixels, SD
     SDL_zero(src);
     SDL_zero(dst);
     src.transfer_buffer = g->upload;
-    src.pixels_per_row = NES_W;
+    src.pixels_per_row = (Uint32)g->frame_w;
     src.rows_per_layer = NES_H;
     dst.texture = g->frame;
-    dst.w = NES_W;
+    dst.w = (Uint32)g->frame_w;
     dst.h = NES_H;
     dst.d = 1;
     SDL_UploadToGPUTexture(cp, &src, &dst, true);
@@ -327,20 +359,20 @@ static void chain(Gpu *g, SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, SDL
     SDL_GPUColorTargetInfo ct;
     SDL_GPURenderPass *rp;
     SDL_GPUTexture *src = g->frame;
-    int sw = NES_W, sh = NES_H;
+    int sw = g->frame_w, sh = NES_H;
 
     if (preset == GPU_PRESET_SMOOTH || preset == GPU_PRESET_SMOOTH_CRT) { /* pass 1: upscale */
-        SDL_FRect all = {0, 0, NES_W * UP, NES_H * UP};
+        SDL_FRect all = {0, 0, (float)(g->frame_w * UP), NES_H * UP};
         SDL_zero(ct);
         ct.texture = g->up;
         ct.load_op = SDL_GPU_LOADOP_DONT_CARE;
         ct.store_op = SDL_GPU_STOREOP_STORE;
         rp = SDL_BeginGPURenderPass(cmd, &ct, 1, NULL);
-        draw(g, cmd, rp, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM, SH_UPSCALE, 0, g->frame, NES_W, NES_H, g->nearest, all,
+        draw(g, cmd, rp, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM, SH_UPSCALE, 0, g->frame, g->frame_w, NES_H, g->nearest, all,
              one, NULL);
         SDL_EndGPURenderPass(rp);
         src = g->up;
-        sw = NES_W * UP;
+        sw = g->frame_w * UP;
         sh = NES_H * UP;
     }
 
@@ -371,7 +403,9 @@ static void chain(Gpu *g, SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, SDL
         break;
     }
     if (overlay && g->overlay) {
-        SDL_FRect ov = {dst.x, dst.y, dst.w, dst.h};
+        SDL_FRect ov = dst; /* the text covers the middle 256-pixel part of a wide picture */
+        ov.w = dst.w * NES_W / (float)g->frame_w;
+        ov.x = dst.x + (dst.w - ov.w) / 2;
         draw(g, cmd, rp, fmt, SH_COPY, 1, g->overlay, g->overlay_w, g->overlay_h, g->nearest, ov, one, NULL);
     }
     SDL_EndGPURenderPass(rp);

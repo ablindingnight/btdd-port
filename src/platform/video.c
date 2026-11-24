@@ -30,6 +30,7 @@ int video_open(Video *v, const char *title, int scale, int aspect, int fullscree
     t1 = SDL_GetTicksNS();
     SDL_Log("window created in %llu ms", (unsigned long long)((t1 - t0) / 1000000));
     v->preset = preset;
+    v->pic_w = NES_W;
     if (use_gpu && (v->gpu = gpu_open(v->win)) != NULL)
         return 0;
     v->ren = SDL_CreateRenderer(v->win, (renderer && renderer[0] && SDL_strcasecmp(renderer, "auto")) ? renderer : NULL);
@@ -176,10 +177,21 @@ void video_present(Video *v, const uint32_t *pixels, const char *const *text, in
 int video_set_width(Video *v, int w)
 {
     SDL_Texture *t;
-    if (v->gpu || !v->ren)
-        return w == NES_W ? 0 : -1; /* the GPU path is 256 wide for now (M10 prototype) */
     if (w == v->pic_w)
         return 0;
+    if (v->gpu) { /* GPU shader path: the chain takes any width */
+        if (gpu_set_frame_width(v->gpu, w) != 0)
+            return -1;
+        if (!(SDL_GetWindowFlags(v->win) & (SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED))) {
+            int ww, wh;
+            SDL_GetWindowSize(v->win, &ww, &wh);
+            SDL_SetWindowSize(v->win, ww * w / (v->pic_w ? v->pic_w : NES_W), wh);
+        }
+        v->pic_w = w;
+        return 0;
+    }
+    if (!v->ren)
+        return -1;
     t = SDL_CreateTexture(v->ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, w, NES_H);
     if (!t)
         return -1;
