@@ -4,6 +4,7 @@
 #define BTDD_NES_H
 #include "../rom/rom.h"
 #include "../runtime/cpu.h"
+#include "apu.h"
 #include "ppu.h"
 #include <stdint.h>
 
@@ -43,12 +44,17 @@ struct Nes {
     uint8_t watch[0x800];
     void (*watch_hook)(Nes *nes, uint16_t addr, uint8_t value);
     void *user;              /* for tools (coverage recorder etc.) */
+    Apu apu;                 /* sound; only runs after nes_enable_apu (headless gates leave it off) */
+    int apu_on;
 };
 
 void nes_init(Nes *nes, const Rom *rom);
 void nes_power(Nes *nes, PpuModel model); /* FCEUX power-on state (RAM pattern 00x4 FFx4, two dead PPU frames) */
 void nes_set_pads(Nes *nes, uint8_t pad1, uint8_t pad2);
 void nes_run_frame(Nes *nes);         /* one frame, from the end of line 239 to the end of the next line 239 */
+/* Attaches the APU (after nes_power): ticks it every instruction, routes $4000-$4017 to it, connects its
+ * IRQ lines and DMC fetches. Audio goes to nes->apu (apu_set_buffer / apu_render / apu_take). */
+void nes_enable_apu(Nes *nes, int sample_rate);
 uint8_t nes_peek(Nes *nes, uint16_t addr); /* side-effect-free read for tools */
 
 #endif

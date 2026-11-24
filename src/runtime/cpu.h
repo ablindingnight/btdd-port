@@ -60,6 +60,9 @@ struct Cpu {
      * before it runs; FCEUX's DebugCycle point), and when an interrupt or reset reads its vector */
     void (*insn_hook)(void *ctx, Cpu *cpu);
     void (*vector_hook)(void *ctx, Cpu *cpu, uint16_t vector);
+    /* APU: if set, called at the start of every instruction after its base cycles are charged (where FCEUX
+     * advances its sound hardware); may stall the CPU (DMC fetch) or raise IRQ lines */
+    void (*tick_hook)(void *ctx, Cpu *cpu);
 };
 
 void cpu_init(Cpu *cpu, void *ctx, CpuRead read, CpuWrite write, CpuTrap trap);

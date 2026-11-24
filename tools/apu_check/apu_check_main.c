@@ -8,8 +8,8 @@
  * CSV rows: row 1 is the power-on state, row f is the state after frame f-1. That is how musiclog.lua's
  * rows line up with our frames (its first frameadvance is FCEUX's frame before the movie starts).
  *
- * The APU is advanced at the start of every CPU instruction through the CPU's exec hook (all addresses
- * watched), which is where FCEUX advances its APU. Register writes come through Nes.apu_hook. */
+ * The APU is attached with nes_enable_apu: ticked at the start of every CPU instruction (where FCEUX
+ * advances its APU), registers, $4015, IRQ lines and DMC fetches routed through the bus. */
 #include "nes/apu.h"
 #include "nes/nes.h"
 #include "rom/rom.h"
@@ -20,38 +20,7 @@
 #include <string.h>
 #include <time.h>
 
-static Apu apu;
 static Nes nes;
-static uint8_t watch_all[0x10000];
-
-static void on_instruction(void *ctx, Cpu *cpu)
-{
-    (void)ctx;
-    apu_tick(&apu, cpu->cycles);
-}
-
-static void on_apu_write(void *user, uint64_t cycle, uint16_t addr, uint8_t value)
-{
-    (void)user;
-    apu_write(&apu, cycle, addr, value);
-}
-
-static uint8_t host_read(void *ctx, uint16_t addr)
-{
-    return cpu_bus_read(&((Nes *)ctx)->cpu, addr);
-}
-
-static void host_stall(void *ctx, int cycles)
-{
-    cpu_add_cycles(&((Nes *)ctx)->cpu, cycles);
-}
-
-static void host_irq(void *ctx, int frame_irq, int dmc_irq)
-{
-    Cpu *c = &((Nes *)ctx)->cpu;
-    c->irq = (uint8_t)((c->irq & ~(CPU_IRQ_FRAME | CPU_IRQ_DMC)) | (frame_irq ? CPU_IRQ_FRAME : 0) |
-                       (dmc_irq ? CPU_IRQ_DMC : 0));
-}
 
 /* Lua 5.1 number formatting as musiclog.lua does it: integers via %.14g, others with 2 decimals. */
 static void put_num(FILE *f, double x)
@@ -66,7 +35,7 @@ static void csv_row(FILE *f, long row)
 {
     ApuView v;
     int x;
-    apu_view(&apu, &v);
+    apu_view(&nes.apu, &v);
     fprintf(f, "%ld", row);
     for (x = 0; x < 2; x++) {
         put_num(f, v.sq_key[x]);
@@ -130,7 +99,6 @@ int main(int argc, char **argv)
     FILE *csv = NULL, *dump = NULL;
     float *samples = NULL;
     size_t nsamples = 0, cap = 0;
-    ApuHost host;
     clock_t t0;
     const int rate = 48000;
 
@@ -180,15 +148,7 @@ int main(int argc, char **argv)
 
     nes_init(&nes, &rom);
     nes_power(&nes, model);
-    host.ctx = &nes;
-    host.read = host_read;
-    host.stall = host_stall;
-    host.irq = host_irq;
-    apu_power(&apu, rate, &host);
-    nes.apu_hook = on_apu_write;
-    memset(watch_all, 1, sizeof watch_all);
-    nes.cpu.exec_watch = watch_all;
-    nes.cpu.exec_hook = on_instruction;
+    nes_enable_apu(&nes, rate);
     if (wav_path) {
         cap = (size_t)(wav_seconds * rate) + rate;
         samples = malloc(cap * sizeof *samples);
@@ -196,7 +156,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "out of memory\n");
             return 1;
         }
-        apu_set_buffer(&apu, samples, cap);
+        apu_set_buffer(&nes.apu, samples, cap);
     }
     if (csv_path) {
         csv = fopen(csv_path, "w");
@@ -226,15 +186,15 @@ int main(int argc, char **argv)
             fwrite(nes.ram, 1, 0x800, dump);
         }
         if (samples) {
-            apu_render(&apu, nes.cpu.cycles);
-            nsamples += apu_take(&apu);
-            apu_set_buffer(&apu, samples + nsamples, cap - nsamples);
+            apu_render(&nes.apu, nes.cpu.cycles);
+            nsamples += apu_take(&nes.apu);
+            apu_set_buffer(&nes.apu, samples + nsamples, cap - nsamples);
             if (nsamples >= (size_t)(wav_seconds * rate)) {
                 if (write_wav(wav_path, samples, (size_t)(wav_seconds * rate), rate) != 0)
                     fprintf(stderr, "cannot write %s\n", wav_path);
                 free(samples);
                 samples = NULL;
-                apu_set_buffer(&apu, NULL, 0);
+                apu_set_buffer(&nes.apu, NULL, 0);
             }
         }
     }
@@ -248,7 +208,7 @@ int main(int argc, char **argv)
     if (dump)
         fclose(dump);
     printf("frames %ld  %.1f s  dropped samples %llu\n", i, (double)(clock() - t0) / CLOCKS_PER_SEC,
-           (unsigned long long)apu.samples_dropped);
+           (unsigned long long)nes.apu.samples_dropped);
     fm2_free(&movie);
     return 0;
 }

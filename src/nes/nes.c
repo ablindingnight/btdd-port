@@ -35,8 +35,47 @@ static void mapper_write(Nes *n, uint16_t addr, uint8_t v)
 
 /* ---- APU (sink only) ---- */
 
-static void apu_write(Nes *n, uint16_t addr, uint8_t v)
+/* ---- APU attachment ---- */
+
+static void apu_write_reg(Nes *n, uint16_t addr, uint8_t v)
 {
+    apu_write(&n->apu, n->cpu.cycles, addr, v);
+}
+
+static void apu_tick_hook(void *ctx, Cpu *cpu)
+{
+    apu_tick(&((Nes *)ctx)->apu, cpu->cycles);
+}
+
+static uint8_t apu_host_read(void *ctx, uint16_t addr)
+{
+    return cpu_bus_read(&((Nes *)ctx)->cpu, addr);
+}
+
+static void apu_host_stall(void *ctx, int cycles)
+{
+    cpu_add_cycles(&((Nes *)ctx)->cpu, cycles);
+}
+
+static void apu_host_irq(void *ctx, int frame_irq, int dmc_irq)
+{
+    Cpu *c = &((Nes *)ctx)->cpu;
+    c->irq = (uint8_t)((c->irq & ~(CPU_IRQ_FRAME | CPU_IRQ_DMC)) | (frame_irq ? CPU_IRQ_FRAME : 0) |
+                       (dmc_irq ? CPU_IRQ_DMC : 0));
+}
+
+void nes_enable_apu(Nes *n, int sample_rate)
+{
+    ApuHost host = {n, apu_host_read, apu_host_stall, apu_host_irq};
+    apu_power(&n->apu, sample_rate, &host);
+    n->apu_on = 1;
+    n->cpu.tick_hook = apu_tick_hook;
+}
+
+static void apu_sink_write(Nes *n, uint16_t addr, uint8_t v)
+{
+    if (n->apu_on)
+        apu_write_reg(n, addr, v);
     n->apu_regs[addr - 0x4000] = v;
     if (addr == 0x4015 && (v & 0x10))
         n->stats.dmc_enables++;
@@ -59,7 +98,9 @@ static uint8_t bus_read(void *ctx, uint16_t addr)
         return pad_read(n, addr & 1);
     if (addr == 0x4015) {
         n->stats.apu_status_reads++;
-        return n->cpu.bus & 0x20; /* stub: no channel active, no IRQ flags */
+        if (n->apu_on)
+            return apu_read_status(&n->apu, n->cpu.cycles);
+        return n->cpu.bus & 0x20; /* stub when the APU is off: no channel active, no IRQ flags */
     }
     return n->cpu.bus; /* open bus: $4000-$4014, $4018-$7FFF (no PRG-RAM) */
 }
@@ -92,7 +133,7 @@ static void bus_write(void *ctx, uint16_t addr, uint8_t v)
     else if (addr == 0x4016)
         pad_strobe(n, v);
     else if (addr < 0x4018)
-        apu_write(n, addr, v);
+        apu_sink_write(n, addr, v);
     else if (addr >= 0x4020)
         mapper_write(n, addr, v); /* FCEUX latches the whole $4020-$FFFF range for mapper 7 */
 }

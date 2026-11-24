@@ -35,52 +35,16 @@
 
 static Rom rom;
 static Nes nes;
-static Apu apu;
 static Screen screen;
-static uint8_t watch_all[0x10000];
 static uint32_t pixels[PPU_W * PPU_H];
 static float samples[AUDIO_RATE / 10];
 
-/* ---- APU attached to the interpreter (same wiring as btdd_apu_check) ---- */
-
-static void on_instruction(void *ctx, Cpu *cpu)
-{
-    (void)ctx;
-    apu_tick(&apu, cpu->cycles);
-}
-
-static void on_apu_write(void *user, uint64_t cycle, uint16_t addr, uint8_t value)
-{
-    (void)user;
-    apu_write(&apu, cycle, addr, value);
-}
-
-static uint8_t host_read(void *ctx, uint16_t addr)
-{
-    return cpu_bus_read(&((Nes *)ctx)->cpu, addr);
-}
-
-static void host_stall(void *ctx, int cycles)
-{
-    cpu_add_cycles(&((Nes *)ctx)->cpu, cycles);
-}
-
-static void host_irq(void *ctx, int frame_irq, int dmc_irq)
-{
-    Cpu *c = &((Nes *)ctx)->cpu;
-    c->irq = (uint8_t)((c->irq & ~(CPU_IRQ_FRAME | CPU_IRQ_DMC)) | (frame_irq ? CPU_IRQ_FRAME : 0) |
-                       (dmc_irq ? CPU_IRQ_DMC : 0));
-}
+/* ---- APU: owned by Nes (nes_enable_apu); the frame loop collects its samples ---- */
 
 static void attach_apu(void)
 {
-    ApuHost host = {&nes, host_read, host_stall, host_irq};
-    apu_power(&apu, AUDIO_RATE, &host);
-    apu_set_buffer(&apu, samples, sizeof samples / sizeof samples[0]);
-    nes.apu_hook = on_apu_write;
-    memset(watch_all, 1, sizeof watch_all);
-    nes.cpu.exec_watch = watch_all;
-    nes.cpu.exec_hook = on_instruction;
+    nes_enable_apu(&nes, AUDIO_RATE);
+    apu_set_buffer(&nes.apu, samples, sizeof samples / sizeof samples[0]);
 }
 
 static void power_on(PpuModel model)
@@ -504,12 +468,12 @@ int main(int argc, char **argv)
                     seen[k] = 1;
         }
 
-        apu_render(&apu, nes.cpu.cycles);
+        apu_render(&nes.apu, nes.cpu.cycles);
         {
-            size_t n = apu_take(&apu);
+            size_t n = apu_take(&nes.apu);
             if (audio && n)
                 SDL_PutAudioStreamData(audio, samples, (int)(n * sizeof(float)));
-            apu_set_buffer(&apu, samples, sizeof samples / sizeof samples[0]);
+            apu_set_buffer(&nes.apu, samples, sizeof samples / sizeof samples[0]);
         }
         screen_to_rgb(&screen, pixels, PPU_W);
         video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
