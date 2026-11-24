@@ -75,6 +75,31 @@ What the run taught (fixed in the harness/prompt during the night):
 - Readability: the passing C is correct but mostly instruction-by-instruction with explicit flag updates. A second,
   "simplify" pass (same test as the gate) is the cheap next step once correctness is in hand.
 
+## Batch run, 2026-11-24 01:39-03:15 (serial requests, interleaved with the decomp loop)
+Leaf routines from the top-100 list (call-graph mode never started: the leaf list was not finished by 03:15).
+All runs of the night together (`python tools/m6/m6_stats.py --since 2026-11-24`), corrected for `sub_d73f`
+(passes after the harness fix) and `sub_ef4a` (stopped mid-try at 03:15, not counted):
+
+| | routines | share |
+|---|---|---|
+| tried to the end | 42 | |
+| pass on try 1 | 21 | 50% |
+| pass after retries (try 2-3) | 16 | 38% |
+| **pass total** | **37** | **88%** |
+| fail after 3 tries | 5 (`sub_8d5b`, `sub_8ec8`, `sub_a262`, `sub_a277`, `sub_b4c3`) | 12% |
+
+- Mean 1.7 tries, **~19k completion tokens and ~141 s of model time per routine** (median 98 s; easy ones
+  20-60 s, failures 4-7 min). Prompts 1-4k tokens; nearly all tokens are thinking.
+- Failed tries by kind (all 49 failed tries): RAM value wrong (arithmetic, indexing, loop bounds) 17; does not
+  compile (undeclared variables, labels from the mechanical C) 8; flag outputs (mostly carry that callers test)
+  6; register outputs 4; no answer within the 32k-token budget 3; plus one endless loop (8-bit counter `>= 0`).
+  Carry is the most common first-try mistake on otherwise right code; retries with the FAIL line fix it.
+- **Projection**: ~1,143 routines x ~141 s = **~45 h of model time** on one llama-server slot, serial, at this
+  rate. That is a lower bound: these were the smallest, most-called leaf routines (6-89 bytes). Bigger routines
+  cost more tokens and fail more often; far calls, indirect jumps and timing-critical code are not handled yet.
+  With the slot to itself overnight (no decomp loop) and the fail rate at ~12%, a few nights cover the routines
+  the harness can take today.
+
 ## Not done / next
 - `facts.py` output is not in the prompt: running decomp tools needs the user's OK (AGENTS.md); the prompt uses
   the meta's facts (names, RAM map, call counts) instead.
