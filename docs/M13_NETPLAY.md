@@ -74,3 +74,31 @@ and refuse. Display-only mods (widescreen, no flicker, shaders) may differ.
   every confirmed frame equals the solo run's RAM for that frame, for the whole movie, at e.g. 100 ms ping +
   jitter + 5 % loss; prints rollbacks and stalls. In `tools/check_all.py` as a gate.
 - Two `btdd_play` instances on localhost (real UDP) for the handshake, menu and audio.
+
+## How to play online (built 2026-11-24)
+1. Both players use the same game ROM and the same btdd_play build, with the same mods/cheats on (display
+   settings can differ).
+2. The host (player 1): settings menu (Esc) -> **Online 2-player** -> **Host game**. The game restarts and waits.
+   The host's router must forward **UDP port 7845** (or `net_port`) to the host's PC; easier: both install a VPN
+   such as Tailscale or ZeroTier and use its address (no forwarding needed). Command line: `btdd_play --host [port]`.
+3. The guest (player 2): Esc -> Online 2-player -> **Address** (type the host's `IP:port`, Enter) -> **Join game**.
+   Command line: `btdd_play --join IP:port`.
+4. Each player plays with their own player 1 keys or pad. Input delay (default 1) can be raised to 2-3 on slow
+   connections (fewer corrections, a little more lag). The window title shows ping and the last rollback size.
+5. A different setting on either side is refused with both summaries shown. On a desync both sides save their
+   state to `<settings folder>/netplay/` and the host gets **Resync** in the menu.
+
+Not yet: relay / NAT punch-through (no port forwarding), a lobby (M11 launcher), spectators, pausing together,
+save states during online play.
+
+## Results
+- `nettest`, whole 2P TAS (59,351 frames), both peers equal to the solo run on every confirmed frame: 100 ms ping +
+  20 ms jitter + 5 % loss with input delay 0, 1 and 3; 200 ms + 60 ms jitter + 10 % loss + 5 % duplicates with
+  delay 1 (stalls when 8 frames ahead, as designed). Rollbacks: about 5-7 thousand per peer at 100 ms (3 frames
+  each on average with delay 1, ~1.2 with delay 3).
+- Desync detection + resync: a guest-only difference injected at frame 2000 is reported by the checksums, the host
+  resyncs at frame 2013, and both equal the solo run again from there.
+- Real UDP on localhost: two `btdd_play` windows (host on 127.0.0.1, guest joining), the 2P TAS split between them:
+  both sides' RAM after every confirmed frame equals FCEUX's for 3,000 frames; a guest with a different logic mod is
+  refused; joining from the menu (typed address) connects.
+- `tools/check_all.py` gate `netplay` (the 100 ms / 5 % loss run over the whole movie).

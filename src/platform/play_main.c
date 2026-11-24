@@ -492,6 +492,7 @@ static SDL_AudioStream *net_audio;
 static FILE *net_dump; /* --dump-ram while online: RAM after every confirmed frame */
 static long net_dumped;
 static char net_last_msg[160];
+static int net_logged_desync = -1;
 
 /* one frame for the netplay session; re-simulated frames (rollback) make no sound */
 static void net_frame(void *ctx, Nes *n, uint8_t p1, uint8_t p2, int resim)
@@ -584,7 +585,7 @@ enum {
 enum {
     ID_RESUME = 1, ID_RESET, ID_POWER, ID_QUIT, ID_SLOT, ID_SAVE, ID_LOAD, ID_SCALE, ID_FULLSCREEN, ID_ASPECT,
     ID_FILTER, ID_SCANLINES, ID_VIDEO, ID_SHADER, ID_VOLUME, ID_REBIND_ALL, ID_REWIND, ID_FF, ID_BACK,
-    ID_NET_HOST, ID_NET_ADDR, ID_NET_JOIN, ID_NET_DELAY, ID_NET_LEAVE,
+    ID_NET_HOST, ID_NET_ADDR, ID_NET_JOIN, ID_NET_DELAY, ID_NET_LEAVE, ID_NET_RESYNC,
     ID_KEY_BASE = 100, /* + player * BTN_COUNT + button */
     ID_MOD_BASE = 200, /* + mod index */
 };
@@ -694,6 +695,8 @@ static void build_page(Menu *m, PlayCtx *c)
         if (net_on) {
             net_status(&net, h, sizeof h);
             menu_add(m, ITEM_INFO, 0, h, "", "");
+            if (net.state == NET_DESYNC && net.local == 0)
+                menu_add(m, ITEM_ACTION, ID_NET_RESYNC, "Resync", "", "send your game to player 2; both continue");
             menu_add(m, ITEM_ACTION, ID_NET_LEAVE, "Leave online game", "", "back to playing alone");
         } else {
             snprintf(v, sizeof v, "port %d", c->cfg->net_port);
@@ -931,6 +934,10 @@ static void menu_apply(PlayCtx *c, MenuEvent ev, int id, int dir)
     case ID_NET_DELAY:
         cfg->net_delay = wrap(cfg->net_delay + dir, 0, 3);
         c->dirty = 1;
+        break;
+    case ID_NET_RESYNC:
+        if (net_resync(&net) == 0)
+            menu_leave(c);
         break;
     case ID_NET_LEAVE:
         net_stop();
@@ -1412,6 +1419,23 @@ int main(int argc, char **argv)
             }
             if (audio && SDL_GetAudioStreamQueued(audio) > (int)(8 * AUDIO_RATE / FRAME_HZ) * (int)sizeof(float))
                 SDL_ClearAudioStream(audio); /* clock drift between the sound card and the 60 Hz timer */
+            if (net.state == NET_DESYNC && net.stats.desync_frame >= 0 && net.stats.desync_frame != net_logged_desync) {
+                char path[1200], *slash;
+                net_logged_desync = net.stats.desync_frame;
+                snprintf(path, sizeof path, "%s", cfg.path);
+                slash = strrchr(path, '\\');
+                if (!slash)
+                    slash = strrchr(path, '/');
+                if (slash) {
+                    snprintf(slash + 1, sizeof path - (size_t)(slash + 1 - path), "netplay");
+                    SDL_CreateDirectory(path);
+                    snprintf(path + strlen(path), sizeof path - strlen(path), "/desync_f%d_p%d.state",
+                             net.stats.desync_frame, net.local + 1);
+                    nes_state_save(&nes, (uint64_t)net.frame, hash, path);
+                    SDL_Log("netplay: desync at frame %d, our state saved to %s%s", net.stats.desync_frame, path,
+                            net.local == 0 ? " (Resync is in the settings menu)" : "");
+                }
+            }
             if (strcmp(net.message, net_last_msg)) {
                 snprintf(net_last_msg, sizeof net_last_msg, "%s", net.message);
                 say(net.message);
