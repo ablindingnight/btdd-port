@@ -2,7 +2,7 @@
 
   python tools/data_kinds.py [--rom ROM] [--reads DEBUGGER_DIR] [--out meta/data_kinds.tsv]
 
-Two sources, both giving addresses only (the output passes tools/release_audit.py):
+Three sources (the third: hand-checked rows in meta/data_kinds_manual.tsv), all giving addresses only (the output passes tools/release_audit.py):
   1. Structure walked from the ROM's own pointer tables (level maps, block sets, section records, palettes,
      spawn lists, player starts): the table addresses below come from reading the loader code.
   2. Read logs (btdd_headless --reads, auto-reads-*.tsv): every byte read by a known loader instruction gets
@@ -147,13 +147,28 @@ def from_reads(dirn):
     return rows
 
 
+MANUAL = os.path.join(REPO, 'meta', 'data_kinds_manual.tsv')
+
+
+def manual(path):
+    """Hand-checked rows (same columns), e.g. the sound tables and streams of docs/DATA_FORMATS.md section 9."""
+    rows = []
+    if os.path.exists(path):
+        for line in open(path, encoding='utf-8'):
+            c = line.rstrip('\n').split('\t')
+            if line.startswith('#') or c[0] == 'bank' or len(c) < 7:
+                continue
+            rows.append((int(c[0]), int(c[1][1:], 16), int(c[2][1:], 16), c[3], c[4], c[5], c[6]))
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--rom', default=ROM)
     ap.add_argument('--reads', default=os.path.join(GAME, 'Debugger'))
     ap.add_argument('--out', default=os.path.join(REPO, 'meta', 'data_kinds.tsv'))
     a = ap.parse_args()
-    rows = structure(rom_banks(a.rom)) + from_reads(a.reads)
+    rows = structure(rom_banks(a.rom)) + from_reads(a.reads) + manual(MANUAL)
     rows.sort(key=lambda r: (r[0], r[1], r[2]))
     with open(a.out, 'w', newline='\n') as f:
         f.write('# data_kinds.tsv: PRG data ranges by format (tools/data_kinds.py; formats in docs/DATA_FORMATS.md)\n')

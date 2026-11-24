@@ -104,9 +104,34 @@ The cartridge has CHR-RAM: every tile is copied from PRG to the PPU.
 | `chr_rle` | banks 1, 4, 7 (data_kinds.tsv) | **escape-coded stream**: 2 header bytes give two escape values; in the data an escape byte is followed by a run length and writes that many `$00` (first escape) or `$FF` (second escape) bytes; every other byte is copied. Ends after tile count x 16 output bytes. Decoders: 1:`sub_809c`, 7:`sub_8164`, 4:`sub_802b` | high (code + every byte read by these loops) |
 | `chr_raw` | bank 1 (`sub_8174`), bank 2 (most of the bank) | plain 16-byte tiles. Bank 2 is streamed during play by an unrolled copy routine in RAM (`$0782-$07FF`, copied there from 7:`$805F` by 7:`sub_801b`): 16 bytes per call, i.e. one tile, used for animation frames | high |
 
-## 7-9. Metasprites, text/font, music
+## 7-8. Metasprites, text/font
 
-Sections 7-9 are filled from the read-hook analysis in progress (`..\Gamefiles\Movies\dataformats\`).
+Sections 7-8 are filled from the read-hook analysis in progress (`..\Gamefiles\Movies\dataformats\`).
+
+## 9. Music and sound effects (bank 3)
+
+Full notes (with every command and RAM byte): `..\Gamefiles\Movies\dataformats\music.md` (addresses only, kept
+outside the repo with the experiment logs). Summary:
+
+**Requests.** Song: store the ID in `$39`, far-call bank 3 `$8003` (`sub_8c5e`). SFX: store the ID in `$3F`,
+far-call `$800C`/`$800F`/`$8012`/`$8015` (square 1 / square 2 / triangle / noise; bank 0 `sub_84c0` is the usual
+caller). Per-frame update: `$8CC8` via bank 0 `sub_ff84`. The stage songs are picked per section from bank 0
+`data_8389` (by `$15`). Confidence high (every start in the 2P TAS traced with `--exec`).
+
+| fmt | where | layout | conf |
+|---|---|---|---|
+| `snd_song_hdr` | 3:`$9D89-$9DA0` | 24 songs x 1 byte: tempo (bit 0 cleared) + bit 0 = split-tick flag | high |
+| `snd_song_ptrs` | 3:`$9DA1-$9E60` | 24 songs x 4 stream pointers (square 1, square 2, triangle, noise); ID 0 = stop; IDs >= `$20` alias lower slots | high |
+| `snd_stream` | 3:`$9E61-$CF99` (7 runs, see data_kinds.tsv) | per-channel command stream. `$80` rest, `$81-$FF` note (low 7 bits + channel transpose -> period table entry), followed by a duration byte in ticks unless a fixed duration is set. `$00-$53` commands through the jump table: end, jump, instrument, repeat block (`$1E` count + address ... `$05`), call/return (`$1F`/`$20`), fixed duration, vibrato, pitch slide, envelope presets, tremolo, tempo, transpose, register presets, software-sample triggers | high for notes, durations, tempo, repeat (poke tests); medium for effect meanings |
+| `snd_cmd_jumptab` | 3:`$8FF2-$9099` | handler pointers for commands `$00-$53`; argument counts are fixed per command, so all 96 tracks parse to a clean end | high |
+| `snd_period` | 3:`$93D3-$944C` | 61 periods: entry 0 = rest, then 5 equal-tempered octaves from C (~65 Hz); noise notes use (note - `$C1`) mod 16 instead | high |
+| `snd_env_*`, `snd_lenpreset` | 3:`$9314-$9342`, `$9120-$912E` | volume-envelope presets (delay, rate, target; 15 each) and length-counter presets | medium |
+| `snd_sfx_ptrs` | 3:`$944D-$954A` | 127 SFX pointers indexed by ID AND `$FE` (even/odd IDs share a stream; bit 0 = "cannot restart itself") | high |
+| `snd_sfx_stream` | 3:`$954B-$9D7B` | 3-byte header (low nibble frames per step - 1, high nibble duty bits; sweep; initial `$4003`), then 2-byte steps (volume nibble + period high, period low), `$02`/`$04` commands, `$00` end | high (poke tests; all 127 parse) |
+| `snd_sample_*` | 3:`$8996-$8999`, `$8A15-$8AF3` | parameters of the software sample player (drums are synthesized by the CPU and written to `$4011`; no DMC samples) | medium |
+
+Tempo: each frame the tempo byte is added to an accumulator; a carry is one tick (poke test). An SFX takes over a
+channel's registers while the music keeps running underneath and is restored when the SFX ends.
 
 ## Not found yet
 - **Collision / floor height**: no per-block collision table was found; the attribute byte per block is the only

@@ -28,6 +28,123 @@ bank	start	end	kind	fmt	conf	source
 2	$B680	$BA2F	graphics	chr_raw	high	read log: loader reads
 2	$BCF0	$BF9F	graphics	chr_raw	high	read log: loader reads
 2	$C050	$ECAF	graphics	chr_raw	high	read log: loader reads
+3	$8996	$8999	table	snd_sample_start	high	music.md: incbin_8996 read by sub_8977
+3	$8A15	$8A8C	table	snd_sample_gen_b	medium	music.md: data_8a15(part) read by sub_8b8d
+3	$8A8D	$8AAE	table	snd_sample_gen_c	medium	music.md: data_8a15(part) read by sub_8bf3
+3	$8AAF	$8AF3	table	snd_sample_gen_a	medium	music.md: data_8a15(part) read by loc_8afc
+3	$8FF2	$9009	ptrtable	snd_cmd_jumptab	high	music.md: data_8ff2 read by sub_8d58,sub_8f55
+3	$900A	$902D	ptrtable	snd_cmd_jumptab	high	music.md: incbin_900a read by sub_8d58,sub_8f55
+3	$902E	$9059	ptrtable	snd_cmd_jumptab	high	music.md: data_902e read by sub_8d58,sub_8f55
+3	$905A	$905B	ptrtable	snd_cmd_jumptab	high	music.md: incbin_905a read by sub_8d58,sub_8f55
+3	$905C	$906D	ptrtable	snd_cmd_jumptab	high	music.md: data_905c read by sub_8d58,sub_8f55
+3	$906E	$9079	ptrtable	snd_cmd_jumptab	high	music.md: incbin_906e read by sub_8d58,sub_8f55
+3	$907A	$9099	ptrtable	snd_cmd_jumptab	high	music.md: data_907a read by sub_8d58,sub_8f55
+3	$9120	$912E	table	snd_lenpreset	medium	music.md: data_9120 read by sub_90d9,loc_90f9
+3	$9314	$9322	table	snd_env_delay	medium	music.md: data_9314 read by sub_92e1
+3	$9324	$9332	table	snd_env_rate	medium	music.md: data_9324 read by sub_92e1
+3	$9334	$9342	table	snd_env_target	medium	music.md: data_9334 read by sub_92e1
+3	$93D3	$9432	table	snd_period	high	music.md: data_93d3 read by sub_8d58
+3	$9433	$943A	table	snd_period	high	music.md: data_9433 read by sub_8d58
+3	$943B	$9440	table	snd_period	high	music.md: incbin_943b read by sub_8d58
+3	$9441	$9448	table	snd_period	high	music.md: data_9441 read by sub_8d58
+3	$9449	$944C	table	snd_period	high	music.md: incbin_9449 read by sub_8d58
+3	$944D	$945F	ptrtable	snd_sfx_ptrs	high	music.md: data_944d read by loc_8eee
+3	$9460	$9460	ptrtable	snd_sfx_ptrs	high	music.md: incbin_9460 read by loc_8eee
+3	$9461	$946C	ptrtable	snd_sfx_ptrs	high	music.md: data_9461 read by loc_8eee
+3	$946D	$946E	ptrtable	snd_sfx_ptrs	high	music.md: incbin_946d read by loc_8eee
+3	$946F	$9488	ptrtable	snd_sfx_ptrs	high	music.md: data_946f read by loc_8eee
+3	$9489	$9492	ptrtable	snd_sfx_ptrs	high	music.md: data_9489 read by loc_8eee
+3	$9493	$9508	ptrtable	snd_sfx_ptrs	high	music.md: data_9493 read by loc_8eee
+3	$9509	$950C	ptrtable	snd_sfx_ptrs	high	music.md: incbin_9509 read by loc_8eee
+3	$950D	$9524	ptrtable	snd_sfx_ptrs	high	music.md: data_950d read by loc_8eee
+3	$9525	$9530	ptrtable	snd_sfx_ptrs	high	music.md: data_9525 read by loc_8eee
+3	$9531	$953A	ptrtable	snd_sfx_ptrs	high	music.md: data_9531 read by loc_8eee
+3	$953B	$9540	ptrtable	snd_sfx_ptrs	high	music.md: incbin_953b read by loc_8eee
+3	$9541	$954A	ptrtable	snd_sfx_ptrs	high	music.md: data_9541(part) read by loc_8eee
+3	$954B	$961E	music	snd_sfx_stream	high	music.md: data_9541(part) read by loc_8eee,sub_8f55
+3	$961F	$9639	music	snd_sfx_stream	high	music.md: data_961f read by loc_8eee,sub_8f55
+3	$963A	$967A	music	snd_sfx_stream	high	music.md: data_963a read by loc_8eee,sub_8f55
+3	$967B	$967B	music	snd_sfx_stream	high	music.md: incbin_967b read by loc_8eee,sub_8f55
+3	$967C	$969F	music	snd_sfx_stream	high	music.md: data_967c read by loc_8eee,sub_8f55
+3	$96A0	$96A0	music	snd_sfx_stream	high	music.md: incbin_96a0 read by loc_8eee,sub_8f55
+3	$96A1	$96AF	music	snd_sfx_stream	high	music.md: data_96a1 read by loc_8eee,sub_8f55
+3	$96B0	$96B6	music	snd_sfx_stream	high	music.md: incbin_96b0 read by loc_8eee,sub_8f55
+3	$96B7	$96D7	music	snd_sfx_stream	high	music.md: data_96b7 read by loc_8eee,sub_8f55
+3	$96D8	$96E9	music	snd_sfx_stream	high	music.md: data_96d8 read by loc_8eee,sub_8f55
+3	$96EA	$96F8	music	snd_sfx_stream	high	music.md: data_96ea read by loc_8eee,sub_8f55
+3	$96F9	$9705	music	snd_sfx_stream	high	music.md: data_96f9 read by loc_8eee,sub_8f55
+3	$9706	$9713	music	snd_sfx_stream	high	music.md: data_9706 read by loc_8eee,sub_8f55
+3	$9714	$9720	music	snd_sfx_stream	high	music.md: data_9714 read by loc_8eee,sub_8f55
+3	$9721	$9755	music	snd_sfx_stream	high	music.md: data_9721 read by loc_8eee,sub_8f55
+3	$9756	$9756	music	snd_sfx_stream	high	music.md: incbin_9756(part) read by loc_8eee,sub_8f55
+3	$975F	$976B	music	snd_sfx_stream	high	music.md: data_975f read by loc_8eee,sub_8f55
+3	$976C	$9926	music	snd_sfx_stream	high	music.md: data_976c read by loc_8eee,sub_8f55
+3	$9927	$9932	music	snd_sfx_stream	high	music.md: incbin_9927 read by loc_8eee,sub_8f55
+3	$9933	$9A5F	music	snd_sfx_stream	high	music.md: data_9933 read by loc_8eee,sub_8f55
+3	$9A60	$9A66	music	snd_sfx_stream	high	music.md: incbin_9a60 read by loc_8eee,sub_8f55
+3	$9A67	$9B72	music	snd_sfx_stream	high	music.md: data_9a67 read by loc_8eee,sub_8f55
+3	$9B73	$9BA0	music	snd_sfx_stream	high	music.md: data_9b73 read by loc_8eee,sub_8f55
+3	$9BA1	$9C36	music	snd_sfx_stream	high	music.md: data_9ba1 read by loc_8eee,sub_8f55
+3	$9C37	$9C3F	music	snd_sfx_stream	high	music.md: incbin_9c37 read by loc_8eee,sub_8f55
+3	$9C40	$9C68	music	snd_sfx_stream	high	music.md: data_9c40 read by loc_8eee,sub_8f55
+3	$9C69	$9C94	music	snd_sfx_stream	high	music.md: incbin_9c69 read by loc_8eee,sub_8f55
+3	$9C95	$9C9C	music	snd_sfx_stream	high	music.md: data_9c95 read by loc_8eee,sub_8f55
+3	$9C9D	$9C9D	music	snd_sfx_stream	high	music.md: incbin_9c9d read by loc_8eee,sub_8f55
+3	$9C9E	$9CD3	music	snd_sfx_stream	high	music.md: data_9c9e read by loc_8eee,sub_8f55
+3	$9CD4	$9CF3	music	snd_sfx_stream	high	music.md: data_9cd4 read by loc_8eee,sub_8f55
+3	$9CF4	$9CFB	music	snd_sfx_stream	high	music.md: data_9cf4 read by loc_8eee,sub_8f55
+3	$9CFC	$9D00	music	snd_sfx_stream	high	music.md: incbin_9cfc read by loc_8eee,sub_8f55
+3	$9D01	$9D79	music	snd_sfx_stream	high	music.md: data_9d01 read by loc_8eee,sub_8f55
+3	$9D7A	$9D7B	music	snd_sfx_stream	high	music.md: incbin_9d7a(part) read by loc_8eee,sub_8f55
+3	$9D7C	$9D88	table	snd_loopstack_base	medium	music.md: incbin_9d7a(part) read by sub_9140,sub_9190
+3	$9D89	$9DA0	table	snd_song_hdr	high	music.md: incbin_9d7a(part) read by sub_8c5e
+3	$9DA1	$9DA8	ptrtable	snd_song_ptrs	high	music.md: incbin_9d7a(part) read by sub_8c5e
+3	$9DA9	$9DB8	ptrtable	snd_song_ptrs	high	music.md: data_9da9 read by sub_8c5e
+3	$9DB9	$9DC0	ptrtable	snd_song_ptrs	high	music.md: incbin_9db9 read by sub_8c5e
+3	$9DC1	$9DC8	ptrtable	snd_song_ptrs	high	music.md: data_9dc1 read by sub_8c5e
+3	$9DC9	$9DD0	ptrtable	snd_song_ptrs	high	music.md: incbin_9dc9 read by sub_8c5e
+3	$9DD1	$9DF8	ptrtable	snd_song_ptrs	high	music.md: data_9dd1 read by sub_8c5e
+3	$9DF9	$9E00	ptrtable	snd_song_ptrs	high	music.md: incbin_9df9 read by sub_8c5e
+3	$9E01	$9E28	ptrtable	snd_song_ptrs	high	music.md: data_9e01 read by sub_8c5e
+3	$9E29	$9E30	ptrtable	snd_song_ptrs	high	music.md: incbin_9e29 read by sub_8c5e
+3	$9E31	$9E60	ptrtable	snd_song_ptrs	high	music.md: data_9e31(part) read by sub_8c5e
+3	$9E61	$A049	music	snd_stream	high	music.md: data_9e31(part) read by sub_8d58,cmd handlers $909A-$93D2
+3	$A05B	$B31F	music	snd_stream	high	music.md: data_a05b read by sub_8d58,cmd handlers $909A-$93D2
+3	$C01D	$C068	music	snd_stream	high	music.md: data_c01d read by sub_8d58,cmd handlers $909A-$93D2
+3	$C069	$C06B	music	snd_stream	high	music.md: incbin_c069 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C06C	$C0AD	music	snd_stream	high	music.md: data_c06c read by sub_8d58,cmd handlers $909A-$93D2
+3	$C0AE	$C0B0	music	snd_stream	high	music.md: incbin_c0ae read by sub_8d58,cmd handlers $909A-$93D2
+3	$C0B1	$C0E7	music	snd_stream	high	music.md: data_c0b1 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C0E8	$C0EC	music	snd_stream	high	music.md: incbin_c0e8 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C0ED	$C132	music	snd_stream	high	music.md: data_c0ed read by sub_8d58,cmd handlers $909A-$93D2
+3	$C133	$C135	music	snd_stream	high	music.md: incbin_c133 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C136	$C1A1	music	snd_stream	high	music.md: data_c136 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C1A2	$C1BC	music	snd_stream	high	music.md: data_c1a2 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C1BD	$C1BF	music	snd_stream	high	music.md: incbin_c1bd read by sub_8d58,cmd handlers $909A-$93D2
+3	$C1C0	$C203	music	snd_stream	high	music.md: data_c1c0 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C206	$C333	music	snd_stream	high	music.md: data_c206 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C334	$C34F	music	snd_stream	high	music.md: data_c334 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C350	$C352	music	snd_stream	high	music.md: incbin_c350 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C353	$C38E	music	snd_stream	high	music.md: data_c353 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C38F	$C3A2	music	snd_stream	high	music.md: data_c38f read by sub_8d58,cmd handlers $909A-$93D2
+3	$C3A3	$C3BA	music	snd_stream	high	music.md: data_c3a3 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C3BB	$C3C4	music	snd_stream	high	music.md: data_c3bb read by sub_8d58,cmd handlers $909A-$93D2
+3	$C3C5	$C4C6	music	snd_stream	high	music.md: data_c3c5 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C4C7	$C4CD	music	snd_stream	high	music.md: incbin_c4c7 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C4CE	$C522	music	snd_stream	high	music.md: data_c4ce read by sub_8d58,cmd handlers $909A-$93D2
+3	$C523	$C525	music	snd_stream	high	music.md: incbin_c523 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C526	$C554	music	snd_stream	high	music.md: data_c526 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C555	$C564	music	snd_stream	high	music.md: incbin_c555 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C565	$C57A	music	snd_stream	high	music.md: data_c565 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C57B	$C57F	music	snd_stream	high	music.md: incbin_c57b read by sub_8d58,cmd handlers $909A-$93D2
+3	$C580	$C5C5	music	snd_stream	high	music.md: data_c580 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C5C6	$C5D0	music	snd_stream	high	music.md: incbin_c5c6 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C5D1	$C605	music	snd_stream	high	music.md: data_c5d1 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C606	$C61B	music	snd_stream	high	music.md: incbin_c606 read by sub_8d58,cmd handlers $909A-$93D2
+3	$C61C	$C63B	music	snd_stream	high	music.md: data_c61c read by sub_8d58,cmd handlers $909A-$93D2
+3	$C68C	$C7A1	music	snd_stream	high	music.md: data_c68c read by sub_8d58,cmd handlers $909A-$93D2
+3	$C7AF	$CE92	music	snd_stream	high	music.md: data_c7af read by sub_8d58,cmd handlers $909A-$93D2
+3	$CEDB	$CF99	music	snd_stream	high	music.md: data_cedb(part) read by sub_8d58,cmd handlers $909A-$93D2
 3	$D0C1	$D0EB	table	spawn_sec_tables	high	per section: prespawn count, list lo, list hi
 3	$D1C1	$D203	table	spawn_list	high	11-byte spawn records, $FF jump, $FE hold
 3	$D330	$D341	table	spawn_lvl_ptrs	high	per level list lo ($D330,x) / hi ($D338,x)
