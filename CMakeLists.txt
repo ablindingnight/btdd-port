@@ -52,6 +52,11 @@ btdd_warnings(cpu_call_test)
 # Room for M5 (load-time recompiler): libtcc compiles generated C in-process. Not fetched yet; when it is,
 # set BTDD_LIBTCC=ON, provide a target named libtcc (FetchContent or a prebuilt import) and link it to the
 # recompiler target. Generated code links against btdd_core (Cpu, cpu_bus_read/write, cpu_add_cycles, cpu_call).
+# M5: the generator in C (same output as recomp/gen.py), the step the shipped exe will run at first start.
+add_executable(btdd_gen recomp/gen.c)
+target_link_libraries(btdd_gen PRIVATE btdd_core)
+btdd_warnings(btdd_gen)
+
 # M5 prototype: native test exe from recomp/gen.py output (ROM-derived, kept outside the repo, e.g.
 # -DBTDD_NATIVE_GEN=C:/.../Gamefiles/Movies/m5/generated). recomp/native_cpu.c replaces src/runtime/cpu.c
 # (it compiles it in with cpu_run renamed), so this target lists the core sources itself.

@@ -19,6 +19,7 @@
 | file | role |
 |---|---|
 | `recomp/gen.py` | ROM (SHA-1 checked against the meta) + `meta/btdd.meta` -> `native_b0..7.c` + `native_all.c` in `..\Gamefiles\Movies\m5\generated\` (ROM-derived: never in the repo) |
+| `recomp/gen.c` (`btdd_gen`) | the same generator in portable C: byte-identical output to `gen.py` (checked for the default, `--conf verified,static,suspect` and `--exclude-timing --exclude ...`, with clang and MSVC builds); 0.24 s for all 8 banks. This is the step the shipped exe runs at first start |
 | `recomp/native_rt.h` | inline helpers used by generated code (bus, stack, flags, ALU), same semantics as `src/runtime/cpu.c` |
 | `recomp/native_cpu.c` | run loop with native dispatch; compiles `src/runtime/cpu.c` into the same unit with `cpu_run` renamed, so the interpreter is reused unchanged |
 | `recomp/build_native.sh` | `zig cc` build of `..\Gamefiles\Movies\m5\btdd_native.exe` (headless runner + generated code) |
@@ -57,6 +58,7 @@
 ## Run it
 ```
 python recomp/gen.py                      # writes ..\Gamefiles\Movies\m5\generated
+btdd_gen ROM meta/btdd.meta OUTDIR        # same output from the C generator
 sh recomp/build_native.sh                 # zig cc; or CMake with -DBTDD_NATIVE_GEN=... --target btdd_native
 sh recomp/lockstep.sh both                # 2P old PPU + 1P new PPU vs the FCEUX dumps
 BTDD_NATIVE=0 ...                         # same exe, interpreter only
@@ -72,8 +74,10 @@ BTDD_NATIVE_PROFILE=out.txt ...           # interpreted instructions per (bank, 
 - `exec_hook` (debug `--exec`) turns native dispatch off for the run.
 
 ## Next
-1. Embed libtcc and run `gen.py`'s job in C at first start (the generator is ~350 lines; the output compiles in
-   under a minute with clang -O2, the bank 0 file is 3.3 MB of C).
+1. Embed libtcc: `btdd_gen` already produces the C in-process-ready form (0.24 s); what is left is compiling it with
+   libtcc instead of clang/MSVC, caching the result by ROM hash + exe version, and registering the functions.
+   With clang -O2 the bank 0 file (3.3 MB of C) takes most of the ~40 s build; tcc will be far faster to compile
+   and slower to run, so measure both.
 2. RAM code: compile the `$0700-$07FF` routine at run time with invalidation on RAM writes, or keep it interpreted.
 3. Speed: check the budget per basic block instead of per instruction (exit points stay exact), drop the
    per-instruction counters in release builds; then the PPU is the bottleneck.

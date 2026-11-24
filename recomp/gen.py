@@ -291,7 +291,7 @@ def main():
     regs = []
     for b in range(8):
         g = Gen(b, mems[b])
-        parts = ['/* GENERATED from the player\'s ROM by recomp/gen.py. ROM-derived: never commit or distribute. */',
+        parts = ['/* GENERATED from the player\'s ROM by the btdd recompiler. ROM-derived: never commit or distribute. */',
                  '#include "native_rt.h"', '']
         for rb, s, e, name, kv in routines:
             if rb != b:
