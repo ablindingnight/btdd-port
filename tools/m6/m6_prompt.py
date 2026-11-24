@@ -24,32 +24,6 @@ import m6_pick  # noqa: E402
 import m6_test  # noqa: E402
 
 DECOMP = os.path.join(REPO, '..', 'btdd-decomp')
-# facts.py / tablefacts.py output dumped by the decomp's own session (index.tsv: bank, label, file, commit)
-FACTS_DIR = os.path.join(REPO, '..', 'Gamefiles', 'Movies', 'm6', 'facts')
-
-
-def decomp_facts(bank, label, max_lines=60):
-    """-> (text, commit) from the facts dump if it has this routine, else (None, None)."""
-    index = os.path.join(FACTS_DIR, 'index.tsv')
-    if not os.path.isfile(index):
-        return None, None
-    for line in open(index, encoding='utf-8', errors='replace'):
-        f = line.rstrip('\n').split('\t')
-        if len(f) < 3 or f[0] == 'bank':
-            continue
-        try:
-            b = int(f[0])
-        except ValueError:
-            continue
-        if b == bank and f[1] == label:
-            path = os.path.join(FACTS_DIR, f[2])
-            if not os.path.isfile(path):
-                return None, None
-            lines = open(path, encoding='utf-8', errors='replace').read().splitlines()
-            if len(lines) > max_lines:
-                lines = lines[:max_lines] + ['(... %d more lines)' % (len(lines) - max_lines)]
-            return '\n'.join(lines), (f[3] if len(f) > 3 else '')
-    return None, None
 
 SYSTEM = """You translate one 6502 routine of an NES game into a readable, exactly equivalent C function.
 
@@ -296,10 +270,6 @@ def build(bank, addr):
     mech = mechanical_c(bank, r['start'], r['end'], mem)
     parts = ['Routine %s: bank %d, $%04X-$%04X, %d instructions, called %d times in the 2-player TAS.'
              % (r['name'], bank, r['start'], r['end'], len(ins), calls)]
-    facts, commit = decomp_facts(bank, r['name'])
-    if facts:
-        parts.append('Facts about it from the decomp (facts.py%s):\n```\n%s\n```' % (
-            ', commit ' + commit if commit else '', facts))
     if r.get('proposed'):
         parts.append('Proposed name (unreviewed): %s' % r['proposed'])
     if used:
