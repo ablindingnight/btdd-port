@@ -100,6 +100,42 @@ All runs of the night together (`python tools/m6/m6_stats.py --since 2026-11-24`
   With the slot to itself overnight (no decomp loop) and the fail rate at ~12%, a few nights cover the routines
   the harness can take today.
 
+## M6 at scale: what it would take (STATUS.md gap #1)
+Routine sizes over the whole meta: 1,143 routines, median 22 bytes, mean 51, 90th percentile 140, largest 650. The
+42 routines tried tonight averaged ~30 bytes, so they are representative of the median but not of the tail.
+
+**Time budget.** Measured: ~141 s and ~19k completion tokens per routine at ~30 bytes, 88% passing within 3 tries.
+Model time grows roughly with the amount of code; the 89-byte routines took 2.5-7 min. Estimate for all 1,143:
+**~70-90 h of model time** (about 2x the 45 h straight-line projection, for the long tail and retries), i.e. 7-9
+nights of 10 h on one dedicated slot, or about half that with two llama-server slots (`-np 2`) if VRAM allows.
+Corpus: 2,000 samples x 2 movies is ~4.5 MB per routine (531 MB for 119 routines now); for all routines use 500
+per movie (~1.5 GB, captured in a few minutes). The 65 `static` routines never ran in the TAS: test them on random
+states only until human play (STATUS gap #4) gives them a corpus.
+
+**Non-leaf strategy** (in this order, each a harness feature with the same test as the gate):
+1. *Stub callees instead of waiting for them* (small change): let a routine go as soon as its callees are
+   *known*, linking passing C where it exists and the interpreter stub (`m6_call`) otherwise. Call-graph order then
+   only improves the prompt (callee C shown), it no longer blocks; today only 18 non-leaf routines become ready.
+2. *Far calls* (`ldx #lo / ldy #i / jsr $FFCB`): an API call `far_call(m, i, lo)` whose harness side runs the
+   original trampoline on the interpreter (exact bank write and stack), so the C never re-implements the stub.
+3. *Jump tables / `jmp (ptr)`*: `dispatch(m, ptr_addr)` that calls the target routine (C if passing, else
+   interpreter); the meta's `jtable`/`indirect` records give the target sets for the prompt.
+4. *Tail jumps out of the range* (`jmp other_routine`): a call followed by return; *alternate entries* (`entry`
+   records inside a routine): one C function per entry, sharing a static helper.
+5. Leave in asm (interpreter) for now: NMI/IRQ handlers, stack tricks (`pla/pla`, `txs`), the PCM writer and
+   raster waits (timing), code in RAM.
+
+**Readability review** (correctness alone gives C that is instruction-by-instruction with flag bookkeeping):
+1. A *simplify pass* per passing routine: prompt = passing C + names + "rewrite for a reader: loops instead of
+   gotos, no flag variables except the outputs, RAM names instead of addresses, comments in game terms"; the
+   result must pass the same corpus + random-state test, else the previous version stays.
+2. A cheap *lint score* to rank what needs review: raw `RAM(0x..)` where a name exists, `goto` count, flag
+   assignments that are not outputs, lines per instruction. Re-run simplify on the worst; spot-check ~10% by
+   Claude or a human.
+3. *Names first* (STATUS gap #2): grade-and-apply the name proposals and add struct views of the entity arrays
+   before the bulk run, so the C reads `ent[x].hp` instead of `RAM(0x051B + x)`; renaming after the fact means
+   re-running simplify.
+
 ## Not done / next
 - `facts.py` output is not in the prompt: running decomp tools needs the user's OK (AGENTS.md); the prompt uses
   the meta's facts (names, RAM map, call counts) instead.
