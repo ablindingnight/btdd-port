@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 M5=../Gamefiles/Movies/m5
 M1=../Gamefiles/Movies/m1
 ROM="../Gamefiles/Battletoads-Double Dragon (USA).nes"
-EXE=$M5/btdd_native.exe
+EXE=$M5/${EXE:-btdd_native}.exe
 which=${1:-both}
 if [ "$which" != 1p ]; then
     $EXE "$ROM" --movie ../Gamefiles/Movies/tasvideos-4323M-2p.fm2 --ppu old --dump-ram $M5/native_2p.bin --dump-every 1

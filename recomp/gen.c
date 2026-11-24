@@ -356,7 +356,7 @@ static Timing *timings;
 static int n_timings;
 static char meta_sha[41];
 
-static void load_meta(const char *path)
+static int load_meta(const char *path)
 {
     FILE *f = fopen(path, "r");
     char line[1024];
@@ -415,6 +415,7 @@ static void load_meta(const char *path)
         }
     }
     fclose(f);
+    return 0;
 }
 
 static int list_has(const char *list, const char *item)
@@ -490,45 +491,33 @@ static const char *skip_reason(const Routine *r, const char *confs, const char *
     return NULL;
 }
 
-int main(int argc, char **argv)
+/* Writes native_b0..7.c, native_all.c and skipped.txt for `rom` (whose file SHA-1 is sha1_hex, or NULL when the
+ * caller already accepted it with rom_load, which only takes the one supported dump) into outdir.
+ * Returns 0 on success; on failure writes a message to err. */
+int btdd_gen_write(const Rom *rom_in, const char *sha1_hex, const char *meta_path, const char *outdir,
+                   const char *confs, const char *excl, int excl_timing, char *err, size_t errcap)
 {
-    static Rom rom;
     static uint8_t map[0x10000];
-    char hash[41], path[1024];
-    const char *confs = "verified,static", *excl = "";
-    int excl_timing = 0, i, b, total_routines = 0, total_entries = 0, skipped_n = 0, unsupported_brk = 0;
+    char path[1024];
+    int b, total_routines = 0, total_entries = 0, skipped_n = 0, unsupported_brk = 0;
     Buf skipped = {0};
-    RomResult rr;
     FILE *f;
+    const Rom *rp = rom_in;
+#define rom (*rp)
 
-    if (argc < 4) {
-        fprintf(stderr, "usage: btdd_gen ROM META OUTDIR [--conf a,b] [--exclude-timing] [--exclude b:addr,...]\n");
-        return 2;
-    }
-    for (i = 4; i < argc; i++) {
-        if (is(argv[i], "--conf") && i + 1 < argc)
-            confs = argv[++i];
-        else if (is(argv[i], "--exclude") && i + 1 < argc)
-            excl = argv[++i];
-        else if (is(argv[i], "--exclude-timing"))
-            excl_timing = 1;
-        else {
-            fprintf(stderr, "unknown option %s\n", argv[i]);
-            return 2;
-        }
-    }
-    rr = rom_load(argv[1], &rom, hash);
-    if (rr != ROM_OK) {
-        fprintf(stderr, "ROM rejected: %s\n", rom_result_text(rr));
+    n_routines = n_timings = 0;
+    meta_sha[0] = 0;
+    if (load_meta(meta_path) != 0) {
+        snprintf(err, errcap, "cannot open meta %s", meta_path);
         return 1;
     }
-    load_meta(argv[2]);
-    if (strcmp(hash, meta_sha) != 0) {
-        fprintf(stderr, "ROM SHA-1 %s does not match the meta (%s)\n", hash, meta_sha);
+    if (sha1_hex && strcmp(sha1_hex, meta_sha) != 0) { /* NULL: the caller verified the ROM with rom_load */
+        snprintf(err, errcap, "ROM SHA-1 %s does not match the meta (%s)", sha1_hex, meta_sha);
         return 1;
     }
     init_ops();
     in_routine = map;
+    memset(map, 0, sizeof map);
 
     for (b = 0; b < 8; b++) {
         Buf file = {0}, regs = {0};
@@ -610,11 +599,11 @@ int main(int argc, char **argv)
             total_entries += ne;
             free(body.s);
         }
-        bprintf(&file, "void native_register_b%d(void)\n{\n", b);
+        bprintf(&file, "void native_register_b%d(const NativeApi *api)\n{\n    n_api = api;\n", b);
         if (regs.len)
             bprintf(&file, "%.*s", (int)regs.len, regs.s);
         bprintf(&file, "}\n");
-        snprintf(path, sizeof path, "%s/native_b%d.c", argv[3], b);
+        snprintf(path, sizeof path, "%s/native_b%d.c", outdir, b);
         f = fopen(path, "wb");
         if (!f || fwrite(file.s, 1, file.len, f) != file.len) {
             fprintf(stderr, "cannot write %s\n", path);
@@ -624,26 +613,75 @@ int main(int argc, char **argv)
         free(file.s);
         free(regs.s);
     }
-    snprintf(path, sizeof path, "%s/native_all.c", argv[3]);
+    snprintf(path, sizeof path, "%s/native_all.c", outdir);
     f = fopen(path, "wb");
-    if (!f)
+    if (!f) {
+        snprintf(err, errcap, "cannot write %s", path);
         return 1;
+    }
     fprintf(f, "#include \"native_rt.h\"\n");
     for (b = 0; b < 8; b++)
-        fprintf(f, "void native_register_b%d(void);\n", b);
-    fprintf(f, "void native_register_all(void)\n{\n");
+        fprintf(f, "void native_register_b%d(const NativeApi *api);\n", b);
+    fprintf(f, "NATIVE_EXPORT int native_register_all(const NativeApi *api)\n{\n");
+    fprintf(f, "    if (api->version != NATIVE_API_VERSION)\n        return 0;\n");
     for (b = 0; b < 8; b++)
-        fprintf(f, "    native_register_b%d();\n", b);
-    fprintf(f, "}\n");
+        fprintf(f, "    native_register_b%d(api);\n", b);
+    fprintf(f, "    return 1;\n}\n");
+    fprintf(f, "#define NATIVE_LAYOUT_ITEM(e) (size_t)(e),\n");
+    fprintf(f, "NATIVE_EXPORT const size_t *native_layout(void)\n{\n");
+    fprintf(f, "    static const size_t v[] = {NATIVE_LAYOUT_LIST(NATIVE_LAYOUT_ITEM) 0};\n    return v;\n}\n");
     fclose(f);
-    snprintf(path, sizeof path, "%s/skipped.txt", argv[3]);
+    snprintf(path, sizeof path, "%s/skipped.txt", outdir);
     f = fopen(path, "wb");
-    if (!f)
+    if (!f) {
+        snprintf(err, errcap, "cannot write %s", path);
         return 1;
+    }
     if (skipped.len)
         fwrite(skipped.s, 1, skipped.len, f);
     fclose(f);
-    printf("btdd_gen: %d routines, %d native entry points, %d left to the interpreter; unsupported: %s\n",
-           total_routines, total_entries, skipped_n, unsupported_brk ? "brk" : "none");
+    snprintf(err, errcap, "%d routines, %d native entry points, %d left to the interpreter; unsupported: %s",
+             total_routines, total_entries, skipped_n, unsupported_brk ? "brk" : "none");
+    free(skipped.s);
+    return 0;
+#undef rom
+}
+
+#ifndef BTDD_GEN_NO_MAIN
+int main(int argc, char **argv)
+{
+    static Rom rom;
+    char hash[41], msg[512];
+    const char *confs = "verified,static", *excl = "";
+    int excl_timing = 0, i;
+    RomResult rr;
+
+    if (argc < 4) {
+        fprintf(stderr, "usage: btdd_gen ROM META OUTDIR [--conf a,b] [--exclude-timing] [--exclude b:addr,...]\n");
+        return 2;
+    }
+    for (i = 4; i < argc; i++) {
+        if (is(argv[i], "--conf") && i + 1 < argc)
+            confs = argv[++i];
+        else if (is(argv[i], "--exclude") && i + 1 < argc)
+            excl = argv[++i];
+        else if (is(argv[i], "--exclude-timing"))
+            excl_timing = 1;
+        else {
+            fprintf(stderr, "unknown option %s\n", argv[i]);
+            return 2;
+        }
+    }
+    rr = rom_load(argv[1], &rom, hash);
+    if (rr != ROM_OK) {
+        fprintf(stderr, "ROM rejected: %s\n", rom_result_text(rr));
+        return 1;
+    }
+    if (btdd_gen_write(&rom, hash, argv[2], argv[3], confs, excl, excl_timing, msg, sizeof msg) != 0) {
+        fprintf(stderr, "btdd_gen: %s\n", msg);
+        return 1;
+    }
+    printf("btdd_gen: %s\n", msg);
     return 0;
 }
+#endif

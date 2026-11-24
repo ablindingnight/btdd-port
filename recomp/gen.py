@@ -313,8 +313,9 @@ def main():
             regs.append((b, fn, len(entries)))
             stats['routines'] += 1
             stats['entries'] += len(entries)
-        parts.append('void native_register_b%d(void)' % b)
+        parts.append('void native_register_b%d(const NativeApi *api)' % b)
         parts.append('{')
+        parts.append('    n_api = api;')
         for rb, fn, k in regs:
             if rb == b and k:
                 parts.append('    native_register(%d, %s, %s_at, %d);' % (b, fn, fn, k))
@@ -326,11 +327,15 @@ def main():
     with open(os.path.join(a.out, 'native_all.c'), 'w', newline='\n') as f:
         f.write('#include "native_rt.h"\n')
         for b in range(8):
-            f.write('void native_register_b%d(void);\n' % b)
-        f.write('void native_register_all(void)\n{\n')
+            f.write('void native_register_b%d(const NativeApi *api);\n' % b)
+        f.write('NATIVE_EXPORT int native_register_all(const NativeApi *api)\n{\n')
+        f.write('    if (api->version != NATIVE_API_VERSION)\n        return 0;\n')
         for b in range(8):
-            f.write('    native_register_b%d();\n' % b)
-        f.write('}\n')
+            f.write('    native_register_b%d(api);\n' % b)
+        f.write('    return 1;\n}\n')
+        f.write('#define NATIVE_LAYOUT_ITEM(e) (size_t)(e),\n')
+        f.write('NATIVE_EXPORT const size_t *native_layout(void)\n{\n')
+        f.write('    static const size_t v[] = {NATIVE_LAYOUT_LIST(NATIVE_LAYOUT_ITEM) 0};\n    return v;\n}\n')
     with open(os.path.join(a.out, 'skipped.txt'), 'w', newline='\n') as f:
         for b, s, e, name, why in skipped:
             f.write('%d $%04X $%04X %s %s\n' % (b, s, e, name, why))

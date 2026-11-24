@@ -18,6 +18,7 @@
 #include "../src/runtime/cpu.c"
 #undef cpu_run
 
+#define NATIVE_HOST
 #include "native_rt.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,7 +66,14 @@ void native_register(int bank, NativeFn fn, const uint16_t *addrs, int count)
         table[bank & 7][addrs[i] - 0x8000] = fn;
 }
 
-void native_register_all(void); /* generated */
+#ifdef BTDD_NATIVE_STATIC
+int native_register_all(const NativeApi *api); /* generated code linked into this exe */
+#else
+int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap); /* recomp/native_jit.c */
+extern double native_jit_seconds_gen, native_jit_seconds_compile, native_jit_seconds_load;
+extern int native_jit_cache_hit;
+#endif
+static const NativeApi api = {NATIVE_API_VERSION, native_table, &native_insns, native_register};
 
 static void report(void)
 {
@@ -87,7 +95,7 @@ static void report(void)
         fprintf(stderr, "native: %.2f s inside cpu_run (timer overhead included)\n", cpu_seconds);
 }
 
-static void setup(void)
+static void setup(Cpu *cpu)
 {
     const char *e = getenv("BTDD_NATIVE");
     enabled = !(e && e[0] == '0');
@@ -95,8 +103,20 @@ static void setup(void)
     timing = getenv("BTDD_NATIVE_TIME") != NULL;
     if (profile_path)
         interp_count = calloc(8 * 0x10000, sizeof *interp_count);
-    if (enabled)
-        native_register_all();
+    if (enabled) {
+#ifdef BTDD_NATIVE_STATIC
+        (void)cpu;
+        native_register_all(&api);
+#else
+        char msg[1400];
+        if (native_jit_load(((Nes *)cpu->ctx)->rom, &api, msg, sizeof msg) != 0) {
+            fprintf(stderr, "native: %s; running the interpreter only\n", msg);
+            enabled = 0;
+        } else if (!getenv("BTDD_NATIVE_QUIET"))
+            fprintf(stderr, "native: %s (generate %.2f s, compile %.2f s, load+register %.3f s)\n", msg,
+                    native_jit_seconds_gen, native_jit_seconds_compile, native_jit_seconds_load);
+#endif
+    }
     atexit(report);
 }
 
@@ -104,7 +124,7 @@ void cpu_run(Cpu *cpu, int32_t dots)
 {
     double t0;
     if (enabled < 0)
-        setup();
+        setup(cpu);
     if (!timing) {
         run(cpu, dots);
         return;

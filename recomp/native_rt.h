@@ -11,12 +11,46 @@
 #ifndef BTDD_NATIVE_RT_H
 #define BTDD_NATIVE_RT_H
 #include "nes/nes.h"
+#include <stddef.h>
 #include <stdint.h>
 
 typedef void (*NativeFn)(Cpu *c);
 
-/* counters kept by generated code (defined in recomp/native_cpu.c) */
+/* What the host gives generated code at registration. Generated code references nothing else from the host,
+ * so it can live in the exe, in a DLL built by any compiler, or in memory compiled by libtcc. */
+typedef struct NativeApi {
+    uint32_t version;                 /* NATIVE_API_VERSION */
+    NativeFn (*table)[0x8000];        /* [bank][addr - $8000] */
+    uint64_t *insns;                  /* native instruction counter */
+    void (*reg)(int bank, NativeFn fn, const uint16_t *addrs, int count);
+} NativeApi;
+#define NATIVE_API_VERSION 1
+
+#if defined(_WIN32)
+#define NATIVE_EXPORT __declspec(dllexport)
+#else
+#define NATIVE_EXPORT __attribute__((visibility("default")))
+#endif
+
+/* Struct layout as seen by the compiler of the generated code; the host refuses code built with another. */
+#define NATIVE_LAYOUT_LIST(X) X(sizeof(Cpu)) X(offsetof(Cpu, budget)) X(offsetof(Cpu, bus)) X(offsetof(Cpu, ctx))     X(offsetof(Cpu, write)) X(sizeof(Nes)) X(offsetof(Nes, ram)) X(offsetof(Nes, prg_bank)) X(offsetof(Nes, watch))     X(offsetof(Nes, watch_hook))
+
+#ifndef NATIVE_HOST
+/* generated code: the API pointer, one per translation unit */
+static inline const NativeApi **n_api_slot(void)
+{
+    static const NativeApi *p;
+    return &p;
+}
+#define n_api (*n_api_slot())
+#define native_insns (*n_api->insns)
+#define native_register(b, f, a, k) n_api->reg(b, f, a, k)
+#define native_table (n_api->table)
+#else
 extern uint64_t native_insns;
+extern NativeFn native_table[8][0x8000];
+void native_register(int bank, NativeFn fn, const uint16_t *addrs, int count);
+#endif
 
 #define NES(c) ((Nes *)(c)->ctx)
 
@@ -159,10 +193,6 @@ static inline uint8_t n_dec(Cpu *c, uint8_t v)
     n_zn(c, v);
     return v;
 }
-
-/* registration: generated code fills native_table[bank][addr - $8000] */
-void native_register(int bank, NativeFn fn, const uint16_t *addrs, int count);
-extern NativeFn native_table[8][0x8000];
 
 /* The native function for c->pc if the run loop would call it right now (budget left, no interrupt
  * pending), else NULL. */

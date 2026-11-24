@@ -49,31 +49,52 @@ add_executable(cpu_call_test tests/cpu/call_test.c)
 target_link_libraries(cpu_call_test PRIVATE btdd_core)
 btdd_warnings(cpu_call_test)
 
-# Room for M5 (load-time recompiler): libtcc compiles generated C in-process. Not fetched yet; when it is,
-# set BTDD_LIBTCC=ON, provide a target named libtcc (FetchContent or a prebuilt import) and link it to the
-# recompiler target. Generated code links against btdd_core (Cpu, cpu_bus_read/write, cpu_add_cycles, cpu_call).
-# M5: the generator in C (same output as recomp/gen.py), the step the shipped exe will run at first start.
+# M5: the generator in C (same output as recomp/gen.py), the step the shipped exe runs at first start.
 add_executable(btdd_gen recomp/gen.c)
 target_link_libraries(btdd_gen PRIVATE btdd_core)
 btdd_warnings(btdd_gen)
 
-# M5 prototype: native test exe from recomp/gen.py output (ROM-derived, kept outside the repo, e.g.
-# -DBTDD_NATIVE_GEN=C:/.../Gamefiles/Movies/m5/generated). recomp/native_cpu.c replaces src/runtime/cpu.c
-# (it compiles it in with cpu_run renamed), so this target lists the core sources itself.
+# Sources of the headless runner without src/runtime/cpu.c: recomp/native_cpu.c compiles cpu.c into itself
+# with cpu_run renamed and provides a cpu_run with native dispatch.
+set(BTDD_NATIVE_CORE src/headless_main.c src/rom/rom.c src/rom/sha1.c src/runtime/fm2.c src/nes/ppu.c
+    src/nes/ppu_new.c src/nes/nes.c recomp/native_cpu.c)
+
+# M5 test exe with the generated code linked in (ROM-derived, kept outside the repo, e.g.
+# -DBTDD_NATIVE_GEN=C:/.../Gamefiles/Movies/m5/generated).
 set(BTDD_NATIVE_GEN "" CACHE PATH "Folder with recomp/gen.py output; adds the btdd_native target")
 if(BTDD_NATIVE_GEN)
     file(GLOB BTDD_NATIVE_SOURCES "${BTDD_NATIVE_GEN}/native_*.c")
-    add_executable(btdd_native src/headless_main.c src/rom/rom.c src/rom/sha1.c src/runtime/fm2.c
-        src/nes/ppu.c src/nes/ppu_new.c src/nes/nes.c recomp/native_cpu.c ${BTDD_NATIVE_SOURCES})
+    add_executable(btdd_native ${BTDD_NATIVE_CORE} ${BTDD_NATIVE_SOURCES})
     target_include_directories(btdd_native PRIVATE src recomp)
+    target_compile_definitions(btdd_native PRIVATE BTDD_NATIVE_STATIC)
     if(MSVC)
         target_compile_definitions(btdd_native PRIVATE _CRT_SECURE_NO_WARNINGS)
     endif()
 endif()
 
-option(BTDD_LIBTCC "Build the load-time recompiler with embedded libtcc (M5; not available yet)" OFF)
+# M5 load-time recompiler: btdd_jit generates C from the player's ROM at first start, compiles it to a DLL in
+# %LOCALAPPDATA%tdd\cache and loads it. With BTDD_LIBTCC=ON the compiler is libtcc, used as a separate,
+# dynamically linked DLL (LGPL) from BTDD_TINYCC_DIR (default ../tools/tinycc: libtcc.h, libtcc.dll, its import
+# library, and tcc's include/ + lib/). Without it the compiler command comes from the BTDD_CC environment
+# variable (development only).
+option(BTDD_LIBTCC "Compile generated code with libtcc (M5)" OFF)
+set(BTDD_TINYCC_DIR "${CMAKE_SOURCE_DIR}/../tools/tinycc" CACHE PATH "TinyCC folder (libtcc.h, libtcc.dll)")
+add_executable(btdd_jit ${BTDD_NATIVE_CORE} recomp/native_jit.c recomp/gen.c)
+btdd_warnings(btdd_jit)
+target_include_directories(btdd_jit PRIVATE src recomp)
+target_compile_definitions(btdd_jit PRIVATE BTDD_GEN_NO_MAIN "BTDD_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\"")
+if(MSVC)
+    target_compile_definitions(btdd_jit PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
 if(BTDD_LIBTCC)
-    message(FATAL_ERROR "BTDD_LIBTCC: libtcc integration is planned for M5 and not set up yet")
+    find_path(LIBTCC_INCLUDE libtcc.h PATHS "${BTDD_TINYCC_DIR}" "${BTDD_TINYCC_DIR}/libtcc" NO_DEFAULT_PATH)
+    find_library(LIBTCC_LIB NAMES libtcc tcc PATHS "${BTDD_TINYCC_DIR}" "${BTDD_TINYCC_DIR}/libtcc" NO_DEFAULT_PATH)
+    if(NOT LIBTCC_INCLUDE OR NOT LIBTCC_LIB)
+        message(FATAL_ERROR "BTDD_LIBTCC: libtcc.h / libtcc import library not found under ${BTDD_TINYCC_DIR}")
+    endif()
+    target_include_directories(btdd_jit PRIVATE "${LIBTCC_INCLUDE}")
+    target_link_libraries(btdd_jit PRIVATE "${LIBTCC_LIB}")
+    target_compile_definitions(btdd_jit PRIVATE BTDD_LIBTCC "BTDD_TCC_LIB_DIR=\"${BTDD_TINYCC_DIR}\"")
 endif()
 
 if(BTDD_SDL)
