@@ -19,6 +19,7 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 M6 = os.path.join(REPO, '..', 'Gamefiles', 'Movies', 'm6')
 ROM = os.path.join(REPO, '..', 'Gamefiles', 'Battletoads-Double Dragon (USA).nes')
 CC = os.environ.get('CC', 'zig cc').split()
+TIMEOUT = 120  # seconds for one harness run (normal runs take a few seconds)
 
 
 def ram_names(meta=os.path.join(REPO, 'meta', 'btdd.meta')):
@@ -108,12 +109,25 @@ def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000
     exe, err = build(candidate, work, callees)
     if not exe:
         return 3, 'COMPILE ERROR: ' + err
-    env = dict(os.environ, M6_FUZZ=str(fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])))
-    r = subprocess.run([exe, ROM, str(bank), '%04X' % addr, outputs or '-'] + files, capture_output=True,
-                       text=True, timeout=600, env=env)
-    lines = [l for l in r.stdout.splitlines() if l.strip()]
-    msg = lines[0] if lines and lines[0].startswith('FAIL') else (lines[-1] if lines else r.stderr.strip())
-    return r.returncode, msg
+    env = dict(os.environ, M6_FUZZ=str(fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])), M6_TRACE='1')
+    out_path = os.path.join(work, 'harness_out.txt')
+    with open(out_path, 'w') as out:
+        p = subprocess.Popen([exe, ROM, str(bank), '%04X' % addr, outputs or '-'] + files, stdout=out,
+                             stderr=subprocess.STDOUT, text=True, env=env)
+        try:
+            rc = p.wait(timeout=TIMEOUT)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            p.wait()
+            rc = None
+    lines = [l for l in open(out_path, errors='replace').read().splitlines() if l.strip()]
+    if rc is None:
+        last = next((l[2:] for l in reversed(lines) if l.startswith('@ ')), 'an unknown state')
+        return 1, ('FAIL %s: the function did not return within %d s (endless loop? e.g. an 8-bit counter '
+                   'compared with >= 0)' % (last, TIMEOUT))
+    lines = [l for l in lines if not l.startswith('@ ')]
+    msg = lines[0] if lines and lines[0].startswith('FAIL') else (lines[-1] if lines else '(no output)')
+    return rc, msg
 
 
 def main():

@@ -121,6 +121,17 @@ def solve(bank, addr, tries):
     return False, tries, total
 
 
+def safe_solve(bank, addr, tries):
+    """solve() that logs an unexpected error and moves on instead of ending the batch."""
+    try:
+        return solve(bank, addr, tries)
+    except (OSError, ValueError, KeyError, StopIteration, RuntimeError) as e:
+        log({'time': time.strftime('%Y-%m-%d %H:%M:%S'), 'bank': bank, 'addr': '%04X' % addr, 'try': 0,
+             'result': 'error', 'message': repr(e)[:400]})
+        print('  error: %r' % e)
+        return False, 0, {'prompt': 0, 'completion': 0, 'seconds': 0.0}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--routines', type=int, default=5)
@@ -152,7 +163,7 @@ def main():
         if not m6_test.corpus_files(bank, addr, [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]):
             continue
         print('%s (bank %d $%04X)' % (name, bank, addr))
-        ok, n, tot = solve(bank, addr, a.tries)
+        ok, n, tot = safe_solve(bank, addr, a.tries)
         results.append((name, ok, n, tot))
     summary(results)
 
@@ -171,7 +182,7 @@ def callgraph_mode(a):
         c, r, names = ready[0]
         tried.add(r['name'])
         print('%s (bank %d $%04X) calls %s' % (r['name'], r['bank'], r['start'], ', '.join(names)))
-        ok, n, tot = solve(r['bank'], r['start'], a.tries)
+        ok, n, tot = safe_solve(r['bank'], r['start'], a.tries)
         results.append((r['name'], ok, n, tot))
     summary(results)
 

@@ -242,6 +242,11 @@ static int check(const char *label, int fuzz)
     entry_s = smp.s;
     entry_p = smp.p;
     call_depth = 0;
+    if (getenv("M6_TRACE")) { /* lets m6_test.py name the state if the candidate never returns */
+        printf("@ %s | entry A=$%02X X=$%02X Y=$%02X C=%d Z=%d N=%d V=%d\n", label, smp.a, smp.x, smp.y, smp.p & 1,
+               (smp.p >> 1) & 1, (smp.p >> 7) & 1, (smp.p >> 6) & 1);
+        fflush(stdout);
+    }
     routine(&m);
     if (!got_box.err[0] && got_box.pos != smp.n_acc)
         snprintf(got_box.err, sizeof got_box.err, "missing hardware access: original next %s $%04X",
