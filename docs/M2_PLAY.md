@@ -45,7 +45,8 @@ btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] [--full
   bottom face button = B, Back = Select, Start, d-pad or left stick.
 - Hotkeys: Esc quit, P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter, F4
   scanlines, F5 redefine keys (on-screen prompts for both players; Backspace keeps a key, Esc cancels; saved
-  to btdd.cfg), F11 or Alt+Enter fullscreen, F12 screenshot (saved in the settings folder).
+  to btdd.cfg), F11 or Alt+Enter fullscreen, F12 screenshot (saved in the settings folder). Save states, rewind and fast-forward:
+  docs/M8_FEATURES.md.
 - Video (`src/platform/video.c`): nearest = largest integer scale (square pixels); sharp = nearest to an
   integer multiple, then bilinear to the window (crisp, even pixels at any size and in 4:3); bilinear = plain
   smoothing. Scanlines darken the bottom third of every NES row at the integer stage. No shaders needed.

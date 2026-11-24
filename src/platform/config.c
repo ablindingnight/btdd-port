@@ -21,6 +21,8 @@ void config_defaults(Config *c)
     c->volume = 1.0f;
     c->filter = FILTER_NEAREST;
     snprintf(c->renderer, sizeof c->renderer, "auto");
+    c->rewind_seconds = 60;
+    c->ff_speed = 4;
     memcpy(c->keys[0], p1, sizeof p1);
     memcpy(c->keys[1], p2, sizeof p2);
 }
@@ -60,6 +62,10 @@ static void apply(Config *c, const char *key, const char *val)
         snprintf(c->renderer, sizeof c->renderer, "%s", val[0] ? val : "auto");
     else if (!strcmp(key, "volume"))
         c->volume = (float)SDL_clamp(atof(val), 0.0, 1.0);
+    else if (!strcmp(key, "rewind_seconds"))
+        c->rewind_seconds = SDL_clamp(atoi(val), 0, 600);
+    else if (!strcmp(key, "ff_speed"))
+        c->ff_speed = SDL_clamp(atoi(val), 2, 16);
     else
         for (p = 0; p < 2; p++)
             for (b = 0; b < BTN_COUNT; b++) {
@@ -99,6 +105,8 @@ static int write_file(const Config *c, const char *path)
     fprintf(f, "palette = %s\n", c->palette);
     fprintf(f, "# renderer = auto, direct3d11, direct3d12, direct3d, opengl, vulkan or software\n");
     fprintf(f, "renderer = %s\n", c->renderer);
+    fprintf(f, "# rewind_seconds = how far Backspace can rewind (0 = off; ~1 MB per second); ff_speed = Tab speed\n");
+    fprintf(f, "rewind_seconds = %d\nff_speed = %d\n", c->rewind_seconds, c->ff_speed);
     for (p = 0; p < 2; p++)
         for (b = 0; b < BTN_COUNT; b++)
             fprintf(f, "p%d_%s = %s\n", p + 1, config_button_names[b], SDL_GetScancodeName(c->keys[p][b]));
