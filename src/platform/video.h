@@ -7,6 +7,7 @@
  * Scanlines: optional dark line under every NES row (applied at the integer-scaled stage, needs scale >= 2). */
 #ifndef BTDD_VIDEO_H
 #define BTDD_VIDEO_H
+#include "gpu.h"
 #include <SDL3/SDL.h>
 #include <stdint.h>
 
@@ -20,11 +21,16 @@ typedef struct Video {
     SDL_Texture *big;     /* integer-scaled intermediate (sharp filter, scanlines) */
     int big_scale;
     int filter, aspect, scanlines;
+    Gpu *gpu;             /* M10 GPU shader path (NULL = SDL renderer) */
+    int preset;           /* GpuPreset when gpu is set */
+    SDL_Surface *overlay; /* text for the GPU path, drawn by a software renderer */
+    SDL_Renderer *overlay_ren;
 } Video;
 
-/* renderer: SDL render driver name or NULL/"auto". Returns 0 on success. */
+/* renderer: SDL render driver name or NULL/"auto"; use_gpu: try the GPU shader path first (preset = GpuPreset),
+ * falling back to the SDL renderer. Returns 0 on success. */
 int video_open(Video *v, const char *title, int scale, int aspect, int fullscreen, int filter, int scanlines,
-               const char *renderer);
+               const char *renderer, int use_gpu, int preset);
 /* Draws the picture (0xFFRRGGBB, 256x240) plus optional text lines at the top-left, then presents. */
 void video_present(Video *v, const uint32_t *pixels, const char *const *text, int text_lines);
 void video_close(Video *v);

@@ -513,7 +513,7 @@ int main(int argc, char **argv)
     load_palette(cfg.palette);
 
     if (video_open(&video, TITLE, cfg.scale, cfg.aspect, cfg.fullscreen, cfg.filter, cfg.scanlines,
-                   cfg.renderer) != 0) {
+                   cfg.renderer, cfg.gpu, cfg.shader) != 0) {
         snprintf(msg, sizeof msg, "cannot open the window: %s", SDL_GetError());
         return fail(msg);
     }
@@ -607,6 +607,10 @@ int main(int argc, char **argv)
                 } else if (ev.key.key == SDLK_F2) {
                     video.aspect = cfg.aspect = !cfg.aspect;
                     say(cfg.aspect ? "4:3 picture" : "square pixels");
+                } else if (ev.key.key == SDLK_F3 && video.gpu) { /* GPU path: cycle the shader presets */
+                    video.preset = cfg.shader = (cfg.shader + 1) % GPU_PRESET_COUNT;
+                    snprintf(msg, sizeof msg, "shader: %s", gpu_preset_names[cfg.shader]);
+                    say(msg);
                 } else if (ev.key.key == SDLK_F3) {
                     video.filter = cfg.filter = (cfg.filter + 1) % FILTER_COUNT;
                     snprintf(msg, sizeof msg, "filter: %s", video_filter_names[cfg.filter]);
