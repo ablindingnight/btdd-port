@@ -76,6 +76,11 @@ def main():
         if r['try'] == 1 or key not in series:
             series[key] = []
         series[key].append(r)
+    nocorpus = [k for k, s in series.items() if all(t['result'] == 'setup' for t in s)]
+    for k in nocorpus:  # no usable test states (not a model failure): left out of the counts
+        del series[k]
+    if nocorpus:
+        print('left out: %d routine(s) whose only tries could not be tested (no corpus)' % len(nocorpus))
     if a.by_kind:
         return by_kind(series)
     first = sum(1 for s in series.values() if s[0]['result'] == 'pass')
