@@ -73,7 +73,7 @@ def build(candidate, work):
     return exe, ''
 
 
-def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None):
+def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000):
     """-> (code, message). code 0 pass, 1 mismatch, 2 setup, 3 compile error."""
     dirs = dirs or [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
     work = work or os.path.join(M6, 'work')
@@ -83,8 +83,9 @@ def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None):
     exe, err = build(candidate, work)
     if not exe:
         return 3, 'COMPILE ERROR: ' + err
+    env = dict(os.environ, M6_FUZZ=str(fuzz))
     r = subprocess.run([exe, ROM, str(bank), '%04X' % addr, outputs or '-'] + files, capture_output=True,
-                       text=True, timeout=600)
+                       text=True, timeout=600, env=env)
     lines = [l for l in r.stdout.splitlines() if l.strip()]
     msg = lines[0] if lines and lines[0].startswith('FAIL') else (lines[-1] if lines else r.stderr.strip())
     return r.returncode, msg
@@ -97,9 +98,10 @@ def main():
     ap.add_argument('--outputs', default='-')
     ap.add_argument('--corpus', action='append')
     ap.add_argument('--work')
+    ap.add_argument('--fuzz', type=int, default=2000, help='random entry states after the corpus (0 = none)')
     a = ap.parse_args()
     b, ad = a.routine.split(':')
-    code, msg = run_test(int(b), int(ad, 16), a.candidate, a.outputs, a.corpus, a.work)
+    code, msg = run_test(int(b), int(ad, 16), a.candidate, a.outputs, a.corpus, a.work, a.fuzz)
     print(msg)
     sys.exit(code)
 
