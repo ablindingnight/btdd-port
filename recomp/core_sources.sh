@@ -10,7 +10,7 @@ if [ "$2" = "--flags" ]; then
     exit 0
 fi
 echo "$TREE/src/headless_main.c"
-for d in rom runtime nes cov; do
+for d in rom runtime nes cov mods; do
     [ -d "$TREE/src/$d" ] || continue
     for f in "$TREE"/src/$d/*.c; do
         case "$f" in */runtime/cpu.c) ;; *) echo "$f" ;; esac

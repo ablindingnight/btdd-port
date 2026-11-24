@@ -198,8 +198,8 @@ static inline uint8_t n_dec(Cpu *c, uint8_t v)
  * pending), else NULL. */
 static inline NativeFn n_next(Cpu *c)
 {
-    if (c->budget <= 0 || c->irq || c->pc < 0x8000)
-        return 0;
+    if (c->budget <= 0 || c->irq || c->pc < 0x8000 || (c->pc_hook_map && c->pc_hook_map[c->pc]))
+        return 0; /* a hooked address (M7 mods) always goes back through the run loop */
     return native_table[NES(c)->prg_bank][c->pc - 0x8000];
 }
 

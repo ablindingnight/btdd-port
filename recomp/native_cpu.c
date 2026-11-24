@@ -154,6 +154,8 @@ static void run(Cpu *cpu, int32_t dots)
             add_cycles(cpu, cpu_base_cycles[0x02]);
             continue;
         }
+        if (cpu->pc_hook_map && cpu->pc_hook_map[cpu->pc] && cpu->pc_hook(cpu->ctx, cpu))
+            continue; /* M7 mods: same point as the interpreter's cpu_run */
         if (cpu->pc >= 0x8000) {
             NativeFn f = table[n->prg_bank][cpu->pc - 0x8000];
             if (f) {

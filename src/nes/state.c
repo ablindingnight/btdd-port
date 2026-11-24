@@ -13,7 +13,7 @@ uint32_t nes_state_fingerprint(void)
     size_t v[] = {sizeof(Nes), sizeof(Cpu), sizeof(Ppu), sizeof(Apu), offsetof(Nes, cpu), offsetof(Nes, ppu),
                   offsetof(Nes, ram), offsetof(Nes, prg_bank), offsetof(Nes, pad), offsetof(Nes, apu_regs),
                   offsetof(Nes, stats), offsetof(Nes, watch), offsetof(Nes, apu), offsetof(Nes, apu_on),
-                  offsetof(Cpu, budget), offsetof(Cpu, cycles), offsetof(Cpu, tick_hook), offsetof(Ppu, chr),
+                  offsetof(Cpu, budget), offsetof(Cpu, cycles), offsetof(Cpu, tick_hook), offsetof(Cpu, pc_hook), offsetof(Ppu, chr),
                   offsetof(Ppu, oam), offsetof(Ppu, fb), offsetof(Ppu, line_sprites), offsetof(Ppu, sc),
                   offsetof(Ppu, oams), offsetof(Ppu, line_done), offsetof(Apu, step_timer),
                   offsetof(Apu, synth_cycle), offsetof(Apu, hp1_prev_in), offsetof(Apu, host)};
@@ -35,6 +35,8 @@ void nes_state_clear_host(Nes *n)
     n->cpu.insn_hook = NULL;
     n->cpu.vector_hook = NULL;
     n->cpu.tick_hook = NULL;
+    n->cpu.pc_hook_map = NULL;
+    n->cpu.pc_hook = NULL;
     n->ppu.cpu = NULL;
     n->ppu.line_done = NULL;
     n->ppu.line_done_user = NULL;
@@ -64,6 +66,8 @@ void nes_state_adopt_host(Nes *n, const Nes *host)
     n->cpu.insn_hook = host->cpu.insn_hook;
     n->cpu.vector_hook = host->cpu.vector_hook;
     n->cpu.tick_hook = host->cpu.tick_hook;
+    n->cpu.pc_hook_map = host->cpu.pc_hook_map;
+    n->cpu.pc_hook = host->cpu.pc_hook;
     n->ppu.cpu = host->ppu.cpu;
     n->ppu.line_done = host->ppu.line_done;
     n->ppu.line_done_user = host->ppu.line_done_user;

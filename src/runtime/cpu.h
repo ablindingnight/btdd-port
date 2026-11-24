@@ -63,6 +63,12 @@ struct Cpu {
     /* APU: if set, called at the start of every instruction after its base cycles are charged (where FCEUX
      * advances its sound hardware); may stall the CPU (DMC fetch) or raise IRQ lines */
     void (*tick_hook)(void *ctx, Cpu *cpu);
+    /* M7 mods: when an instruction is about to run in cpu_run (interrupts polled, budget left) and
+     * pc_hook_map[pc] is nonzero, pc_hook is called first. It returns nonzero if it moved PC (a replaced
+     * routine returned, ...); cpu_run then starts over at the new PC (budget, interrupts, hooks). Zero: the
+     * instruction runs as usual. The native run loop (recomp/native_cpu.c) honours the same map. NULL = off. */
+    const uint8_t *pc_hook_map; /* 64 KB */
+    int (*pc_hook)(void *ctx, Cpu *cpu);
 };
 
 void cpu_init(Cpu *cpu, void *ctx, CpuRead read, CpuWrite write, CpuTrap trap);
