@@ -38,7 +38,7 @@
 #define BTDD_TREE_DIR BTDD_SOURCE_DIR
 #endif
 #ifndef BTDD_EXE_VERSION
-#define BTDD_EXE_VERSION "m5-dev" /* build scripts pass the commit + a hash of the generator and runtime header */
+#define BTDD_EXE_VERSION "m5-dev " __DATE__ " " __TIME__ /* the shell scripts pass commit + source hash instead */
 #endif
 
 int btdd_gen_write(const Rom *rom, const char *sha1_hex, const char *meta_path, const char *outdir,
@@ -267,14 +267,25 @@ int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap)
         snprintf(err, cap, "cannot read %s", meta);
         return 1;
     }
-    n = sizeof rom->prg + meta_len + strlen(ver) + 1 + strlen(cid);
-    buf = malloc(n);
-    if (!buf)
-        return 1;
-    memcpy(buf, rom->prg, sizeof rom->prg);
-    memcpy(buf + sizeof rom->prg, meta_bytes, meta_len);
-    memcpy(buf + sizeof rom->prg + meta_len, ver, strlen(ver) + 1);
-    memcpy(buf + sizeof rom->prg + meta_len + strlen(ver) + 1, cid, strlen(cid));
+    {
+        /* the runtime header the generated code is compiled against is part of the key too */
+        char rt_path[1100];
+        size_t rt_len = 0;
+        uint8_t *rt;
+        snprintf(rt_path, sizeof rt_path, "%s/recomp/native_rt.h", BTDD_SOURCE_DIR);
+        rt = read_all(rt_path, &rt_len);
+        n = sizeof rom->prg + meta_len + strlen(ver) + 1 + strlen(cid) + (rt ? rt_len : 0);
+        buf = malloc(n);
+        if (!buf)
+            return 1;
+        memcpy(buf, rom->prg, sizeof rom->prg);
+        memcpy(buf + sizeof rom->prg, meta_bytes, meta_len);
+        memcpy(buf + sizeof rom->prg + meta_len, ver, strlen(ver) + 1);
+        memcpy(buf + sizeof rom->prg + meta_len + strlen(ver) + 1, cid, strlen(cid));
+        if (rt)
+            memcpy(buf + sizeof rom->prg + meta_len + strlen(ver) + 1 + strlen(cid), rt, rt_len);
+        free(rt);
+    }
     sha1(buf, n, digest);
     free(buf);
     free(meta_bytes);

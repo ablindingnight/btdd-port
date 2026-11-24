@@ -174,6 +174,22 @@ if(BTDD_LIBTCC)
     target_include_directories(btdd_jit PRIVATE "${LIBTCC_INCLUDE}")
     target_link_libraries(btdd_jit PRIVATE "${LIBTCC_LIB}")
     target_compile_definitions(btdd_jit PRIVATE BTDD_LIBTCC "BTDD_TCC_LIB_DIR=\"${BTDD_TINYCC_DIR}\"")
+    # btdd_apu_check with native code compiled by libtcc (checks the APU tick under native dispatch)
+    btdd_collect_sources(btdd_apu_check BTDD_APU_JIT_SOURCES)
+    list(FILTER BTDD_APU_JIT_SOURCES EXCLUDE REGEX "/src/runtime/cpu\\.c$")
+    add_executable(btdd_apu_check_jit ${BTDD_APU_JIT_SOURCES} recomp/native_cpu.c recomp/native_jit.c recomp/gen.c)
+    target_include_directories(btdd_apu_check_jit PRIVATE src recomp "${LIBTCC_INCLUDE}")
+    target_link_libraries(btdd_apu_check_jit PRIVATE "${LIBTCC_LIB}")
+    target_compile_definitions(btdd_apu_check_jit PRIVATE BTDD_GEN_NO_MAIN "BTDD_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\""
+        ${BTDD_CPU_HOOK_DEFS} BTDD_LIBTCC "BTDD_TCC_LIB_DIR=\"${BTDD_TINYCC_DIR}\"")
+    if(MSVC)
+        target_compile_definitions(btdd_apu_check_jit PRIVATE _CRT_SECURE_NO_WARNINGS)
+    endif()
+    # libtcc stays a separate DLL (LGPL): put it next to the exe so the loader finds it
+    if(EXISTS "${BTDD_TINYCC_DIR}/libtcc.dll")
+        add_custom_command(TARGET btdd_jit POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${BTDD_TINYCC_DIR}/libtcc.dll" "$<TARGET_FILE_DIR:btdd_jit>")
+    endif()
 endif()
 
 if(BTDD_SDL)
