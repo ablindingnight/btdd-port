@@ -30,6 +30,7 @@ add_library(btdd_core STATIC
     src/nes/ppu_new.c
     src/nes/apu.c
     src/nes/nes.c
+    src/nes/state.c
 )
 target_include_directories(btdd_core PUBLIC src)
 if(NOT WIN32 OR NOT MSVC)
