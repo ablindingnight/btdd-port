@@ -60,10 +60,27 @@
 python recomp/gen.py                      # writes ..\Gamefiles\Movies\m5\generated
 btdd_gen ROM meta/btdd.meta OUTDIR        # same output from the C generator
 sh recomp/build_native.sh                 # zig cc; or CMake with -DBTDD_NATIVE_GEN=... --target btdd_native
-sh recomp/lockstep.sh both                # 2P old PPU + 1P new PPU vs the FCEUX dumps
+sh recomp/lockstep.sh both [OUTDIR]       # 2P old PPU + 1P new PPU vs the FCEUX dumps; dumps go to OUTDIR
+EXE=path/to.exe sh recomp/lockstep.sh ... # gate another exe
+OUT=dir TREE=../other-checkout sh recomp/build_native.sh   # build against another tree's src/ (read-only)
 BTDD_NATIVE=0 ...                         # same exe, interpreter only
 BTDD_NATIVE_PROFILE=out.txt ...           # interpreted instructions per (bank, PC)
 ```
+Source lists are derived, not hand-written: CMake collects them from `btdd_headless` and its static libraries
+(minus `src/runtime/cpu.c`), and `recomp/core_sources.sh` from the tree's `src/{rom,runtime,nes,cov}` folders.
+
+## CPU hooks (coverage `insn_hook`, APU `tick_hook`) under native code
+Trees where `Cpu` has `insn_hook` and `tick_hook` (the merged tree) are built with `-DBTDD_CPU_HOOKS` (detected from
+`cpu.h` by CMake and the scripts; btdd_jit passes it to the DLL compile and the cache key). Every generated
+instruction then calls `insn_hook` before it and `tick_hook` after its base cycles, with `c->pc` set, exactly where
+`execute()` does; each is one predictable branch when the hook is unset. Fast blocks are only entered with no hook
+set. On other trees the macros are empty.
+Checked against `integration-rehearsal` (built read-only from that checkout): both RAM gates exact, and
+`btdd_apu_check` linked with native code gives an APU CSV and a 120 s WAV byte-identical to the interpreter build
+(`apudiff` vs FCEUX: 59,351/59,351 rows). A trial merge of `m5-recomp` into `integration-rehearsal` (scratch clone)
+conflicts only on the two hand-written source lists the rehearsal added; keeping the m5-recomp hunk there, the
+derived list picks up `src/nes/apu.c` and `src/cov/*.c` by itself, MSVC builds `btdd_native`/`btdd_jit` without
+warnings, and the 2P gate is exact.
 
 ## First start: generate, compile, cache (`btdd_jit`)
 `btdd_jit` contains no generated code. On the first `cpu_run` it:
