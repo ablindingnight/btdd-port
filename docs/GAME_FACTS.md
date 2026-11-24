@@ -32,3 +32,11 @@ Use: gate detection (a section change = a gate passed) and warp targets for the 
 ## Already known (from btdd-decomp/src/ram.inc)
 - `$0011/$0012` lives P1/P2 (start 3), `$0016` game_mode (1 = 2P mode A friendly fire, 2 = mode B),
   `$051B,x` ent_hp (slot 0/1 = players), `$0200-$02FF` OAM buffer.
+
+## Lives (M7, 2026-11-24, watched on the 2P TAS)
+- Bank 6 `$9237` (sub_9237) sets both lives to 3 when the title/menu sets up (2P TAS frame 670; `$0012 = $FF` in
+  1P mode), then copies them, xor `$80`, to `$05F2/$05F3` for the HUD.
+- Bank 6 `$9888` (sub_9888) gives player Y their starting lives when the game starts (frame 690, Y = 0 then 1):
+  3, or 5 if that player's held buttons (`joy_held,y`) equal `$D8`, but never less than `$0017`. Y is unchanged on
+  return. The `lives` mod hooks here (after-hook).
+- An extra life is a plain increment elsewhere (P2 at frame 1152, bank 0 `$91E2`).

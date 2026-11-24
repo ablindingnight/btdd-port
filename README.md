@@ -54,6 +54,7 @@ All gates in one command (builds with every compiler found, runs every check, pr
 Player 1: arrows, X = A, Z = B, Right Shift = Select, Enter = Start. Player 2: W/A/S/D, H = A, G = B, T = Select,
 Y = Start. Gamepads work too. Esc quits, P pauses, F11 fullscreen, F2 square pixels / 4:3, F12 screenshot,
 F6/F7 save/load state (0-9 pick a slot), hold Backspace to rewind, hold Tab to fast-forward.
+Mods (docs/M7_MODS.md): F8 no sprite flicker, F9 starting lives (`mod_*` keys in btdd.cfg).
 Keys, scale and the ROM path are set in `%APPDATA%\btdd\btdd.cfg` (created on first run). Details:
 `docs/M2_PLAY.md`.
 

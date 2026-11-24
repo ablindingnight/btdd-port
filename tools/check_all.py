@@ -6,6 +6,8 @@
 Builds with every compiler found (MSVC via Visual Studio's CMake, clang, MSYS2 gcc), then runs the gates in
 parallel (--jobs, default 4, to leave cores free): RAM vs FCEUX on both TAS movies (2P old PPU with every
 compiler, 1P new PPU), APU vs FCEUX's log, picture vs FCEUX's index dumps, save state and rewind round trips,
+the M7 mod tests (every other gate runs with mods compiled in but off; the native gate also checks a logic mod
+gives the same run natively and interpreted),
 CPU/APU unit tests, M5 native lockstep (btdd_gen + zig cc), the M6 harness self-test (needs a passing private
 candidate, see below), and release_audit. Exit code 0 only if nothing FAILed (SKIP and WARN do not fail).
 
@@ -223,7 +225,26 @@ def gate_native(build, out):
             return 'FAIL', 'build_native failed: ' + o.strip()[-150:]
         code, o = run([SH, 'recomp/lockstep.sh', 'both', out], env=dict(os.environ, EXE='btdd_native'))
         n = len(re.findall(r'^identical:', o, re.M))
-        return ('PASS' if n == 2 else 'FAIL'), ('2P and 1P RAM identical' if n == 2 else o.strip()[-200:])
+        if n != 2:
+            return 'FAIL', o.strip()[-200:]
+        # M7: a logic mod (lives=7, wrap hook) must give the same run under native dispatch as in the interpreter
+        a, b = os.path.join(out, 'mods_interp.bin'), os.path.join(out, 'mods_native.bin')
+        for x, path in ((exe(build, 'btdd_headless'), a), (os.path.join(out, 'btdd_native' + EXE), b)):
+            code, o = run([x, ROM, '--movie', M2P, '--mod', 'lives=7', '--dump-ram', path, '--dump-every', '1', '--quiet'])
+            if code != 0:
+                return 'FAIL', 'mod run exit %d: %s' % (code, o.strip()[-120:])
+        s, line = ramdiff(a, b)
+        return s, '2P and 1P RAM identical; with mod lives=7 native == interpreter: ' + line.split(':')[0]
+    return g
+
+
+def gate_mods(build):
+    def g():
+        code, o = run([exe(build, 'mods_test'), ROM, M2P, M1P, '--frames', '20000'])
+        fails = [l for l in o.splitlines() if l.startswith('FAIL:')]
+        if code != 0:
+            return 'FAIL', (fails[0] if fails else o.strip()[-150:])[:200]
+        return 'PASS', 'lives (after/before/replace hooks), nolimit (RAM unchanged, sprites added) on both movies'
     return g
 
 
@@ -304,6 +325,7 @@ def main():
                   ('shots-1p', gate_shots(m, '1p', out)),
                   ('state-2p', gate_state(m, out)),
                   ('rewind-2p', gate_rewind(m, out)),
+                  ('mods-test', gate_mods(m)),
                   ('native-lockstep', gate_native(m, out)),
                   ('m6-selftest', gate_m6(out))]
         for b in BUILDS:
