@@ -188,7 +188,7 @@ def main():
     ap.add_argument('--callgraph', action='store_true',
                     help='after the list: routines whose callees all have passing C, re-ranked after every pass')
     a = ap.parse_args()
-    if a.callgraph and not a.only:
+    if a.callgraph and not a.only and not a.list:
         return callgraph_mode(a)
     if a.only:
         todo = [(int(x.split(':')[0]), int(x.split(':')[1], 16)) for x in a.only.split(',')]
@@ -213,6 +213,9 @@ def main():
         ok, n, tot = safe_solve(bank, addr, a.tries, a.rerun)
         results.append((name, ok, n, tot))
     summary(results)
+    if a.callgraph and not a.only and len(results) < a.routines:  # then the call-graph pass, as the help says
+        a.routines -= len(results)
+        callgraph_mode(a)
 
 
 def callgraph_mode(a):
