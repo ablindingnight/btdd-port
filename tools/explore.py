@@ -49,11 +49,15 @@ def main():
     ap.add_argument('--ram-pcs', default=os.path.join(GAME, 'Movies', 'coverage', 'movies-ram-pcs.txt'))
     ap.add_argument('--publish', default=None)
     ap.add_argument('--extra', default='')
+    ap.add_argument('--match', default=None, help='regex on snapshot file names (e.g. "-L(00|FD)-")')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     snaps = []
     for d in a.snaps.split(','):
         snaps += sorted(glob.glob(os.path.join(d, '*.snap')))
+    if a.match:
+        import re
+        snaps = [s for s in snaps if re.search(a.match, os.path.basename(s))]
     if not snaps:
         sys.exit('no snapshots in ' + a.snaps)
     lst = os.path.join(a.out, 'snaps.txt')

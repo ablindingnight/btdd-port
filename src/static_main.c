@@ -26,7 +26,7 @@
 
 #define SZ COV_PRG_SIZE
 
-enum { SRC_BRANCH = 1, SRC_FALL = 2, SRC_JSR = 4, SRC_JMP = 8 };
+enum { SRC_BRANCH = 1, SRC_FALL = 2, SRC_JSR = 4, SRC_JMP = 8, SRC_SLOT = 16, SRC_PTR = 32 };
 
 static Rom rom;
 static Coverage known;
@@ -105,7 +105,60 @@ static void scan_known(void)
 {
     int bank;
     for (bank = 0; bank < 8; bank++) {
-        long base = (long)bank * 0x8000, i = 0;
+        long base = (long)bank * 0x8000, i = 0, k, s;
+        /* jump lists: runs of >= 3 consecutive "jmp abs" (or jmp (ind)) slots, such as the $8000 far-call slot
+         * table and the dispatch lists called with jsr. When a slot of the run was executed, the slots that
+         * never ran are candidates too (only jmp abs slots that are not already known bytes). */
+        for (s = 0; s < 0x7FFD; s++) {
+            long n = 0, used = 0, orig = s;
+            uint8_t o;
+            if (byte_at(bank, (uint16_t)(0x8000 + s)) != 0x4C || !is_code(base + s))
+                continue;
+            /* walk back to the first slot of the run, then forward */
+            while (s >= 3 && (byte_at(bank, (uint16_t)(0x8000 + s - 3)) == 0x4C ||
+                              byte_at(bank, (uint16_t)(0x8000 + s - 3)) == 0x6C))
+                s -= 3;
+            while (s + n * 3 + 2 < 0x8000 &&
+                   ((o = byte_at(bank, (uint16_t)(0x8000 + s + n * 3))) == 0x4C || o == 0x6C) &&
+                   byte_at(bank, (uint16_t)(0x8000 + s + n * 3 + 2)) >= 0x80)
+                n++;
+            for (k = 0; k < n; k++)
+                used += is_code(base + s + k * 3) != 0;
+            if (n >= 3 && used >= 1)
+                for (k = 0; k < n; k++)
+                    if (!is_code(base + s + k * 3) && !(known.mesen[base + s + k * 3] & MESEN_DATA) &&
+                        byte_at(bank, (uint16_t)(0x8000 + s + k * 3)) == 0x4C)
+                        cand_src[base + s + k * 3] |= SRC_SLOT;
+            s = s + n * 3 - 1 > orig ? s + n * 3 - 1 : orig; /* never move backwards */
+        }
+        /* pointer tables: runs of >= 3 little-endian words that all point into $8000-$FFFF, where at least two
+         * entries were read as data and point at executed code; the targets of the entries that were never
+         * read (states/handlers nobody selected) are candidates */
+        for (s = 0; s + 1 < 0x8000; s++) {
+            long a, e, n, good = 0, orig = s;
+            if (!(known.mesen[base + s] & MESEN_DATA) || is_code(base + s))
+                continue;
+            for (a = s; a >= 2 && byte_at(bank, (uint16_t)(0x8000 + a - 1)) >= 0x80 && !is_code(base + a - 2) &&
+                        !is_code(base + a - 1);
+                 a -= 2)
+                ;
+            for (e = a; e + 1 < 0x8000 && byte_at(bank, (uint16_t)(0x8000 + e + 1)) >= 0x80 && !is_code(base + e) &&
+                        !is_code(base + e + 1);
+                 e += 2) {
+                uint16_t t = (uint16_t)(byte_at(bank, (uint16_t)(0x8000 + e)) | byte_at(bank, (uint16_t)(0x8000 + e + 1)) << 8);
+                if ((known.mesen[base + e] & MESEN_DATA) && is_code(base + (t & 0x7FFF)))
+                    good++;
+            }
+            n = (e - a) / 2;
+            if (n >= 3 && good >= 2)
+                for (k = a; k < e; k += 2) {
+                    uint16_t t = (uint16_t)(byte_at(bank, (uint16_t)(0x8000 + k)) | byte_at(bank, (uint16_t)(0x8000 + k + 1)) << 8);
+                    if (!(known.mesen[base + k] & (MESEN_DATA | MESEN_CODE)) && !is_code(base + (t & 0x7FFF)) &&
+                        !(known.mesen[base + (t & 0x7FFF)] & MESEN_DATA))
+                        cand_src[base + (t & 0x7FFF)] |= SRC_PTR;
+                }
+            s = e > orig ? e : orig;
+        }
         while (i < 0x8000) {
             if (!is_code(base + i)) {
                 i++;
@@ -257,8 +310,8 @@ int main(int argc, char **argv)
             continue;
         n_cand++;
         id++;
-        snprintf(src, sizeof src, "%s%s%s%s", cand_src[i] & SRC_BRANCH ? "b" : "", cand_src[i] & SRC_FALL ? "f" : "",
-                 cand_src[i] & SRC_JSR ? "j" : "", cand_src[i] & SRC_JMP ? "J" : "");
+        snprintf(src, sizeof src, "%s%s%s%s%s%s", cand_src[i] & SRC_BRANCH ? "b" : "", cand_src[i] & SRC_FALL ? "f" : "",
+                 cand_src[i] & SRC_JSR ? "j" : "", cand_src[i] & SRC_JMP ? "J" : "", cand_src[i] & SRC_SLOT ? "s" : "", cand_src[i] & SRC_PTR ? "p" : "");
         {
             static uint8_t tmp[SZ];
             long z;
@@ -293,7 +346,7 @@ int main(int argc, char **argv)
                     if (tmp[z] && !mark[z])
                         out[z] |= MESEN_CODE;
                 memcpy(mark, tmp, SZ);
-                out[i] |= (cand_src[i] & SRC_JSR) ? MESEN_ENTRY : MESEN_JUMP;
+                out[i] |= (cand_src[i] & (SRC_JSR | SRC_SLOT | SRC_PTR)) ? MESEN_ENTRY : MESEN_JUMP;
             }
         }
         fprintf(tsv, "%d\t$%04X\t%s\t%d\t%s\t%d\n", bank, addr, src, cnt, verd, clean);

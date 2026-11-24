@@ -2,7 +2,7 @@
  *
  *   btdd_explore ROM --snaps LIST.txt --out PREFIX [--worker I --workers N] [--seconds T] [--seed S]
  *                [--known KNOWN.txt] [--ram-pcs TAS_RAM_PCS.txt] [--god-ratio 0.5] [--death-ratio 0.05]
- *                [--burst MIN,MAX] [--queue 300] [--save-finds N]
+ *                [--burst MIN,MAX] [--queue 300] [--save-finds N] [--menu-ratio 0.0]
  *
  * LIST.txt holds one snapshot path per line; worker I takes lines I, I+N, I+2N... Every burst starts from a
  * state in the queue (the worker's snapshots, then states that found something), plays MIN..MAX frames of
@@ -13,7 +13,8 @@
  *
  * Output: PREFIX.cdl (FCEUX format, this worker's own observations), PREFIX-m.cdl (Mesen format: the same
  * code/data bits plus jump-target/entry bits), PREFIX-finds.tsv (one line per kept burst), and up to N
- * snapshots of the best finds in PREFIX-finds/ (folder must exist).
+ * snapshots of the best finds in PREFIX-finds/ (folder must exist), and PREFIX-indirect.tsv (jmp (ptr) / far-call
+ * targets). --menu-ratio: share of bursts that tap single buttons with pauses (menus, character select).
  */
 #include "cov/coverage.h"
 #include "cov/snapshot.h"
@@ -55,7 +56,25 @@ typedef struct PadGen {
     int period, phase;
     int start_in;     /* >0: press Start when it reaches 1 (unpause) */
     int idle;         /* this pad does nothing in this burst */
+    int menu;         /* menu mode: single taps of one button, then a pause */
 } PadGen;
+
+static uint32_t rnd(void);
+static int rnd_range(int lo, int hi);
+
+/* Menu input: tap one button (any of the 8) for 1-3 frames, release for 6-40 frames. */
+static uint8_t menu_next(PadGen *g)
+{
+    static const uint8_t taps[] = {PAD_UP, PAD_DOWN, PAD_LEFT, PAD_RIGHT, PAD_A, PAD_B, PAD_START, PAD_SELECT,
+                                   PAD_UP, PAD_DOWN, PAD_LEFT, PAD_RIGHT};
+    if (g->seg <= 0) {
+        g->dir = taps[rnd() % sizeof taps];
+        g->phase = rnd_range(1, 3);
+        g->seg = g->phase + rnd_range(6, 40);
+    }
+    g->seg--;
+    return g->phase-- > 0 ? g->dir : 0;
+}
 
 static const uint8_t DIRS[] = {0, PAD_RIGHT, PAD_RIGHT, PAD_RIGHT, PAD_LEFT, PAD_UP, PAD_DOWN,
                                PAD_RIGHT | PAD_UP, PAD_RIGHT | PAD_DOWN, PAD_LEFT | PAD_UP, PAD_LEFT | PAD_DOWN,
@@ -66,6 +85,8 @@ static uint8_t pad_next(PadGen *g)
     uint8_t p = 0;
     if (g->idle)
         return 0;
+    if (g->menu)
+        return menu_next(g);
     if (g->seg <= 0) {
         g->seg = rnd_range(4, 70);
         g->dir = DIRS[rnd() % sizeof DIRS];
@@ -158,7 +179,7 @@ int main(int argc, char **argv)
     static uint8_t allowed[0x800], save_f[COV_PRG_SIZE], save_m[COV_PRG_SIZE];
     const char *rom_path = NULL, *list_path = NULL, *prefix = NULL, *known_list = NULL, *ram_pcs = NULL;
     int worker = 0, workers = 1, qcap = 300, save_finds = 50, saved = 0, bmin = 60, bmax = 600;
-    double seconds = 60, god_ratio = 0.5, death_ratio = 0.05;
+    double seconds = 60, god_ratio = 0.5, death_ratio = 0.05, menu_ratio = 0.0;
     unsigned long long seed = 1;
     char **list = NULL, hash[41], p[1024];
     int nlist, i, nq = 0;
@@ -179,6 +200,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--ram-pcs") && i + 1 < argc) ram_pcs = argv[++i];
         else if (!strcmp(argv[i], "--god-ratio") && i + 1 < argc) god_ratio = atof(argv[++i]);
         else if (!strcmp(argv[i], "--death-ratio") && i + 1 < argc) death_ratio = atof(argv[++i]);
+        else if (!strcmp(argv[i], "--menu-ratio") && i + 1 < argc) menu_ratio = atof(argv[++i]);
         else if (!strcmp(argv[i], "--queue") && i + 1 < argc) qcap = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--save-finds") && i + 1 < argc) save_finds = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--burst") && i + 1 < argc) {
@@ -273,6 +295,7 @@ int main(int argc, char **argv)
         cov.bad_exec = 0;
         memset(g, 0, sizeof g);
         g[1].idle = (rnd() % 4) == 0;
+        g[0].menu = g[1].menu = (double)(rnd() % 1000) < menu_ratio * 1000;
         if (kill) { /* forced deaths: no lives left */
             work.ram[0x11] = work.ram[0x12] = 0;
         }
