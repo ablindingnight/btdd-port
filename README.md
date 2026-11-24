@@ -39,7 +39,7 @@ cmake --build build-clang
 cmake -S . -B build-gcc -G Ninja -DCMAKE_C_COMPILER=C:/msys64/ucrt64/bin/gcc.exe -DCMAKE_BUILD_TYPE=Release
 cmake --build build-gcc
 ```
-Targets: `btdd` (M0: ROM check), `btdd_headless` (reference interpreter), `nestest_check` (CPU test),
+Targets: `btdd` (M0: ROM check), `btdd_headless` (reference interpreter + coverage recorder), `btdd_explore`, `btdd_static` (M1.5, docs/M15_COVERAGE.md), `nestest_check` (CPU test),
 `btdd_sdl_probe` (not in the default build: add `--target btdd_sdl_probe`).
 
 ## Reference interpreter (M1)

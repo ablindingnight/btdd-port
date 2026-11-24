@@ -37,8 +37,26 @@ add_executable(btdd src/main.c)
 target_link_libraries(btdd PRIVATE btdd_core)
 btdd_warnings(btdd)
 
+# Coverage recorder, snapshots, warp/god mode, explorer (tools only; not part of the game exe)
+add_library(btdd_cov STATIC
+    src/cov/coverage.c
+    src/cov/snapshot.c
+    src/cov/tracker.c
+    src/cov/play.c
+)
+target_link_libraries(btdd_cov PUBLIC btdd_core)
+btdd_warnings(btdd_cov)
+
+add_executable(btdd_explore src/explore_main.c)
+target_link_libraries(btdd_explore PRIVATE btdd_core btdd_cov)
+btdd_warnings(btdd_explore)
+
+add_executable(btdd_static src/static_main.c)
+target_link_libraries(btdd_static PRIVATE btdd_core btdd_cov)
+btdd_warnings(btdd_static)
+
 add_executable(btdd_headless src/headless_main.c)
-target_link_libraries(btdd_headless PRIVATE btdd_core)
+target_link_libraries(btdd_headless PRIVATE btdd_core btdd_cov)
 btdd_warnings(btdd_headless)
 
 add_executable(nestest_check tests/cpu/nestest.c)

@@ -56,6 +56,10 @@ struct Cpu {
      * where FCEUX's exec hooks fire) when exec_watch[pc] is nonzero */
     void (*exec_hook)(void *ctx, Cpu *cpu);
     const uint8_t *exec_watch; /* 64 KB map */
+    /* coverage: if set, called before every instruction (before its opcode fetch, registers as they are
+     * before it runs; FCEUX's DebugCycle point), and when an interrupt or reset reads its vector */
+    void (*insn_hook)(void *ctx, Cpu *cpu);
+    void (*vector_hook)(void *ctx, Cpu *cpu, uint16_t vector);
 };
 
 void cpu_init(Cpu *cpu, void *ctx, CpuRead read, CpuWrite write, CpuTrap trap);

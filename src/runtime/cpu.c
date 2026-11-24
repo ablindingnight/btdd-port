@@ -277,6 +277,8 @@ static void interrupt(Cpu *c, uint16_t vector)
     push(c, (uint8_t)c->pc);
     push(c, (uint8_t)((c->p & ~CPU_B) | CPU_U));
     c->p |= CPU_I;
+    if (c->vector_hook)
+        c->vector_hook(c->ctx, c, vector);
     c->pc = rd(c, vector);
     c->pc |= (uint16_t)(rd(c, (uint16_t)(vector + 1)) << 8);
 }
@@ -285,6 +287,8 @@ static void interrupt(Cpu *c, uint16_t vector)
 static void poll_interrupts(Cpu *c)
 {
     if (c->irq & CPU_INT_RESET) {
+        if (c->vector_hook)
+            c->vector_hook(c->ctx, c, 0xFFFC);
         c->pc = rd(c, 0xFFFC);
         c->pc |= (uint16_t)(rd(c, 0xFFFD) << 8);
         c->jammed = 0;
@@ -314,6 +318,8 @@ static void execute(Cpu *c)
     uint8_t op;
     uint16_t ea;
 
+    if (c->insn_hook)
+        c->insn_hook(c->ctx, c);
     c->p_before = c->p;
     op = rd(c, c->pc);
     add_cycles(c, cpu_base_cycles[op]);
