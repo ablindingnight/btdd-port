@@ -34,6 +34,9 @@
 #ifndef BTDD_SOURCE_DIR
 #define BTDD_SOURCE_DIR "."
 #endif
+#ifndef BTDD_TREE_DIR /* where src/ comes from (a merged tree may differ from the recomp/ checkout) */
+#define BTDD_TREE_DIR BTDD_SOURCE_DIR
+#endif
 #ifndef BTDD_EXE_VERSION
 #define BTDD_EXE_VERSION "m5-dev" /* build scripts pass the commit + a hash of the generator and runtime header */
 #endif
@@ -42,6 +45,13 @@ int btdd_gen_write(const Rom *rom, const char *sha1_hex, const char *meta_path, 
                    const char *confs, const char *excl, int excl_timing, char *err, size_t errcap);
 
 extern int btdd_gen_fast_blocks; /* recomp/gen.c */
+
+/* generated code must see the same Cpu hooks as this host (see N_PRE/N_TICK in native_rt.h) */
+#ifdef BTDD_CPU_HOOKS
+#define HOOKS_FLAG "-DBTDD_CPU_HOOKS "
+#else
+#define HOOKS_FLAG ""
+#endif
 
 double native_jit_seconds_gen, native_jit_seconds_compile, native_jit_seconds_load;
 int native_jit_cache_hit;
@@ -135,7 +145,10 @@ static int compile(const char *dir, const char *dll, char *err, size_t cap)
         tcc_set_lib_path(s, BTDD_TCC_LIB_DIR);
 #endif
     tcc_set_output_type(s, TCC_OUTPUT_DLL);
-    tcc_add_include_path(s, BTDD_SOURCE_DIR "/src");
+#ifdef BTDD_CPU_HOOKS
+    tcc_define_symbol(s, "BTDD_CPU_HOOKS", "1");
+#endif
+    tcc_add_include_path(s, BTDD_TREE_DIR "/src");
     tcc_add_include_path(s, BTDD_SOURCE_DIR "/recomp");
     for (b = -1; b < 8 && ok; b++) {
         if (b < 0)
@@ -157,8 +170,8 @@ static int compile(const char *dir, const char *dll, char *err, size_t cap)
         snprintf(err, cap, "no compiler: this build has no libtcc (BTDD_LIBTCC) and BTDD_CC is not set");
         return 1;
     }
-    snprintf(cmd, sizeof cmd, "%s -shared -std=c11 -w -I\"%s/src\" -I\"%s/recomp\" -o \"%s\"", cc, BTDD_SOURCE_DIR,
-             BTDD_SOURCE_DIR, dll);
+    snprintf(cmd, sizeof cmd, "%s -shared -std=c11 -w %s-I\"%s/src\" -I\"%s/recomp\" -o \"%s\"", cc, HOOKS_FLAG,
+             BTDD_TREE_DIR, BTDD_SOURCE_DIR, dll);
     for (b = -1; b < 8; b++) {
         if (b < 0)
             snprintf(path, sizeof path, " \"%s/native_all.c\"", dir);
@@ -243,7 +256,7 @@ int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap)
 
     /* everything that changes the generated code or how it is compiled goes into the cache key */
     btdd_gen_fast_blocks = fb && fb[0] == '1'; /* exact on both gates but no measurable gain: opt-in */
-    snprintf(cid, sizeof cid, "%s|%s|fast=%d", compiler_id(), conf, btdd_gen_fast_blocks);
+    snprintf(cid, sizeof cid, "%s|%s|fast=%d|%s", compiler_id(), conf, btdd_gen_fast_blocks, HOOKS_FLAG);
 
     if (!meta) {
         snprintf(meta_default, sizeof meta_default, "%s/meta/btdd.meta", BTDD_SOURCE_DIR);

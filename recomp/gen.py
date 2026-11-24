@@ -247,8 +247,8 @@ class Gen:
             if lines is not None:
                 lines_of[a] = [x.replace('return;', 'N_EXIT;') for x in lines]
                 op = self.byte(a)
-                eline[a] = ('c->p_before = c->p; n_cyc(c, %d); c->instructions++; c->last_op = 0x%02X; '
-                            'native_insns++;' % (BASE_CYCLES[op], op))
+                eline[a] = ('N_PRE(c, 0x%04X); c->p_before = c->p; n_cyc(c, %d); N_TICK(c, 0x%04X); '
+                            'c->instructions++; c->last_op = 0x%02X; native_insns++;' % (a, BASE_CYCLES[op], a, op))
         # fast blocks: runs of pure instructions (plus one last instruction of any kind) entered only at the
         # top; if the budget covers the worst case of all but the last, the per-instruction checks inside
         # cannot fire (no hardware access means no new interrupt), so an unchecked copy runs instead.
@@ -280,7 +280,7 @@ class Gen:
             entries.append(a)
             body.append('L%04X: if (c->budget <= 0 || c->irq) { c->pc = 0x%04X; return; }' % (a, a))
             if a in fast_at:
-                body.append('    if (c->budget > %d * CPU_CYCLE_UNITS) goto F%04X;' % (fast_at[a], a))
+                body.append('    if (c->budget > %d * CPU_CYCLE_UNITS && N_FASTOK(c)) goto F%04X;' % (fast_at[a], a))
             body.append('E%04X: %s' % (a, eline[a]))
             body += ['    ' + x for x in lines_of[a]]
         if code:

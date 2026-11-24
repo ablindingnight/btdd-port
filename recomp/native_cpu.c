@@ -15,7 +15,7 @@
  * Environment: BTDD_NATIVE=0 turns dispatch off (pure interpreter, same binary).
  */
 #define cpu_run cpu_run_interp
-#include "../src/runtime/cpu.c"
+#include "runtime/cpu.c" /* found through -I<tree>/src, so a merged tree uses its own interpreter */
 #undef cpu_run
 
 #define NATIVE_HOST

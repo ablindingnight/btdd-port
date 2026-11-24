@@ -577,15 +577,16 @@ int btdd_gen_write(const Rom *rom_in, const char *sha1_hex, const char *meta_pat
                 static int ok[4096], fast_total[4096], blk_end[4096];
                 static int entries[4096];
                 Buf ins = {0};
-                static char eline[4096][96];
+                static char eline[4096][160];
                 int fall = 0;
                 for (k = 0; k < nc; k++) {
                     int at = addrs[k], nxt = (at + code[k].n) & 0xFFFF, op = byte_at(at);
                     off[k] = ins.len;
                     ok[k] = insn(&ins, at, &code[k], nxt);
                     len[k] = ins.len - off[k];
-                    snprintf(eline[k], sizeof eline[k], "c->p_before = c->p; n_cyc(c, %d); c->instructions++; "
-                             "c->last_op = 0x%02X; native_insns++;", cpu_base_cycles[op], op);
+                    snprintf(eline[k], sizeof eline[k], "N_PRE(c, 0x%04X); c->p_before = c->p; n_cyc(c, %d); "
+                             "N_TICK(c, 0x%04X); c->instructions++; c->last_op = 0x%02X; native_insns++;", at,
+                             cpu_base_cycles[op], at, op);
                     fast_total[k] = -1;
                 }
                 if (btdd_gen_fast_blocks) {
@@ -628,7 +629,7 @@ int btdd_gen_write(const Rom *rom_in, const char *sha1_hex, const char *meta_pat
                     entries[ne++] = at;
                     bprintf(&body, "L%04X: if (c->budget <= 0 || c->irq) { c->pc = 0x%04X; return; }\n", at, at);
                     if (fast_total[k] >= 0)
-                        bprintf(&body, "    if (c->budget > %d * CPU_CYCLE_UNITS) goto F%04X;\n", fast_total[k], at);
+                        bprintf(&body, "    if (c->budget > %d * CPU_CYCLE_UNITS && N_FASTOK(c)) goto F%04X;\n", fast_total[k], at);
                     bprintf(&body, "E%04X: %s\n", at, eline[k]);
                     bprintf(&body, "%.*s", (int)len[k], ins.s + off[k]);
                 }

@@ -211,4 +211,19 @@ static inline NativeFn n_next(Cpu *c)
 #define N_EXIT return
 #endif
 
+/* Per-instruction CPU hooks, at the same points as execute() in src/runtime/cpu.c:
+ *   N_PRE  before the instruction (Cpu.insn_hook: coverage), N_TICK after its base cycles (Cpu.tick_hook: APU).
+ * Both set c->pc to the instruction first, as the interpreter has it there. Trees whose Cpu has these hooks are
+ * built with -DBTDD_CPU_HOOKS (the build scripts and CMake detect it from cpu.h); elsewhere they cost nothing.
+ * Fast blocks are only taken with no hook set (a hook may raise an interrupt or stall in the middle). */
+#ifdef BTDD_CPU_HOOKS
+#define N_PRE(c, a) do { if ((c)->insn_hook) { (c)->pc = (a); (c)->insn_hook((c)->ctx, (c)); } } while (0)
+#define N_TICK(c, a) do { if ((c)->tick_hook) { (c)->pc = (a); (c)->tick_hook((c)->ctx, (c)); } } while (0)
+#define N_FASTOK(c) (!(c)->tick_hook && !(c)->insn_hook)
+#else
+#define N_PRE(c, a) ((void)0)
+#define N_TICK(c, a) ((void)0)
+#define N_FASTOK(c) 1
+#endif
+
 #endif
