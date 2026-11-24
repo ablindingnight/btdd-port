@@ -193,6 +193,16 @@ static void insn_hook(void *ctx, Cpu *c)
     uint8_t op = nes_peek(n, pc), o1, o2;
     int bank = n->prg_bank, size = opsize(op), type = optype(op), i;
 
+    if (pc < 0x8000) {
+        cov->ram_exec++;
+        if (pc < 0x2000) {
+            cov->ram_pc_seen[pc & 0x7FF] = 1;
+            if (cov->ram_pc_allowed && !cov->ram_pc_allowed[pc & 0x7FF])
+                cov->bad_exec++;
+        } else
+            cov->bad_exec++; /* open bus / PPU / APU space: never legitimate */
+    }
+
     /* shadow call stack: drop routines whose frame S has risen above */
     while (cov->sp > 0 && c->s > cov->stack[cov->sp - 1].s)
         cov->sp--;
@@ -419,4 +429,29 @@ void cov_count(const uint8_t *fc, int bank, long *code, long *data, long *both, 
         *both += c && d;
         *seen += c || d;
     }
+}
+
+int cov_write_ram_pcs(const Coverage *cov, const char *path)
+{
+    FILE *f = fopen(path, "w");
+    int a;
+    if (!f)
+        return -1;
+    for (a = 0; a < 0x800; a++)
+        if (cov->ram_pc_seen[a])
+            fprintf(f, "%04X\n", a);
+    return fclose(f) == 0 ? 0 : -1;
+}
+
+int cov_load_ram_pcs(uint8_t map[0x800], const char *path)
+{
+    FILE *f = fopen(path, "r");
+    unsigned a;
+    if (!f)
+        return -1;
+    memset(map, 0, 0x800);
+    while (fscanf(f, "%x", &a) == 1)
+        map[a & 0x7FF] = 1;
+    fclose(f);
+    return 0;
 }

@@ -46,6 +46,10 @@ add_library(btdd_cov STATIC
 target_link_libraries(btdd_cov PUBLIC btdd_core)
 btdd_warnings(btdd_cov)
 
+add_executable(btdd_explore src/explore_main.c)
+target_link_libraries(btdd_explore PRIVATE btdd_core btdd_cov)
+btdd_warnings(btdd_explore)
+
 add_executable(btdd_headless src/headless_main.c)
 target_link_libraries(btdd_headless PRIVATE btdd_core btdd_cov)
 btdd_warnings(btdd_headless)

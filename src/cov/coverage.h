@@ -44,6 +44,10 @@ typedef struct Coverage {
     int log_reads;
     /* novelty counters (bytes that got a new code / data bit since cov_init or the last reset of these) */
     uint64_t new_code, new_data;
+    uint64_t ram_exec;  /* instructions fetched below $8000 (the game runs some code from RAM) */
+    uint8_t ram_pc_seen[0x800];      /* RAM addresses an instruction started at */
+    const uint8_t *ram_pc_allowed;   /* optional: RAM PCs known to be legitimate (from the TAS) */
+    uint64_t bad_exec;               /* instructions at a RAM PC not in ram_pc_allowed: crash sign */
     /* per-instruction tracking */
     int have_last, indirect_next, pending_entry;
     uint16_t last_pc;
@@ -67,6 +71,9 @@ int cov_merge_file(Coverage *cov, const char *path);
 int cov_write_fceux(const Coverage *cov, const char *path);
 int cov_write_mesen(const Coverage *cov, const char *path);
 int cov_write_reads(const Coverage *cov, const char *path);
+/* RAM instruction addresses: one hex address per line */
+int cov_write_ram_pcs(const Coverage *cov, const char *path);
+int cov_load_ram_pcs(uint8_t map[0x800], const char *path);
 
 /* counts over the FCEUX-format log */
 void cov_count(const uint8_t *fceux, int bank, long *code, long *data, long *both, long *seen);

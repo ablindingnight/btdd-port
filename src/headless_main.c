@@ -16,6 +16,8 @@
  *                     [--poke 11=00,12=00@900]    (RAM writes after frame N; "@N+" keeps them frozen)
  *                     [--movie-until N]           (movie input only for frames < N, then no input)
  *                     [--shot-every N DIR]        (picture data every N frames for tools/shots.py)
+ *                     [--ram-pcs out.txt]         (RAM addresses where instructions started; the explorer uses
+ *                                                  the TAS list to spot crashes)
  *
  * RAM dump format (shared with tools/fceux/ramdump.lua and tools/ramdiff.py): a sequence of records,
  * each a little-endian uint32 frame number followed by the 2048 bytes of CPU RAM. The frame number is
@@ -97,7 +99,7 @@ int main(int argc, char **argv)
     static Play play;
     int use_play = 0;
     long movie_until = -1, shot_every = 0;
-    const char *shot_dir = NULL;
+    const char *shot_dir = NULL, *ram_pcs_path = NULL;
     static Coverage cov;
     char hash[41] = "", err[256];
     Fm2 movie = {0};
@@ -158,7 +160,9 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--shot-every") && i + 2 < argc) {
             shot_every = strtol(argv[++i], NULL, 10);
             shot_dir = argv[++i];
-        } else if (!strcmp(argv[i], "--cdl-fceux-clear"))
+        } else if (!strcmp(argv[i], "--ram-pcs") && i + 1 < argc)
+            ram_pcs_path = argv[++i];
+        else if (!strcmp(argv[i], "--cdl-fceux-clear"))
             cdl_clear = 1;
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
@@ -250,7 +254,7 @@ int main(int argc, char **argv)
         }
         tracker_init(&trk, &nes, start);
     }
-    if (cdl_path || cdl_mesen_path || reads_path) {
+    if (cdl_path || cdl_mesen_path || reads_path || ram_pcs_path) {
         cov_init(&cov, &rom);
         cov.fceux_clear_on_write = cdl_clear;
         cov.log_reads = reads_path != NULL;
@@ -310,11 +314,12 @@ int main(int argc, char **argv)
         fclose(dump);
     if ((cdl_path && cov_write_fceux(&cov, cdl_path) != 0) ||
         (cdl_mesen_path && cov_write_mesen(&cov, cdl_mesen_path) != 0) ||
-        (reads_path && cov_write_reads(&cov, reads_path) != 0)) {
+        (reads_path && cov_write_reads(&cov, reads_path) != 0) ||
+        (ram_pcs_path && cov_write_ram_pcs(&cov, ram_pcs_path) != 0)) {
         fprintf(stderr, "cannot write the coverage output\n");
         return 1;
     }
-    if (cdl_path || cdl_mesen_path || reads_path) {
+    if (cdl_path || cdl_mesen_path || reads_path || ram_pcs_path) {
         int b;
         long code, data, both, seen, tot = 0;
         for (b = 0; b < 8; b++) {
@@ -325,8 +330,9 @@ int main(int argc, char **argv)
                        100.0 * seen / 0x8000);
         }
         if (!quiet)
-            printf("cdl total seen %ld of %d (%.1f%%), reads table %u rows\n", tot, COV_PRG_SIZE,
-                   100.0 * tot / COV_PRG_SIZE, cov.reads_used);
+            printf("cdl total seen %ld of %d (%.1f%%), reads table %u rows, instructions run from RAM %llu\n",
+                   tot, COV_PRG_SIZE, 100.0 * tot / COV_PRG_SIZE, cov.reads_used,
+                   (unsigned long long)cov.ram_exec);
         cov_free(&cov);
     }
 
