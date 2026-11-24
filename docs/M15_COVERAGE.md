@@ -169,6 +169,15 @@ and 2P, the ending and credits. In rough order of bytes at stake:
    walk-left, slow-right, punch/jump, up/down and Start-every-300-frames play from all 20 section starts
    (`agent-checklist-play.cdl`, 120 runs) gave nothing new, so items 1-3 and 5 really need varied human play.
    Seen after this: 98.1% (5,022 bytes unseen, 30 gaps >= 32 bytes = 2,000 bytes).
+   **Varied play by script (round h, 2026-11-24)**: `btdd_explore` (held directions, attack/jump rhythms, idle
+   pads, pause) from 2,668 fresh gameplay snapshots of every stage (2P TAS, 1P TAS old PPU, forced 1P stages
+   4-7), god mode off, 20% deliberate deaths, 4 cores x 1 h = 34M frames: **+2 bytes**. Random play is
+   exhausted. **Forced songs** (`agent-songs-forced.cdl`: stage 1's song slot bank 0 `$838C` poked in memory to
+   the songs the TAS never requests, `$03 $05 $0B $11 $14`): +93 bytes of bank 3 song headers/pointers and song
+   `$0B`'s stream. Unseen now: 4,929 bytes. What is left in items 1-3 is specific: e.g. bank 6 `$A4F6-$A79D`
+   (the overlay table that `sub_8c15` draws on top of a **player** frame only while `$04B2,x` bit 5 is set,
+   indexed by the player animation `$03D1,x` * 4): ~110 player animations never happened in that state. Finding
+   what sets bit 5 (an item/hold/ride state in stages 2 and 6) is the next lead for a human or a targeted script.
 5. **Stage 4 (level 4) section 06 and stage 1 (level 3) sections 04/05**: slow play (bank 5 `$FF32`, bank 3
    `$9C69`, bank 4 `$B8B6`).
 6. **Title text, bank 4 `$CBF0-$CDFF` (528 B) and `$CE0C`**: drawn by bank 4 `sub_c5fe`/`sub_c61a` (screen text);
