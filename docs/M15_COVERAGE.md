@@ -63,10 +63,13 @@ Exploration starts from these snapshots, so gates the TAS passed are already ope
 | | code bytes | data-only | seen |
 |---|---|---|---|
 | before (13 existing logs) | 56,168 (21.4%) | 190,302 (72.6%) | 246,470 (94.0%) |
-| after (+ auto-*) | 59,808 (22.8%) | 195,837 (74.7%) | 255,645 (97.5%) |
+| after (+ auto-*), 2026-11-23 evening | 59,808 (22.8%) | 195,837 (74.7%) | 255,645 (97.5%) |
+| after the night run, 2026-11-24 02:35 | 60,032 (22.9%) | 195,943 (74.7%) | 255,975 (97.6%) |
 
-Per bank, seen before -> after: 0 89.8 -> 97.4%, 1 99.3 -> 99.3%, 2 93.5 -> 98.3%, 3 92.5 -> 97.0%, 4 95.0 -> 96.0%,
-5 94.6 -> 97.0%, 6 87.7 -> 95.5%, 7 99.7 -> 99.7%.
+Per bank, seen before -> evening -> night: 0 89.8 -> 97.4 -> 97.5%, 1 99.3 -> 99.3 -> 99.3%, 2 93.5 -> 98.3 -> 98.4%,
+3 92.5 -> 97.0 -> 97.2%, 4 95.0 -> 96.0 -> 96.0%, 5 94.6 -> 97.0 -> 97.1%, 6 87.7 -> 95.5 -> 96.1%, 7 99.7 -> 99.7 -> 99.7%.
+The night gain (+224 code, +330 seen) is all from the static pointer-table / jump-list rule (probe3); exploration
+round g added 0 code and 73 data-only bytes.
 
 New code / data-only bytes of each source compared with the 13 old logs (sources overlap: exploration round A
 found most of what feos-2p and lamp have before those movies arrived):
@@ -82,14 +85,15 @@ found most of what feos-2p and lamp have before those movies arrived):
   ending (the hand-play/FCEUX logs already had them). sub553 (2005 1P FCM) desyncs on the title screen on both
   PPU models and is not used.
 
-Random exploration saturates within minutes. Still unseen: 6,499 bytes (92 runs >= 16 bytes = 3,872 bytes,
-largest bank 4 $CBF0 528), listed in `..\Gamefiles\Movies\coverage\report\final.txt`; per-source tables in
+Random exploration saturates within minutes. Still unseen: 6,169 bytes after the night run (6,499 before it;
+38 gaps >= 32 bytes = 2,630 bytes in `report\gaps.txt`, largest bank 4 $CBF0 528), listed in `..\Gamefiles\Movies\coverage\report\final.txt`; per-source tables in
 `report\incremental.txt`.
 
 btdd-decomp frontier (tools/frontier_count.py, same run rules as cdlfrontier/datacarve, read-only; decomp state
 of 2026-11-23 ~23:00 with 13,972 raw bytes): old logs 0 carvable executed runs and 0 data tables in raw blocks;
 new logs 11 runs (267 bytes; the Qwen loop had already carved the earlier ones) and 156 data tables (5,513
-bytes); raw bytes no log has seen 11,995 -> 6,083.
+bytes); raw bytes no log has seen 11,995 -> 6,083. Night run, decomp state of 2026-11-24 02:35 (593 raw blocks, 8,073
+bytes): all logs give 0 carvable executed runs, 4 data tables (48 bytes); 5,861 raw bytes no log has seen.
 
 ## Rerun everything
 ```
@@ -124,7 +128,8 @@ enters the `$FFCB`/`$FFCD` trampoline: site = the JSR/JMP before it, target = ba
 
 **Gap hunting.** Exploration rounds: e (title/menu/transition snapshots, single-button menu taps, 9M frames):
 0 new code; f (stage 2 sections 08/09, stage 5 0B/0C, stage 6 0D; 13M frames): 0 new code; g (every snapshot
-source incl. forced 1P / mode B states in stages 2-7, 2.5 h on 4 cores): see the results line below. Forcing 1P
+source incl. forced 1P / mode B states in stages 2-7, 2.5 h, cut to 2 workers for machine load, 58M frames):
+0 new code, 73 data-only bytes. Forcing 1P
 (`$16`=0) or mode B (`$16`=2) at the start of stages 2-7, all 25 character pairs (`$05F0/$05F1`) through the stage
 1 -> 2 intermission, and 1P / other characters / the `$06A6` and `$0683` branches of the ending choice (bank 6
 `sub_f3ca`) added nothing either: the ending is always level `$0B` (reached via `$10` = 7 at bank 6 `$9731`).
