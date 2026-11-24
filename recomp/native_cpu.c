@@ -21,11 +21,42 @@
 #include "native_rt.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 uint64_t native_insns;
 uint64_t native_calls;
-static NativeFn table[8][0x8000];
+NativeFn native_table[8][0x8000];
+#define table native_table
 static int enabled = -1;
+static uint32_t *interp_count; /* BTDD_NATIVE_PROFILE=file: interpreted instructions per (bank, PC) */
+static const char *profile_path;
+static int timing;            /* BTDD_NATIVE_TIME=1: measure wall time spent inside cpu_run */
+static double cpu_seconds;
+
+#ifdef _WIN32
+#include <windows.h>
+static double now(void)
+{
+    static double scale;
+    LARGE_INTEGER t;
+    if (!scale) {
+        LARGE_INTEGER f;
+        QueryPerformanceFrequency(&f);
+        scale = 1.0 / (double)f.QuadPart;
+    }
+    QueryPerformanceCounter(&t);
+    return (double)t.QuadPart * scale;
+}
+#else
+static double now(void)
+{
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    return (double)ts.tv_sec + ts.tv_nsec * 1e-9;
+}
+#endif
+
+static void run(Cpu *cpu, int32_t dots);
 
 void native_register(int bank, NativeFn fn, const uint16_t *addrs, int count)
 {
@@ -38,16 +69,32 @@ void native_register_all(void); /* generated */
 
 static void report(void)
 {
+    if (interp_count && profile_path) {
+        FILE *f = fopen(profile_path, "w");
+        int i;
+        if (f) {
+            for (i = 0; i < 8 * 0x10000; i++)
+                if (interp_count[i])
+                    fprintf(f, "%d %04X %lu\n", i >> 16, i & 0xFFFF, (unsigned long)interp_count[i]);
+            fclose(f);
+        }
+    }
     if (getenv("BTDD_NATIVE_QUIET"))
         return;
     fprintf(stderr, "native: %s, %llu native instructions, %llu native calls\n", enabled ? "on" : "off",
             (unsigned long long)native_insns, (unsigned long long)native_calls);
+    if (timing)
+        fprintf(stderr, "native: %.2f s inside cpu_run (timer overhead included)\n", cpu_seconds);
 }
 
 static void setup(void)
 {
     const char *e = getenv("BTDD_NATIVE");
     enabled = !(e && e[0] == '0');
+    profile_path = getenv("BTDD_NATIVE_PROFILE");
+    timing = getenv("BTDD_NATIVE_TIME") != NULL;
+    if (profile_path)
+        interp_count = calloc(8 * 0x10000, sizeof *interp_count);
     if (enabled)
         native_register_all();
     atexit(report);
@@ -55,9 +102,21 @@ static void setup(void)
 
 void cpu_run(Cpu *cpu, int32_t dots)
 {
-    Nes *n = (Nes *)cpu->ctx;
+    double t0;
     if (enabled < 0)
         setup();
+    if (!timing) {
+        run(cpu, dots);
+        return;
+    }
+    t0 = now();
+    run(cpu, dots);
+    cpu_seconds += now() - t0;
+}
+
+static void run(Cpu *cpu, int32_t dots)
+{
+    Nes *n = (Nes *)cpu->ctx;
     if (!enabled || cpu->exec_hook) {
         cpu_run_interp(cpu, dots);
         return;
@@ -83,6 +142,8 @@ void cpu_run(Cpu *cpu, int32_t dots)
                 continue;
             }
         }
+        if (interp_count)
+            interp_count[n->prg_bank << 16 | cpu->pc]++;
         execute(cpu);
     }
 }

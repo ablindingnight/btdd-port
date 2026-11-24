@@ -160,7 +160,25 @@ static inline uint8_t n_dec(Cpu *c, uint8_t v)
     return v;
 }
 
-/* registration: generated code fills table[bank][addr - $8000] */
+/* registration: generated code fills native_table[bank][addr - $8000] */
 void native_register(int bank, NativeFn fn, const uint16_t *addrs, int count);
+extern NativeFn native_table[8][0x8000];
+
+/* The native function for c->pc if the run loop would call it right now (budget left, no interrupt
+ * pending), else NULL. */
+static inline NativeFn n_next(Cpu *c)
+{
+    if (c->budget <= 0 || c->irq || c->pc < 0x8000)
+        return 0;
+    return native_table[NES(c)->prg_bank][c->pc - 0x8000];
+}
+
+/* Leave the current function with c->pc set. With clang and -DBTDD_CHAIN, chain straight into the next native function
+ * (a guaranteed tail call, so the C stack does not grow); otherwise return to the run loop. */
+#if defined(__clang__) && defined(BTDD_CHAIN)
+#define N_EXIT do { NativeFn f_ = n_next(c); if (f_) { __attribute__((musttail)) return f_(c); } return; } while (0)
+#else
+#define N_EXIT return
+#endif
 
 #endif

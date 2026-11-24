@@ -229,6 +229,7 @@ class Gen:
                 self.unsupported[d[0]] += 1
                 body.append('L%04X: c->pc = 0x%04X; return; /* %s: interpreter */' % (a, a, d[0]))
                 continue
+            lines = [x.replace('return;', 'N_EXIT;') for x in lines]
             entries.append(a)
             op = self.byte(a)
             body.append('L%04X: if (c->budget <= 0 || c->irq) { c->pc = 0x%04X; return; }' % (a, a))
@@ -238,7 +239,7 @@ class Gen:
         if code:
             last_a, last_d = code[-1]
             fall = (last_a + last_d[2]) & 0xFFFF
-            body.append('    c->pc = 0x%04X; return; /* falls out of the routine */' % fall)
+            body.append('    c->pc = 0x%04X; N_EXIT; /* falls out of the routine */' % fall)
         fn = 'r%d_%04x' % (self.b, start)
         out = ['/* %s $%04X-$%04X */' % (name, start, end),
                'static void %s(Cpu *c)' % fn, '{',
