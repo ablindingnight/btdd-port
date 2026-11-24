@@ -81,6 +81,11 @@ def structure(P):
         add(5, blk, att - 1, 'table', 'lvl_blocks', 'high', 'level %X: %d blocks x 16 tile ids' % (x, nb))
         add(5, att, att + nb - 1, 'table', 'lvl_block_attr', 'high', 'level %X: 1 attribute byte per block' % x)
     add(5, 0xF1F5, 0xF218, 'table', 'lvl_map', 'medium', 'level 4 map strip, copied to RAM $0624-$0647')
+    # --- collision (bank 5 sub_b856 / sub_b412 / sub_b501) ---
+    add(5, 0xBA41, 0xBA58, 'table', 'coll_ptrs', 'high', 'per level depth-band list lo ($BA41,x) / hi ($BA4D,x)')
+    add(5, 0xBB49, 0xBB4C, 'table', 'coll_bands', 'high', 'level 5: 2 depth bands (limit, altitude/shape)')
+    add(5, 0xBB4F, 0xBBCE, 'table', 'coll_bands', 'high', 'level 8: per 32-px column 2 depth bands')
+    add(5, 0xB470, 0xB4A6, 'table', 'coll_stage1_segments', 'medium', 'level 3: 5-byte deck segments by world X')
     # --- player start positions (bank 5 sub_a3f0) ---
     add(5, 0xA38C, 0xA39A, 'table', 'start_idx', 'high', 'section -> player start offset (0 = keep)')
     add(5, 0xA39B, 0xA3EF, 'table', 'start_pos', 'medium', '6 bytes per player: X hi/lo, Y hi/lo, Z hi/lo')

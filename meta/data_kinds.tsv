@@ -201,6 +201,10 @@ bank	start	end	kind	fmt	conf	source
 5	$A52F	$A6CE	table	lvl_map	high	level 5 block map, row-major
 5	$A6CF	$ABFE	table	lvl_blocks	high	level 5: 83 blocks x 16 tile ids
 5	$ABFF	$AC51	table	lvl_block_attr	high	level 5: 1 attribute byte per block
+5	$B470	$B4A6	table	coll_stage1_segments	medium	level 3: 5-byte deck segments by world X
+5	$BA41	$BA58	table	coll_ptrs	high	per level depth-band list lo ($BA41,x) / hi ($BA4D,x)
+5	$BB49	$BB4C	table	coll_bands	high	level 5: 2 depth bands (limit, altitude/shape)
+5	$BB4F	$BBCE	table	coll_bands	high	level 8: per 32-px column 2 depth bands
 5	$BBCF	$C04E	table	lvl_map	high	level 8 block map, row-major
 5	$C04F	$C84E	table	lvl_blocks	high	level 8: 128 blocks x 16 tile ids
 5	$C84F	$C8CE	table	lvl_block_attr	high	level 8: 1 attribute byte per block
