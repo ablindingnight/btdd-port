@@ -455,3 +455,8 @@ int cov_load_ram_pcs(uint8_t map[0x800], const char *path)
     fclose(f);
     return 0;
 }
+
+int cov_opsize(uint8_t op)
+{
+    return opsize(op);
+}

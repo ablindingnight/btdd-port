@@ -15,6 +15,7 @@
  *                     [--god]                     (refill players' HP and lives after every frame)
  *                     [--poke 11=00,12=00@900]    (RAM writes after frame N; "@N+" keeps them frozen)
  *                     [--movie-until N]           (movie input only for frames < N, then no input)
+ *                     [--press-every N P1[,P2]]   (without movie input: press these pad bits (hex) every N frames)
  *                     [--shot-every N DIR]        (picture data every N frames for tools/shots.py)
  *                     [--ram-pcs out.txt]         (RAM addresses where instructions started; the explorer uses
  *                                                  the TAS list to spot crashes)
@@ -98,7 +99,7 @@ int main(int argc, char **argv)
     static Tracker trk;
     static Play play;
     int use_play = 0;
-    long movie_until = -1, shot_every = 0;
+    long movie_until = -1, shot_every = 0, press_every = 0, press1 = 0, press2 = 0;
     const char *shot_dir = NULL, *ram_pcs_path = NULL;
     static Coverage cov;
     char hash[41] = "", err[256];
@@ -160,6 +161,12 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--shot-every") && i + 2 < argc) {
             shot_every = strtol(argv[++i], NULL, 10);
             shot_dir = argv[++i];
+        } else if (!strcmp(argv[i], "--press-every") && i + 2 < argc) {
+            char *e;
+            press_every = strtol(argv[++i], NULL, 10);
+            press1 = strtol(argv[++i], &e, 16);
+            if (*e == ',')
+                press2 = strtol(e + 1, NULL, 16);
         } else if (!strcmp(argv[i], "--ram-pcs") && i + 1 < argc)
             ram_pcs_path = argv[++i];
         else if (!strcmp(argv[i], "--cdl-fceux-clear"))
@@ -270,6 +277,8 @@ int main(int argc, char **argv)
                 return 1;
             }
             nes_set_pads(&nes, fr->pad[0], fr->pad[1]);
+        } else if (press_every > 0 && i % press_every == 0) {
+            nes_set_pads(&nes, (uint8_t)press1, (uint8_t)press2);
         } else {
             nes_set_pads(&nes, 0, 0);
         }

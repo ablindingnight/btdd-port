@@ -50,6 +50,10 @@ add_executable(btdd_explore src/explore_main.c)
 target_link_libraries(btdd_explore PRIVATE btdd_core btdd_cov)
 btdd_warnings(btdd_explore)
 
+add_executable(btdd_static src/static_main.c)
+target_link_libraries(btdd_static PRIVATE btdd_core btdd_cov)
+btdd_warnings(btdd_static)
+
 add_executable(btdd_headless src/headless_main.c)
 target_link_libraries(btdd_headless PRIVATE btdd_core btdd_cov)
 btdd_warnings(btdd_headless)

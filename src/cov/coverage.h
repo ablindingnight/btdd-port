@@ -75,6 +75,9 @@ int cov_write_reads(const Coverage *cov, const char *path);
 int cov_write_ram_pcs(const Coverage *cov, const char *path);
 int cov_load_ram_pcs(uint8_t map[0x800], const char *path);
 
+/* instruction length in bytes (official opcodes) */
+int cov_opsize(uint8_t op);
+
 /* counts over the FCEUX-format log */
 void cov_count(const uint8_t *fceux, int bank, long *code, long *data, long *both, long *seen);
 
