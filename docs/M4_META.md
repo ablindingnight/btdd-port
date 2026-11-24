@@ -35,7 +35,7 @@ It contains addresses, names, kinds and counts only. `python tools/release_audit
 It changes whenever it is re-exported (decomp commit in the `source` line, CDL counts), which is the intent:
 the shipped exe embeds the committed version.
 
-## Stats (decomp 8d0ba209aa74, 17 CDL logs)
+## Stats (meta/btdd.meta as committed: decomp 77e9d47be608, 17 CDL logs)
 | bank | routines | verified | entries | code | data | unknown |
 |---|---|---|---|---|---|---|
 | 0 | 553 | 479 | 373 | 29234 | 1181 | 2353 |
@@ -74,5 +74,6 @@ the shipped exe embeds the committed version.
 5. **Data kinds**: 140 KB of data is still `unknown` kind (likely CHR tiles for CHR-RAM uploads and level data);
    needed for HD packs / mods, not for M5 correctness.
 6. Weak jump tables (`conf=weak`, pointer `$06A9`/`$06B2`/`$1F`) need a human look.
-7. Exporter is deterministic for a given decomp commit + CDL folder; the coverage session adds `auto-*.cdl`
+7. Exporter is deterministic for a given decomp commit + CDL folder (re-export of decomp 8d0ba209aa74 with 35 logs
+   differs from the committed file in 3 lines). The coverage session adds `auto-*.cdl`
    logs over time, which raises the `cdl=` counts in the next export.

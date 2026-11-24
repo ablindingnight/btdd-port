@@ -26,7 +26,7 @@ by `tools/meta_check.py`.
 |---|---|---|
 | `btdd.meta <version>` | `btdd.meta 1` | must be the first line |
 | `rom` | `rom sha1=0218a66c... prg=262144 mapper=7 banks=8` | the only ROM this file describes; a reader refuses any other ROM |
-| `source` | `source decomp=8d0ba209aa74 exporter=tools/export_meta.py cdl_logs=17` | provenance: decomp commit, number of code/data logs merged |
+| `source` | `source decomp=77e9d47be608 exporter=tools/export_meta.py cdl_logs=17` | provenance: decomp commit, number of code/data logs merged |
 | `conv` | see below | calling conventions the recompiler must know |
 
 ### `conv` records
