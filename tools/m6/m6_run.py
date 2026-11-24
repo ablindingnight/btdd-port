@@ -37,7 +37,7 @@ THINK_BUDGET = 12000
 RETRY_MAX_TOKENS = 24000    # retries after a wrong answer: harder routines needed more thinking (a 12k budget lost
 RETRY_THINK_BUDGET = 20000  # two routines that had passed with 14-19k); prompt + 24k stays under the 40k slot limit
 NOTHINK_MAX_TOKENS = 6000
-SERVER_WAIT = 1800
+SERVER_WAIT = int(os.environ.get('M6_SERVER_WAIT', 1800))  # seconds to wait for a restarting server
 # A/B switches: M6_LEGACY=1 = the night's first setting (32k cap, no thinking budget, no thinking-off fallback);
 # M6_TAG=<name> is written into every log line so m6_stats.py --tag can compare settings.
 LEGACY = os.environ.get('M6_LEGACY') == '1'
@@ -88,17 +88,21 @@ def extract_c(text):
     return blocks[-1].strip() + '\n' if blocks else None
 
 
-def tried_before():
-    """Routine names with at least one model try in runs.jsonl (readability-pass tries excluded)."""
-    if not os.path.isfile(LOG):
-        return set()
-    out = set()
-    for line in open(LOG, encoding='utf-8'):
-        if line.strip():
-            e = json.loads(line)
-            if e.get('tag') != 'simplify':
-                out.add(e['routine'])
+def series_counts():
+    """routine name -> number of model series (try-1 entries) in runs.jsonl, readability-pass tries excluded."""
+    out = {}
+    if os.path.isfile(LOG):
+        for line in open(LOG, encoding='utf-8'):
+            if line.strip():
+                e = json.loads(line)
+                if e.get('tag') != 'simplify' and e.get('routine') and e.get('try') == 1:
+                    out[e['routine']] = out.get(e['routine'], 0) + 1
     return out
+
+
+def tried_before(max_series=0):
+    """Routine names with more than max_series model series in runs.jsonl (0: any try at all)."""
+    return {n for n, c in series_counts().items() if c > max_series}
 
 
 def log(entry):
@@ -182,7 +186,8 @@ def safe_solve(bank, addr, tries, keep_existing=False):
     try:
         return solve(bank, addr, tries, keep_existing)
     except (OSError, ValueError, KeyError, StopIteration, RuntimeError) as e:
-        log({'time': time.strftime('%Y-%m-%d %H:%M:%S'), 'bank': bank, 'addr': '%04X' % addr, 'try': 0,
+        log({'time': time.strftime('%Y-%m-%d %H:%M:%S'), 'routine': m6_prompt.m6_pick.target_name(bank, addr),
+             'bank': bank, 'addr': '%04X' % addr, 'try': 0, 'tag': TAG,
              'result': 'error', 'message': repr(e)[:400]})
         print('  error: %r' % e)
         return False, 0, {'prompt': 0, 'completion': 0, 'seconds': 0.0}
@@ -205,6 +210,8 @@ def main():
     ap.add_argument('--kinds', help='comma list of routine kinds (m6_pick.classify: calls,tail,alt,far,dispatch,'
                     'leaf): every routine of those kinds with a corpus, callees with passing C first, then by calls')
     ap.add_argument('--max-size', type=int, default=256, help='with --kinds: largest routine in bytes')
+    ap.add_argument('--max-series', type=int, help='with --kinds: skip routines already tried in more than N series '
+                    '(--max-series 1 retries the ones that failed once)')
     ap.add_argument('--shard', default='0/1', help='i/n: only routines with (bank*0x10000+addr) %% n == i, so n '
                     'processes (one per llama-server slot) never take the same routine')
     a = ap.parse_args()
@@ -269,7 +276,8 @@ def kinds_mode(a):
     kinds = set(a.kinds.split(','))
     tried, results = set(), []
     while len(results) < a.routines:
-        skip = tried | (tried_before() if a.new_only else set())
+        skip = tried | (tried_before() if a.new_only else set()) | (
+            tried_before(a.max_series) if a.max_series is not None else set())
         si, sn = (int(x) for x in a.shard.split('/'))
         ready = [x for x in kinds_ready(kinds, a.max_size, skip)
                  if (x[0]['bank'] * 0x10000 + x[0]['start']) % sn == si]

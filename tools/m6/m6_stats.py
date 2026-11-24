@@ -69,7 +69,7 @@ def main():
     ap.add_argument('--by-kind', action='store_true', help='pass counts per routine kind (m6_pick.classify)')
     a = ap.parse_args()
     rows = [json.loads(l) for l in open(a.log) if l.strip()]
-    rows = [r for r in rows if r['time'] >= a.since and (a.tag is None or r.get('tag') == a.tag)]
+    rows = [r for r in rows if r.get('routine') and r.get('try', 0) > 0 and r['time'] >= a.since and (a.tag is None or r.get('tag') == a.tag)]
     series = collections.OrderedDict()  # routine -> list of tries of its last series
     for r in rows:
         key = r['routine']

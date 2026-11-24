@@ -98,6 +98,12 @@ def main():
     ap.add_argument('--tries', type=int, default=2)
     a = ap.parse_args()
     info = m6_lint.routine_info()
+    done_before = set()  # routines that already had a readability try: kept or replaced, not asked again
+    if os.path.isfile(m6_run.LOG):
+        import json
+        for line in open(m6_run.LOG, encoding='utf-8'):
+            if '"simplify"' in line:
+                done_before.add(json.loads(line).get('routine'))
     rows = []
     for f in os.listdir(m6_test.PRIVATE):
         name = os.path.splitext(f)[0]
@@ -106,7 +112,7 @@ def main():
         if a.only and name not in a.only.split(','):
             continue
         text = open(os.path.join(m6_test.PRIVATE, f), encoding='utf-8').readline()
-        if 'Simplified' in text:
+        if 'Simplified' in text or (name in done_before and not a.only):
             continue
         bank, addr, insns, mem = info[name]
         outs, _ = m6_prompt.caller_outputs(bank, addr, mem)
