@@ -342,26 +342,8 @@ def gate_launcher(build, out):
         shutil.copytree(os.path.join(d, 'fonts'), os.path.join(pkg, 'fonts'))
         code, a = run([sys.executable, os.path.join(REPO, 'tools', 'release_audit.py'), pkg])
         if code != 0 or 'CLEAN' not in a:
-            # Every C runtime carries a 0..255 identity table (ctype/tolower); its ascending runs (bytes and
-            # printable characters in order) also occur in the ROM. Only those count as known false positives.
-            blob = open(os.path.join(pkg, os.path.basename(launcher)), 'rb').read()
-            ascii_run = bytes(range(0x20, 0x7f))
-            real = []
-            for l in a.splitlines():
-                if not l.startswith('ROM CONTENT'):
-                    continue
-                m = re.search(r'(\d+)-byte ROM run at file offset (\d+)', l)
-                if m:
-                    n, o = int(m.group(1)), int(m.group(2))
-                    w = blob[o:o + n]
-                    if len(w) == n and all(w[i + 1] == (w[i] + 1) & 255 for i in range(n - 1)):
-                        continue
-                m = re.search(r"ROM string '(.*)'$", l)
-                if m and m.group(1).encode('latin-1', 'replace') in ascii_run:
-                    continue
-                real.append(l)
-            if real or 'problem' not in a:
-                return 'FAIL', 'launcher package audit: ' + (real[0] if real else a.strip()[-150:])[-150:]
+            bad = [l for l in a.splitlines() if l.startswith('ROM CONTENT')]
+            return 'FAIL', 'launcher package audit: ' + (bad[0] if bad else a.strip())[-150:]
         return 'PASS', '%d screens render; first run ready (%s); package audit clean' % (
             len(LAUNCHER_SCREENS), ' '.join(steps))
     return g
