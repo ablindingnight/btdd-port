@@ -54,6 +54,8 @@ def by_kind(series):
         row[1] += s[0]['result'] == 'pass'
         row[2] += s[-1]['result'] == 'pass'
         row[3] += sum(t['seconds'] for t in s)
+    ro = sum(1 for s in series.values() if s[-1]['result'] == 'pass' and s[-1].get('random_only'))
+    print('random-only passes (no corpus anywhere, random entry states only): %d' % ro)
     print('kind        routines  try-1  passed  pass%  passes/GPU-h')
     for k, (n, f, p, sec) in rows.items():
         if n:
@@ -69,7 +71,7 @@ def main():
     ap.add_argument('--by-kind', action='store_true', help='pass counts per routine kind (m6_pick.classify)')
     a = ap.parse_args()
     rows = [json.loads(l) for l in open(a.log) if l.strip()]
-    rows = [r for r in rows if r['time'] >= a.since and (a.tag is None or r.get('tag') == a.tag)]
+    rows = [r for r in rows if r.get('routine') and r.get('try', 0) > 0 and r['time'] >= a.since and (a.tag is None or r.get('tag') == a.tag)]
     series = collections.OrderedDict()  # routine -> list of tries of its last series
     for r in rows:
         key = r['routine']

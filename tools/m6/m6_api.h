@@ -22,6 +22,17 @@ typedef struct M6 {
 
 uint8_t bus_read(M6 *m, uint16_t addr);
 void bus_write(M6 *m, uint16_t addr, uint8_t value);
+/* Forgiving forms for code that leaves out m (bus_read(addr), bus_write(addr, v)): same calls, m taken from the
+ * enclosing function. Selected by argument count; the harness's own definitions use the full form. */
+#define M6_PICK3(_1, _2, _3, N, ...) N
+#define bus_read(...) M6_PICK3(__VA_ARGS__, m6_bad_args, m6_bus_read2, m6_bus_read1, m6_bad_args)(__VA_ARGS__)
+#define bus_write(...) M6_PICK3(__VA_ARGS__, m6_bus_write3, m6_bus_write2, m6_bad_args, m6_bad_args)(__VA_ARGS__)
+#define m6_bus_read2 m6_bus_read
+#define m6_bus_read1(addr) m6_bus_read(m, (addr))
+#define m6_bus_write3 m6_bus_write
+#define m6_bus_write2(addr, value) m6_bus_write(m, (addr), (value))
+uint8_t m6_bus_read(M6 *m, uint16_t addr);
+void m6_bus_write(M6 *m, uint16_t addr, uint8_t value);
 #define RAM(addr) (m->ram[(addr) & 0x7FF])
 
 void routine(M6 *m);

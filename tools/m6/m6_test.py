@@ -81,9 +81,15 @@ def write_names(path, exclude=()):
         f.write('\n'.join(lines) + '\n')
 
 
-def corpus_files(bank, addr, dirs):
+def corpus_dirs():
+    """Every corpus source: one folder per movie or snapshot set under Gamefiles/Movies/m6/corpus."""
+    base = os.path.join(M6, 'corpus')
+    return sorted(os.path.join(base, d) for d in os.listdir(base) if os.path.isdir(os.path.join(base, d)))
+
+
+def corpus_files(bank, addr, dirs=None):
     out = []
-    for d in dirs:
+    for d in dirs or corpus_dirs():
         p = os.path.join(d, 'b%d_%04x.m6c' % (bank, addr))
         if os.path.isfile(p) and os.path.getsize(p) > 12:  # 12 = header only: the routine never ran in that movie
             out.append(p)
@@ -91,6 +97,34 @@ def corpus_files(bank, addr, dirs):
 
 
 PRIVATE = os.path.join(REPO, 'private', 'm6')
+
+
+def _header_key(path):
+    """(bank, start) from a passing file's header line, or None."""
+    try:
+        m = re.match(r'/\* \S+: bank (\d) \$([0-9A-F]{4})', open(path, encoding='utf-8').readline())
+    except OSError:
+        return None
+    return (int(m.group(1)), int(m.group(2), 16)) if m else None
+
+
+def private_file(name, bank, for_write=False):
+    """The passing C of routine `name` in `bank`. Names repeat across banks (32 of them), so the file is
+    name.c, or name_b<bank>.c when name.c belongs to another bank; the header line says which bank."""
+    for p in (os.path.join(PRIVATE, name + '.c'), os.path.join(PRIVATE, '%s_b%d.c' % (name, bank))):
+        if os.path.isfile(p) and (_header_key(p) or (bank,))[0] == bank:
+            return p
+    if for_write:
+        p = os.path.join(PRIVATE, name + '.c')
+        return p if not os.path.isfile(p) else os.path.join(PRIVATE, '%s_b%d.c' % (name, bank))
+    return None
+
+
+def passing_keys():
+    """{(bank, start)} of every routine with passing C."""
+    if not os.path.isdir(PRIVATE):
+        return set()
+    return {k for k in (_header_key(os.path.join(PRIVATE, f)) for f in os.listdir(PRIVATE) if f.endswith('.c')) if k}
 
 
 def callee_sources(callees, work, bank=None, candidate=None):
@@ -105,8 +139,8 @@ def callee_sources(callees, work, bank=None, candidate=None):
         seen = {n for n, a in callees}
         i = -1 if candidate else 0  # -1: the candidate itself (older passing C may call e.g. sub_ffcb by name)
         while i < len(callees):
-            mine = candidate if i < 0 else os.path.join(PRIVATE, callees[i][0] + '.c')
-            if os.path.isfile(mine):
+            mine = candidate if i < 0 else private_file(callees[i][0], bank)
+            if mine and os.path.isfile(mine):
                 for n in re.findall(r'\b([A-Za-z_]\w*)\s*\(\s*m\s*\)', open(mine, encoding='utf-8').read()):
                     if n in by_name and n not in seen:
                         seen.add(n)
@@ -115,9 +149,9 @@ def callee_sources(callees, work, bank=None, candidate=None):
     for name, addr in callees:
         protos.append('void %s(M6 *m); /* $%04X */' % (name, addr))
         path = os.path.join(work, 'callee_%s.c' % name)
-        mine = os.path.join(PRIVATE, name + '.c')
+        mine = private_file(name, bank) if bank is not None else os.path.join(PRIVATE, name + '.c')
         with open(path, 'w', newline='\n') as f:
-            if os.path.isfile(mine):
+            if mine and os.path.isfile(mine):
                 f.write('#define routine %s\n#include "%s"\n#undef routine\n' % (name, mine.replace('\\', '/')))
             else:
                 f.write('void %s(M6 *m) { m6_call(m, 0x%04X); }\n' % (name, addr))
@@ -156,21 +190,26 @@ def build(candidate, work, callees=None, bank=None):
     return exe, ''
 
 
-def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000, show=None, callees=None):
-    """-> (code, message). code 0 pass, 1 mismatch, 2 setup, 3 compile error."""
-    dirs = dirs or [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
+def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000, show=None, callees=None,
+             random_only=False):
+    """-> (code, message). code 0 pass, 1 mismatch, 2 setup, 3 compile error.
+    random_only: a routine with no corpus anywhere is tested on random entry states only (>= 200 must finish);
+    the message then starts with 'RANDOM-ONLY'."""
+    dirs = dirs or corpus_dirs()
     work = work or os.path.join(M6, 'work')
     files = corpus_files(bank, addr, dirs)
-    if not files:
+    if not files and not random_only:
         return 2, 'no corpus for bank %d $%04X' % (bank, addr)
     if 'm6_call' in open(candidate, encoding='utf-8', errors='replace').read():
         return 3, 'COMPILE ERROR: the routine must not use m6_call (that runs the original code); call callees by name'
     exe, err = build(candidate, work, callees, bank)
     if not exe:
         return 3, 'COMPILE ERROR: ' + err
-    env = dict(os.environ, M6_FUZZ=str(fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])), M6_TRACE='1')
+    env = dict(os.environ, M6_FUZZ=str(max(fuzz, 2000) if not files else fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])), M6_TRACE='1')
     out_path = os.path.join(work, 'harness_out.txt')
     with open(out_path, 'w') as out:
+        if not files:
+            env['M6_RANDOM_ONLY'] = '1'
         p = subprocess.Popen([exe, ROM, str(bank), '%04X' % addr, outputs or '-'] + files, stdout=out,
                              stderr=subprocess.STDOUT, text=True, env=env)
         try:
