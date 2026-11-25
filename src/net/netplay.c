@@ -366,7 +366,7 @@ static void receive(NetSession *s)
             memcpy(s->peer_summary, p + HDR, NET_SUMMARY);
             s->peer_summary[NET_SUMMARY - 1] = 0;
             s->state = NET_REJECTED;
-            snprintf(s->message, sizeof s->message, "the host refused: different settings. Host: %.60s / you: %.60s",
+            snprintf(s->message, sizeof s->message, "the host refused: different settings. Host: %.48s / you: %.48s",
                      s->peer_summary, s->summary);
             break;
         case PK_INPUT:
