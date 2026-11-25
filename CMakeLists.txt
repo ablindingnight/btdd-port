@@ -284,13 +284,13 @@ if(BTDD_SDL)
         target_compile_definitions(btdd_play PRIVATE BTDD_HAVE_MODS)
     endif()
 
-    # M11: the Knuckle Drive launcher (docs/LAUNCHER.md, docs/LAUNCHER_STYLE.md). Shares btdd.cfg with btdd_play
+    # M11: the Pond to Pavement launcher (docs/LAUNCHER.md, docs/LAUNCHER_STYLE.md). Shares btdd.cfg with btdd_play
     # through src/platform/config.c; fonts (SIL OFL) are copied next to the exe.
     add_executable(btdd_launcher WIN32
         src/launcher/launcher_main.c src/launcher/app.c src/launcher/screens.c src/launcher/theme.c
         src/launcher/kit.c src/launcher/stb_impl.c src/launcher/unzip.c
         src/platform/config.c src/platform/video.c src/platform/gpu.c)
-    set_target_properties(btdd_launcher PROPERTIES OUTPUT_NAME KnuckleDrive)
+    set_target_properties(btdd_launcher PROPERTIES OUTPUT_NAME PondToPavement)
     target_include_directories(btdd_launcher PRIVATE src src/launcher third_party/stb)
     target_link_libraries(btdd_launcher PRIVATE btdd_screen btdd_mods SDL3::SDL3-static)
     execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

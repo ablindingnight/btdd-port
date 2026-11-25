@@ -1,4 +1,4 @@
-/* Knuckle Drive look (docs/LAUNCHER_STYLE.md): colour tokens and the drawn pieces every screen shares. */
+/* Pond to Pavement look (docs/LAUNCHER_STYLE.md): colour tokens and the drawn pieces every screen shares. */
 #ifndef BTDD_LAUNCHER_THEME_H
 #define BTDD_LAUNCHER_THEME_H
 #include "kit.h"

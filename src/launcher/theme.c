@@ -93,7 +93,7 @@ void theme_titlebar(const char *crumb, const char *version)
 {
     float x;
     kit_rect(0, 0, KIT_W, 46, C_INK, 1);
-    x = 26 + kit_text(FONT_DISPLAY, 22, 26, 10, "KNUCKLE DRIVE", C_YELLOW, 1, ALIGN_LEFT);
+    x = 26 + kit_text(FONT_DISPLAY, 22, 26, 10, "POND TO PAVEMENT", C_YELLOW, 1, ALIGN_LEFT);
     x += 12 + kit_text(FONT_LABEL, 17, x + 12, 13, version, 0x8a8a92, 1, ALIGN_LEFT);
     if (crumb && crumb[0]) {
         x += 26;
@@ -213,7 +213,7 @@ void theme_logo(float cx, float y, float s1, float s2, int tagline)
     kit_push();
     kit_rotate_at(-4, cx, y + (s1 + s2) / 2);
     {
-        static const char *const words[2] = {"KNUCKLE", "DRIVE"};
+        static const char *const words[2] = {"POND TO", "PAVEMENT"};
         float sz[2], wy[2];
         int k;
         sz[0] = s1, sz[1] = s2;

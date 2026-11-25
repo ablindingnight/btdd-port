@@ -1,14 +1,14 @@
-# Knuckle Drive
+# Pond to Pavement
 
 **Your ROM. Our engine. Two fists.** A native PC port of a 1993 NES co-op brawler, built on your computer from your
 own cartridge dump.
 
-![Knuckle Drive launcher: ready to play](docs/images/launcher-home.png)
+![Pond to Pavement launcher: ready to play](docs/images/launcher-home.png)
 
 ## How to play
 1. You need your own backup of the **Battletoads & Double Dragon (USA)** NES cartridge as a `.nes` file (or a `.zip`
-   that holds it). Knuckle Drive does not include the game and can't get it for you.
-2. Download the latest release and unzip it anywhere. Start `KnuckleDrive.exe`.
+   that holds it). Pond to Pavement does not include the game and can't get it for you.
+2. Download the latest release and unzip it anywhere. Start `PondToPavement.exe`.
 3. Drag your ROM onto the launcher, or pick it.
 4. The launcher checks it's the USA cartridge, compiles the game into a native program, and runs a quick self-check
    (under a minute). Then press **PLAY**.

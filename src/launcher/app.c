@@ -95,7 +95,7 @@ static void ini_write(App *a, const char *sha)
     FILE *f;
     ini_path(a, p, sizeof p);
     if ((f = fopen(p, "w"))) {
-        fprintf(f, "# Knuckle Drive launcher state\nfirst_run_sha1 = %s\n", sha);
+        fprintf(f, "# Pond to Pavement launcher state\nfirst_run_sha1 = %s\n", sha);
         fclose(f);
     }
 }

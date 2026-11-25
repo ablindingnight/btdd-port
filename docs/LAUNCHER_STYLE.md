@@ -1,4 +1,4 @@
-# Launcher style sheet: Knuckle Drive (M11)
+# Launcher style sheet: Pond to Pavement (M11)
 
 Decided with the user in the design session of 2026-11-24. The launcher code and the in-game menu follow this file.
 Mockups: `docs/design/launcher-screens.html` (all screens; open `#only-<screen>` for one 1280x720 screen, which is
@@ -6,14 +6,14 @@ how `docs/images/launcher-*.png` were made until the launcher's own `--ui-shot` 
 `docs/design/launcher-directions.html` (the three directions we chose from; A won).
 
 ## Identity
-- **Name**: Knuckle Drive (working name; trademark search before release). **Tagline**: "Your ROM. Our engine. Two
+- **Name**: Pond to Pavement (renamed from Knuckle Drive on 2026-11-24 by the user; trademark search before release). **Tagline**: "Your ROM. Our engine. Two
   fists." Short form: "Your ROM. Our engine."
 - **Direction**: "Splash Page": the cover of a 1993 comic. Ink outlines, halftone dots, tilted panels, a burst-shaped
   PLAY button, on a toad-green field with orange-red and yellow accents and a deep-space emblem.
 - **Home headline**: "Two Brothers, Three Toads... Zero Mercy!" (user's line). Three lines: "Two Brothers," /
   "Three Toads..." / "Zero Mercy!" (last line yellow).
 - **Logo**: the rocket fist: a cream fist with an orange-red cuff and flame, flying up through an orange ring around
-  a deep-purple planet disc (SVG in `docs/design/launcher-screens.html`, `FIST`). Wordmark: "KNUCKLE" over "DRIVE"
+  a deep-purple planet disc (SVG in `docs/design/launcher-screens.html`, `FIST`). Wordmark: "POND TO" over "PAVEMENT"
   in Bangers, yellow with a 4 px ink outline, an orange-red offset and an ink offset, tilted -4°.
 - **Never** in the launcher, package, icon or page: the game's characters, logos, sprites, screenshots, music, or the
   Battletoads / Double Dragon / Rare / Tradewest / Nintendo names as branding. The game title appears only as plain

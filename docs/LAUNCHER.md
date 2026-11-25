@@ -49,7 +49,7 @@ dedicated design session for the launcher before building its screens:
   Nice Crash's screen flow, task checklist and settings/logs code where it ports cleanly.
 
 ## Design session result (2026-11-24)
-Name **Knuckle Drive** ("Your ROM. Our engine. Two fists."), direction "Splash Page" (comic cover) recoloured toad
+Name **Pond to Pavement** ("Your ROM. Our engine. Two fists."), direction "Splash Page" (comic cover) recoloured toad
 green on the user's request, Home headline "Two Brothers, Three Toads... Zero Mercy!". Style sheet:
 `docs/LAUNCHER_STYLE.md`. Mockups: `docs/design/launcher-screens.html` (13 screens incl. the in-game menu),
 `docs/design/launcher-directions.html` (the three directions), `docs/design/project-page.html` +
@@ -58,9 +58,9 @@ mockup page (`#only-<screen>`) until `--ui-shot` exists. Open items: trademark s
 icons (list in the style sheet); an 8x8 font for the in-game menu; app icon sizes.
 
 ## Built (2026-11-24, branch m11-launcher)
-`KnuckleDrive.exe` (CMake target `btdd_launcher`, `src/launcher/`), SDL3 + stb_truetype, no Windows-only code:
+`PondToPavement.exe` (CMake target `btdd_launcher`, `src/launcher/`), SDL3 + stb_truetype, no Windows-only code:
 - `kit.c` drawing kit (shapes and TTF text through SDL_RenderGeometry, a transform stack for tilted pieces; text is
-  rasterized at the window's pixel scale so it stays sharp), `theme.c` the Knuckle Drive pieces (backdrop, rocket
+  rasterized at the window's pixel scale so it stays sharp), `theme.c` the Pond to Pavement pieces (backdrop, rocket
   fist, logo, PLAY burst, icons, stickers, stamps), `screens.c` the 12 screens (immediate-mode focus: keyboard,
   mouse and gamepad), `app.c` state, the first-run worker, game runs and logs.
 - Settings are `btdd.cfg` through `src/platform/config.c` (same file and rules as btdd_play); launcher-only state is

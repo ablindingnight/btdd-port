@@ -196,7 +196,7 @@ static void draw_home(void)
         app_cache_info(a, c, sizeof c);
         snprintf(build_small, sizeof build_small, "%s · native cache %s", app_ready(a) ? "self-check passed" : "setup not finished", c);
     }
-    home_row(406, 0.6f, "YOUR BUILD", "Knuckle Drive " LAUNCHER_VERSION, NULL, 0, build_small, app_ready(a) ? "REBUILD" : "SET UP", &act[1]);
+    home_row(406, 0.6f, "YOUR BUILD", "Pond to Pavement " LAUNCHER_VERSION, NULL, 0, build_small, app_ready(a) ? "REBUILD" : "SET UP", &act[1]);
     home_row(482, 0, "ONLINE", "2-player online", NULL, 0, "host a game, or paste a friend's join code", "HOST", &act[2]);
     if (act[0])
         open_rom_dialog();
@@ -347,7 +347,7 @@ static void draw_first_run(void)
         kit_text_wrap(FONT_BODY, 16, 856, 248, 330, 20,
                       a->rom_ok ? "Drop a different .nes or .zip here, or click, to start over. Your file stays where it is; we only read it."
                       : a->cfg.rom[0] ? a->rom_msg
-                                      : "Or click to pick it. You need your own backup of the USA cartridge; Knuckle Drive does not include the game.",
+                                      : "Or click to pick it. You need your own backup of the USA cartridge; Pond to Pavement does not include the game.",
                       C_PAPER, 0.9f);
         if (it.activate)
             open_rom_dialog();
@@ -1045,7 +1045,7 @@ static void draw_builds(void)
         a->cfg.ppu_new = !a->cfg.ppu_new, app_save_settings(a);
     RY += 6;
     group("VERSIONS");
-    row_info("Launcher", NULL, "Knuckle Drive " LAUNCHER_VERSION, FONT_MONO);
+    row_info("Launcher", NULL, "Pond to Pavement " LAUNCHER_VERSION, FONT_MONO);
 #ifdef BTDD_GIT_HASH
     row_info("Source", NULL, BTDD_GIT_HASH, FONT_MONO);
 #endif
@@ -1160,10 +1160,10 @@ static void draw_about(void)
     App *a = U.a;
     float x = PX + 270, y = RY;
     theme_emblem(PX + 120, RY + 110, 210);
-    kit_text(FONT_DISPLAY, 38, PX + 120, RY + 222, "KNUCKLE DRIVE", C_INK, 1, ALIGN_CENTER);
+    kit_text(FONT_DISPLAY, 30, PX + 120, RY + 226, "POND TO PAVEMENT", C_INK, 1, ALIGN_CENTER);
     kit_text(FONT_LABEL, 14, PX + 120, RY + 264, "YOUR ROM. OUR ENGINE.", C_RED, 1, ALIGN_CENTER);
     y += kit_text_wrap(FONT_BODY, 15, x, y, PR - x - 10, 22,
-                       "Knuckle Drive rebuilds a 1993 NES game as a native PC program from your own ROM. It ships no "
+                       "Pond to Pavement rebuilds a 1993 NES game as a native PC program from your own ROM. It ships no "
                        "game code, graphics, music or names; everything you see before you press PLAY is our own work.",
                        C_INK, 1) + 10;
     y += kit_text_wrap(FONT_BODY, 15, x, y, PR - x - 10, 22,

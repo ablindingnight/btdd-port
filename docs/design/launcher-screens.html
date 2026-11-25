@@ -1,4 +1,4 @@
-<title>Knuckle Drive Screens</title>
+<title>Pond to Pavement Screens</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Press+Start+2P&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -214,10 +214,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 
 <div class="wrap">
 <nav class="bar" aria-label="Screens">
-  <strong>KNUCKLE DRIVE</strong>
+  <strong>POND TO PAVEMENT</strong>
   <a href="#home">Home</a><a href="#first-run">First run</a><a href="#display">Display</a><a href="#graphics">Graphics</a><a href="#audio">Audio</a><a href="#controls">Controls</a><a href="#gameplay">Gameplay</a><a href="#mods">Mods</a><a href="#online">Online</a><a href="#builds">Builds</a><a href="#logs">Logs</a><a href="#about">About</a><a href="#in-game">In-game menu</a>
 </nav>
-<p class="intro"><b>Direction A, "Splash Page", with the name Knuckle Drive.</b> Every screen is a 1280×720 launcher window, drawn with our own shapes and open-licence fonts. The game picture never appears: the in-game mockup uses a striped placeholder. Settings mirror what <code>btdd_play</code> can already do, plus the planned M10 sprite-pack switch.</p>
+<p class="intro"><b>Direction A, "Splash Page", with the name Pond to Pavement.</b> Every screen is a 1280×720 launcher window, drawn with our own shapes and open-licence fonts. The game picture never appears: the in-game mockup uses a striped placeholder. Settings mirror what <code>btdd_play</code> can already do, plus the planned M10 sprite-pack switch.</p>
 <div class="hlpick" role="group" aria-label="Home headline"><span>Home headline:</span></div>
 <div id="shots" class="wrap" style="gap:44px"></div>
 </div>
@@ -244,7 +244,7 @@ const NX='<span class="nx">NEXT START</span>';
 const k=t=>`<span class="key">${t}</span>`;
 const row=(l,d,c,cls='')=>`<div class="rw ${cls}"><div class="l">${l}${d?`<small>${d}</small>`:''}</div><div class="c">${c}</div></div>`;
 const grp=t=>`<div class="grp">${t}</div>`;
-const TOP=(crumb)=>`<div class="top"><span>KNUCKLE DRIVE</span><small>launcher 0.1.0</small>${crumb?`<span class="crumb">${crumb}</span>`:''}<div class="win"><span>⚙</span><span>—</span><span>✕</span></div></div>`;
+const TOP=(crumb)=>`<div class="top"><span>POND TO PAVEMENT</span><small>launcher 0.1.0</small>${crumb?`<span class="crumb">${crumb}</span>`:''}<div class="win"><span>⚙</span><span>—</span><span>✕</span></div></div>`;
 const BG='<div class="rays"></div><div class="dots"></div>';
 const FIST=(w)=>`<svg class="emblem" style="${w}" viewBox="0 0 330 330" aria-hidden="true">
  <circle cx="165" cy="165" r="150" fill="#24123f" stroke="#0b0b14" stroke-width="8"/>
@@ -264,7 +264,7 @@ const FIST=(w)=>`<svg class="emblem" style="${w}" viewBox="0 0 330 330" aria-hid
  </g>
  <circle cx="96" cy="88" r="9" fill="#fff8e7"/><circle cx="262" cy="110" r="6" fill="#fff8e7"/>
 </svg>`;
-const LOGO=(st,s1,s2)=>`<div class="logo" style="${st}"><span class="w1" style="font-size:${s1}px">KNUCKLE</span><span class="w2" style="font-size:${s2}px">DRIVE</span><span class="tg">Your ROM. Our engine. Two fists.</span></div>`;
+const LOGO=(st,s1,s2)=>`<div class="logo" style="${st}"><span class="w1" style="font-size:${s1}px">POND TO</span><span class="w2" style="font-size:${s2}px">PAVEMENT</span><span class="tg">Your ROM. Our engine. Two fists.</span></div>`;
 const NAV=[['display','DISPLAY'],['graphics','GRAPHICS'],['audio','AUDIO'],['controls','CONTROLS'],['gameplay','GAMEPLAY'],['mods','MODS'],['online','ONLINE PLAY'],['builds','BUILDS'],['logs','LOGS'],['about','ABOUT']];
 const SIDE=on=>`<div class="side"><div class="nv">${ico('home')}HOME</div>${NAV.map(([id,t],i)=>`<div class="nv ${id===on?'on':''} ${i===7?'sep':''}">${ico(id)}${t}</div>`).join('')}</div>`;
 const HINTS=(extra='')=>`<div class="hints">${extra}<span><kbd>A</kbd> change</span><span><kbd>B</kbd> back</span><span><kbd>LB</kbd><kbd>RB</kbd> page</span></div>`;
@@ -379,7 +379,7 @@ SET('mods','MODS',`<div class="mods">
  <div class="mc"><b>Cheat codes</b>${tg(false)}<p>The game's own codes, entered for you. Pick them under Gameplay.</p><div class="meta"><span class="badge m">GAMEPLAY</span></div></div>
 </div>
 <div class="rws" style="margin-top:12px">
- ${row('Mods folder','drop-in mods load from here (later)','<span class="mono">%APPDATA%\\knuckle-drive\\mods</span>','dis')}
+ ${row('Mods folder','drop-in mods load from here (later)','<span class="mono">%APPDATA%\\pond-to-pavement\\mods</span>','dis')}
  ${row('Online check','both players need the same gameplay mods','<span class="badge">PICTURE MODS ARE FREE TO DIFFER</span>')}
 </div>`)]);
 
@@ -435,9 +435,9 @@ SET('logs','LOGS',`<table class="tbl"><thead><tr><th>WHEN</th><th>WHAT</th><th>R
 S.push(['about','Settings · About','licences, the no-affiliation line, and credits',
 SET('about','ABOUT',`<div style="display:grid;grid-template-columns:260px 1fr;gap:26px;align-items:start">
  <div style="text-align:center">${FIST('position:static;width:220px;height:220px')}
- <div style="font-family:var(--f-disp);font-size:40px;line-height:1;margin-top:6px">KNUCKLE DRIVE</div><div style="font-weight:800;letter-spacing:.12em;font-size:14px;color:var(--mag)">YOUR ROM. OUR ENGINE.</div></div>
+ <div style="font-family:var(--f-disp);font-size:40px;line-height:1;margin-top:6px">POND TO PAVEMENT</div><div style="font-weight:800;letter-spacing:.12em;font-size:14px;color:var(--mag)">YOUR ROM. OUR ENGINE.</div></div>
  <div style="display:grid;gap:12px;font-family:var(--f-body);font-size:15px;line-height:1.45">
-  <p style="margin:0"><b>Knuckle Drive</b> rebuilds a 1993 NES game as a native PC program from <b>your own ROM</b>. It ships no game code, graphics, music or names; everything it shows before you press PLAY is our own work.</p>
+  <p style="margin:0"><b>Pond to Pavement</b> rebuilds a 1993 NES game as a native PC program from <b>your own ROM</b>. It ships no game code, graphics, music or names; everything it shows before you press PLAY is our own work.</p>
   <p style="margin:0">Not affiliated with or endorsed by the game's publishers or by Nintendo. It needs a legally obtained ROM of <i>Battletoads &amp; Double Dragon (USA)</i>.</p>
   <div class="tbl" style="display:grid;grid-template-columns:auto 1fr;gap:4px 18px;font-family:var(--f-lab);font-weight:700;font-size:16px">
    <span style="color:var(--mag)">CODE</span><span>MIT licence</span>

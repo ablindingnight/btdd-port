@@ -1,10 +1,10 @@
-/* Knuckle Drive launcher (M11): takes the player's ROM, runs the first-run checklist, holds every setting of
+/* Pond to Pavement launcher (M11): takes the player's ROM, runs the first-run checklist, holds every setting of
  * btdd_play (shared btdd.cfg) and starts the game with PLAY. Look: docs/LAUNCHER_STYLE.md.
  *
- *   KnuckleDrive [--demo]                              the launcher
- *   KnuckleDrive --ui-shot <screen> out.png [w h] [--demo]  render one screen offscreen to a PNG and exit
- *   KnuckleDrive --launch-game                         start the game as PLAY does and exit
- *   KnuckleDrive --selftest [--rom X.nes|X.zip]       run the first-run checklist without a window
+ *   PondToPavement [--demo]                              the launcher
+ *   PondToPavement --ui-shot <screen> out.png [w h] [--demo]  render one screen offscreen to a PNG and exit
+ *   PondToPavement --launch-game                         start the game as PLAY does and exit
+ *   PondToPavement --selftest [--rom X.nes|X.zip]       run the first-run checklist without a window
  * Screens: home, first-run, display, graphics, audio, controls, gameplay, mods, online, builds, logs, about.
  * --demo fills example values (verified ROM, used save slots) for screenshots; it never writes settings. */
 #include "app.h"
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
         win_w = (int)(KIT_W * f);
         win_h = (int)(KIT_H * f);
     }
-    if (!SDL_CreateWindowAndRenderer("Knuckle Drive", win_w, win_h,
+    if (!SDL_CreateWindowAndRenderer("Pond to Pavement", win_w, win_h,
                                      SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | (shot ? SDL_WINDOW_HIDDEN : 0), &win, &r)) {
         SDL_Log("window: %s", SDL_GetError());
         SDL_Quit();
