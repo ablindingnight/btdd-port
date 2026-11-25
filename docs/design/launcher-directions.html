@@ -1,0 +1,321 @@
+<title>Launcher Style Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&family=Black+Ops+One&family=Chakra+Petch:wght@400;500;600;700&family=VT323&family=Bungee&family=Exo+2:ital,wght@0,400;0,600;0,800;1,800;1,900&family=Press+Start+2P&display=swap">
+<style>
+/* Page: a dark "light table" that holds three 1280x720 launcher mockups, scaled to fit. Single dark look by choice. */
+:root{
+  --page:#0c0d12; --panel:#16181f; --line:#2a2d38; --ink:#ecebf2; --dim:#9a9aae; --hi:#ffcf3a;
+  --f-ui:"Barlow",system-ui,sans-serif; --f-head:"Barlow Condensed","Arial Narrow",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 60px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:40px}
+header h1{font-family:var(--f-head);font-weight:800;font-size:clamp(30px,5vw,46px);letter-spacing:.02em;margin:0;text-transform:uppercase;line-height:1}
+header p{color:var(--dim);margin:8px 0 0;max-width:68ch}
+.names{display:grid;gap:10px}
+.names h2,.dir h2{font-family:var(--f-head);font-weight:700;font-size:22px;letter-spacing:.06em;text-transform:uppercase;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;
+  padding:10px 14px;text-align:left;cursor:pointer;font:inherit;display:grid;gap:2px;min-width:0}
+.chip b{font-family:var(--f-head);font-size:20px;letter-spacing:.06em;font-weight:800}
+.chip span{color:var(--dim);font-size:13px}
+.chip[aria-pressed="true"]{border-color:var(--hi);box-shadow:0 0 0 1px var(--hi) inset}
+.chip:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.note{color:var(--dim);font-size:13px}
+.dir{display:grid;gap:14px}
+.dir .kicker{color:var(--hi);font-family:var(--f-head);font-weight:700;letter-spacing:.14em;font-size:14px}
+.dir .blurb{margin:0;color:var(--dim);max-width:75ch}
+.frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:8px;border:1px solid var(--line);max-width:100%}
+.stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;overflow:hidden}
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.spec div{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+.spec h3{margin:0 0 6px;font-family:var(--f-head);font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:700}
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw i{width:30px;height:30px;border-radius:4px;border:1px solid #ffffff22;display:block}
+.spec p{margin:0;font-size:13.5px}
+
+/* ============ A: SPLASH PAGE (comic) ============ */
+.A{--ink:#0b0b14;--paper:#fff8e7;--yel:#ffd21f;--mag:#ff2d86;--cy:#16c2ff;--navy:#16206b;
+  background:var(--navy);font-family:"Barlow Condensed",sans-serif;color:var(--paper)}
+.A .dots{position:absolute;inset:0;background:radial-gradient(circle,#ff2d86 2.2px,transparent 2.6px) 0 0/14px 14px;
+  -webkit-mask:radial-gradient(circle at 78% 42%,#000 0,transparent 62%);mask:radial-gradient(circle at 78% 42%,#000 0,transparent 62%);opacity:.75}
+.A .rays{position:absolute;left:980px;top:300px;width:1800px;height:1800px;margin:-900px;
+  background:repeating-conic-gradient(from 0deg,#ffffff10 0 6deg,transparent 6deg 14deg);animation:spin 80s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.A .top{position:absolute;left:0;right:0;top:0;height:46px;background:var(--ink);display:flex;align-items:center;padding:0 26px;gap:12px;
+  font-family:"Bangers",cursive;font-size:22px;letter-spacing:.06em;color:var(--yel)}
+.A .top small{font-family:"Barlow Condensed";font-size:15px;color:#ffffff88;letter-spacing:.08em}
+.A .top .win{margin-left:auto;display:flex;gap:18px;color:#ffffffaa;font-family:"Barlow Condensed";font-size:18px}
+.A .cap{position:absolute;left:70px;top:82px;background:var(--yel);color:var(--ink);border:3px solid var(--ink);padding:4px 12px;
+  font-weight:800;letter-spacing:.14em;font-size:16px;transform:rotate(-2deg);box-shadow:4px 4px 0 var(--ink)}
+.A h2{position:absolute;left:66px;top:118px;margin:0;font-family:"Bangers",cursive;font-weight:400;font-size:96px;line-height:.95;letter-spacing:.02em;
+  color:var(--paper);-webkit-text-stroke:3px var(--ink);text-shadow:6px 6px 0 var(--ink);transform:rotate(-2deg);width:700px}
+.A h2 em{font-style:normal;color:var(--yel)}
+.A .rows{position:absolute;left:70px;top:330px;width:620px;display:grid;gap:14px}
+.A .row{background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:7px 7px 0 var(--ink);display:grid;
+  grid-template-columns:150px 1fr auto;align-items:center;padding:10px 16px;gap:14px}
+.A .row:nth-child(2){transform:rotate(.6deg)} .A .row:nth-child(1){transform:rotate(-.6deg)}
+.A .row .k{font-weight:800;letter-spacing:.12em;font-size:15px;color:var(--mag)}
+.A .row .v{font-weight:700;font-size:21px;line-height:1.15}
+.A .row .v small{display:block;font-family:"Barlow";font-weight:500;font-size:13px;color:#0b0b1499}
+.A .badge{display:inline-block;background:var(--cy);border:2px solid var(--ink);font-size:13px;padding:0 6px;margin-left:6px;vertical-align:3px;letter-spacing:.06em}
+.A .row .go{font-family:"Bangers";font-size:20px;letter-spacing:.06em;color:var(--ink);border-bottom:3px solid var(--mag)}
+.A .emblem{position:absolute;left:830px;top:70px;width:330px;height:330px}
+.A .logo{position:absolute;left:770px;top:372px;width:450px;text-align:center;transform:rotate(-4deg)}
+.A .logo .w1,.A .logo .w2{display:block;font-family:"Bangers",cursive;line-height:.86;color:var(--yel);-webkit-text-stroke:4px var(--ink);
+  text-shadow:6px 6px 0 var(--mag),10px 10px 0 var(--ink);letter-spacing:.04em}
+.A .logo .w1{font-size:58px}.A .logo .w2{font-size:92px}
+.A .logo .tg{display:inline-block;margin-top:10px;background:var(--ink);color:var(--paper);padding:4px 14px;font-weight:700;letter-spacing:.16em;font-size:15px;text-transform:uppercase}
+.A .play{position:absolute;left:890px;top:572px;width:320px;height:134px;background:var(--ink);
+  clip-path:polygon(0% 32%,9% 22%,6% 2%,24% 16%,36% 0%,46% 15%,62% 2%,68% 18%,90% 6%,86% 28%,100% 38%,90% 54%,99% 76%,80% 72%,74% 100%,58% 80%,44% 98%,34% 78%,14% 94%,16% 70%,1% 62%,10% 48%);
+  animation:pop 1.6s ease-in-out infinite}
+.A .play::before{content:"";position:absolute;inset:7px;background:var(--yel);clip-path:inherit}
+.A .play span{position:absolute;inset:0;display:grid;place-items:center;font-family:"Bangers";font-size:64px;color:var(--mag);
+  -webkit-text-stroke:3px var(--ink);letter-spacing:.06em;text-shadow:4px 4px 0 var(--ink)}
+@keyframes pop{50%{transform:scale(1.04) rotate(-1.5deg)}}
+.A .foot{position:absolute;left:70px;bottom:34px;display:flex;gap:12px}
+.A .foot span{background:var(--paper);color:var(--ink);border:3px solid var(--ink);padding:4px 12px;font-weight:800;letter-spacing:.08em;font-size:16px;box-shadow:3px 3px 0 var(--ink)}
+.A .hint{position:absolute;left:640px;bottom:40px;font-weight:700;letter-spacing:.08em;color:#ffffffaa;font-size:15px}
+.A .hint kbd{background:var(--paper);color:var(--ink);border:2px solid var(--ink);padding:0 6px;font-family:"Barlow Condensed";font-weight:800}
+
+/* ============ B: BULKHEAD (gritty ship) ============ */
+.B{--steel:#1a1f26;--plate:#262d36;--plate2:#2f3742;--edge:#0e1115;--haz:#f2b90f;--red:#e3412a;--pho:#7dff8f;--txt:#d9dde3;--mut:#8792a1;
+  background:
+   linear-gradient(180deg,#ffffff06,transparent 40%),
+   repeating-linear-gradient(90deg,transparent 0 319px,#0008 319px 321px),
+   repeating-linear-gradient(0deg,transparent 0 179px,#0008 179px 181px),
+   var(--steel);
+  font-family:"Chakra Petch",sans-serif;color:var(--txt)}
+.B .grime{position:absolute;inset:0;background:radial-gradient(ellipse at 20% 110%,#000a,transparent 55%),radial-gradient(ellipse at 100% 0%,#0008,transparent 40%)}
+.B .haz{background:repeating-linear-gradient(-45deg,var(--haz) 0 16px,#14161a 16px 32px)}
+.B .top{position:absolute;left:0;right:0;top:0;height:44px;background:var(--edge);border-bottom:2px solid #000;display:flex;align-items:center;gap:14px;padding:0 24px}
+.B .top .mark{font-family:"Black Ops One";font-size:20px;color:var(--haz);letter-spacing:.08em}
+.B .top small{font-family:"VT323";font-size:20px;color:var(--mut)}
+.B .top .win{margin-left:auto;font-family:"VT323";font-size:20px;color:var(--mut);display:flex;gap:16px}
+.B .topstripe{position:absolute;left:0;right:0;top:44px;height:8px}
+.B .status{position:absolute;left:68px;top:96px;font-family:"VT323";font-size:24px;color:var(--pho);letter-spacing:.06em}
+.B .status::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--pho);box-shadow:0 0 10px var(--pho);margin-right:10px;vertical-align:1px;animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.B h2{position:absolute;left:66px;top:128px;margin:0;font-family:"Black Ops One";font-weight:400;font-size:74px;line-height:1;color:var(--txt);width:700px;letter-spacing:.01em;text-shadow:0 3px 0 #000}
+.B h2 em{font-style:normal;color:var(--haz)}
+.B .sub{position:absolute;left:68px;top:290px;width:600px;color:var(--mut);font-size:18px;margin:0}
+.B .rows{position:absolute;left:62px;top:350px;width:640px;display:grid;gap:10px}
+.B .row{position:relative;background:linear-gradient(180deg,var(--plate2),var(--plate));border:1px solid #000;box-shadow:inset 0 1px 0 #ffffff14,0 3px 0 #0009;
+  display:grid;grid-template-columns:22px 150px 1fr auto;gap:12px;align-items:center;padding:12px 18px}
+.B .row::before,.B .row::after{content:"";position:absolute;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#7b8592,#1b1f25)}
+.B .row::before{left:6px}.B .row::after{right:6px}
+.B .led{width:12px;height:12px;border-radius:50%;background:var(--pho);box-shadow:0 0 8px var(--pho)}
+.B .led.am{background:var(--haz);box-shadow:0 0 8px var(--haz)}
+.B .k{font-family:"Black Ops One";font-size:15px;color:var(--mut);letter-spacing:.08em}
+.B .v{font-size:19px;font-weight:600;line-height:1.2}
+.B .v small{display:block;font-family:"VT323";font-size:17px;white-space:nowrap;color:var(--pho);font-weight:400;opacity:.8}
+.B .go{font-family:"VT323";font-size:22px;color:var(--haz)}
+.B .port{position:absolute;left:830px;top:86px;width:340px;height:340px;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,#2c333c 0 63%,#0b0d10 63.5% 66%,#3a434e 66.5% 76%,#14181d 76.5% 100%);box-shadow:0 12px 30px #000c}
+.B .glass{position:absolute;left:52px;top:52px;width:236px;height:236px;border-radius:50%;overflow:hidden;
+  background:radial-gradient(circle at 30% 70%,#3a1f5c 0,transparent 55%),radial-gradient(circle at 75% 25%,#103a52 0,transparent 50%),#05060b;box-shadow:inset 0 0 40px #000}
+.B .stars{position:absolute;inset:-50%;background:
+  radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 60% 70%,#fff,transparent),radial-gradient(1.2px 1.2px at 80% 20%,#cfe,transparent),
+  radial-gradient(1px 1px at 35% 85%,#fff,transparent),radial-gradient(1.4px 1.4px at 90% 60%,#fff,transparent),radial-gradient(1px 1px at 10% 60%,#fdd,transparent);
+  background-size:120px 120px;animation:drift 30s linear infinite}
+@keyframes drift{to{transform:translate(-120px,40px)}}
+.B .planet{position:absolute;left:120px;top:120px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e8894a,#8a2c1c 55%,#2a0c0c 80%)}
+.B .hull{position:absolute;left:-40px;top:40px;width:220px;height:46px;background:#0c0f13;clip-path:polygon(0 40%,70% 30%,100% 50%,70% 70%,0 60%);animation:fly 14s linear infinite}
+@keyframes fly{from{transform:translateX(-60px)}to{transform:translateX(320px)}}
+.B .glare{position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,#ffffff22,transparent 40%)}
+.B .bolt{position:absolute;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#9aa3ae,#20252b)}
+.B .logo{position:absolute;left:780px;top:450px;width:440px;padding:10px 14px 10px;background:linear-gradient(180deg,var(--plate2),var(--plate));border:2px solid #000;text-align:center}
+.B .logo .w{font-family:"Black Ops One";font-size:44px;white-space:nowrap;line-height:1;color:var(--haz);letter-spacing:.04em;text-shadow:0 3px 0 #000}
+.B .logo .tg{font-family:"VT323";font-size:22px;color:var(--mut);letter-spacing:.12em;text-transform:uppercase}
+.B .playwrap{position:absolute;left:860px;top:580px;width:340px;height:104px;padding:8px}
+.B .play{width:100%;height:100%;background:linear-gradient(180deg,#ff6a4d,var(--red) 45%,#a0220f);border:2px solid #000;box-shadow:inset 0 2px 0 #ffb3a3,0 0 28px #e3412a88;
+  display:grid;place-items:center;font-family:"Black Ops One";font-size:46px;color:#fff;letter-spacing:.14em;text-shadow:0 3px 0 #6a1206;animation:glow 2s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:inset 0 2px 0 #ffb3a3,0 0 46px #e3412acc}}
+.B .foot{position:absolute;left:66px;bottom:30px;display:flex;gap:26px;font-family:"Black Ops One";font-size:17px;color:var(--txt);letter-spacing:.06em}
+.B .foot span::before{content:"▸ ";color:var(--haz)}
+.B .hint{position:absolute;left:600px;bottom:30px;font-family:"VT323";font-size:20px;color:var(--mut)}
+.B .botstripe{position:absolute;left:0;right:0;bottom:0;height:10px}
+
+/* ============ C: AIRBRUSH ORBIT (box-art sunset) ============ */
+.C{--deep:#0f0a2c;--vio:#3b1470;--mag:#ff3fa4;--ora:#ff8a1c;--cy:#33e6ee;--chrome1:#ffffff;--chrome2:#9fb3d6;--txt:#f3ecff;--mut:#b3a6d9;
+  background:radial-gradient(ellipse at 80% 100%,#ff3fa455,transparent 50%),linear-gradient(180deg,var(--deep) 0%,var(--vio) 70%,#6a1a6e 100%);
+  font-family:"Exo 2",sans-serif;color:var(--txt)}
+.C .starsC{position:absolute;inset:0;background:radial-gradient(1.4px 1.4px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 30% 50%,#fff,transparent),radial-gradient(1.6px 1.6px at 55% 15%,#fff,transparent),radial-gradient(1px 1px at 70% 40%,#fff,transparent),radial-gradient(1.2px 1.2px at 90% 10%,#fff,transparent);background-size:260px 200px;opacity:.8}
+.C .planetC{position:absolute;left:760px;top:250px;width:620px;height:620px;border-radius:50%;
+  background:radial-gradient(circle at 30% 25%,#ffd27a 0,#ff8a1c 22%,#ff3fa4 52%,#5b1068 78%,#1f0830 100%);box-shadow:0 0 120px #ff3fa477}
+.C .ring{position:absolute;left:640px;top:440px;width:860px;height:170px;border-radius:50%;border:10px solid #ffd9a088;border-top-color:transparent;transform:rotate(-12deg);filter:blur(.5px)}
+.C .ring2{position:absolute;left:680px;top:458px;width:780px;height:134px;border-radius:50%;border:4px solid #33e6ee66;border-top-color:transparent;transform:rotate(-12deg)}
+.C .flare{position:absolute;left:880px;top:220px;width:300px;height:300px;background:radial-gradient(circle,#fff 0,#ffe7b0 6%,transparent 30%);mix-blend-mode:screen}
+.C .flare::after{content:"";position:absolute;left:-150px;top:148px;width:600px;height:3px;background:linear-gradient(90deg,transparent,#fff,transparent)}
+.C .scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,#0000 0 2px,#0000002e 2px 4px);pointer-events:none}
+.C .top{position:absolute;left:0;right:0;top:0;height:44px;display:flex;align-items:center;gap:14px;padding:0 26px}
+.C .top .mark{font-family:"Bungee";font-size:18px;background:linear-gradient(180deg,#fff,#9fb3d6 55%,#fff 56%,#c9b6ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.C .top small{font-family:"Press Start 2P";font-size:9px;color:var(--mut)}
+.C .top .win{margin-left:auto;color:var(--mut);display:flex;gap:16px}
+.C .kick{position:absolute;left:72px;top:92px;font-family:"Press Start 2P";font-size:12px;color:var(--cy);letter-spacing:.1em}
+.C h2{position:absolute;left:68px;top:118px;margin:0;font-family:"Exo 2";font-style:italic;font-weight:900;font-size:80px;line-height:.98;width:720px;letter-spacing:-.01em}
+.C h2 em{background:linear-gradient(90deg,var(--ora),var(--mag));-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:8px}
+.C .sub{position:absolute;left:72px;top:296px;width:560px;color:var(--mut);font-size:18px;margin:0}
+.C .rows{position:absolute;left:68px;top:356px;width:620px;display:grid;gap:10px}
+.C .row{display:grid;grid-template-columns:150px 1fr auto;gap:14px;align-items:center;padding:12px 18px;background:#0f0a2caa;border:1px solid #ffffff1c;border-left:4px solid var(--cy);
+  border-radius:3px;backdrop-filter:blur(4px)}
+.C .k{font-family:"Press Start 2P";font-size:10px;color:var(--cy);letter-spacing:.06em;line-height:1.5}
+.C .v{font-size:19px;font-weight:600;line-height:1.2}
+.C .v small{display:block;font-size:13px;color:var(--mut);font-weight:400}
+.C .badge{display:inline-block;font-size:11px;font-weight:800;color:var(--deep);background:var(--cy);border-radius:2px;padding:1px 6px;margin-left:6px;vertical-align:3px;letter-spacing:.08em}
+.C .go{font-weight:800;color:var(--ora);font-size:16px;letter-spacing:.06em}
+.C .logo{position:absolute;left:800px;top:70px;width:420px;text-align:center}
+.C .logo .w1,.C .logo .w2{display:block;font-family:"Bungee";line-height:.95;
+  background:linear-gradient(180deg,#ffffff 0%,#dfe8ff 40%,#6f7fa8 50%,#ffffff 52%,#ffc0e6 80%,#ff7cc4 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 0 #3b1470) drop-shadow(0 0 18px #ff3fa488)}
+.C .logo .w1{font-size:46px;letter-spacing:.12em}.C .logo .w2{font-size:84px}
+.C .logo .tg{display:block;margin-top:12px;font-family:"Press Start 2P";font-size:11px;color:var(--cy);letter-spacing:.14em}
+.C .play{position:absolute;left:880px;top:586px;width:330px;height:92px;transform:skewX(-14deg);overflow:hidden;
+  background:linear-gradient(180deg,#ffd36a,var(--ora) 48%,#ff5a1c 52%,var(--mag));border:2px solid #fff;box-shadow:0 0 0 3px #3b1470,0 0 40px #ff3fa4aa}
+.C .play span{position:absolute;inset:0;display:grid;place-items:center;transform:skewX(14deg);font-family:"Bungee";font-size:44px;color:#fff;text-shadow:0 3px 0 #9b1060;letter-spacing:.1em}
+.C .play::after{content:"";position:absolute;top:0;bottom:0;width:60px;left:-80px;background:linear-gradient(90deg,transparent,#ffffffcc,transparent);animation:sheen 3s ease-in-out infinite}
+@keyframes sheen{60%,100%{left:400px}}
+.C .foot{position:absolute;left:72px;bottom:34px;display:flex;gap:26px;font-weight:600;font-size:16px;color:var(--txt)}
+.C .foot span{border-bottom:2px solid var(--mag);padding-bottom:2px}
+.C .hint{position:absolute;left:600px;bottom:36px;font-family:"Press Start 2P";font-size:9px;color:var(--mut)}
+
+@media (prefers-reduced-motion:reduce){.stage *{animation:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Launcher design session</h1>
+  <p>Three directions for the Home screen, drawn with original shapes and open-licence fonts only. Pick a working name below and every mockup updates. All art is CSS and SVG made for this page; no game graphics.</p>
+</header>
+
+<section class="names" aria-labelledby="nh">
+  <h2 id="nh">1 · Pick a name</h2>
+  <div class="chips" id="chips"></div>
+  <p class="note">All names still need a trademark search before release. The game title only appears as plain text that says which ROM you need.</p>
+</section>
+
+<!-- ======== A ======== -->
+<section class="dir">
+  <div><div class="kicker">DIRECTION A</div><h2>Splash Page</h2>
+  <p class="blurb">The cover of a 1993 comic: ink outlines, halftone dots, tilted panels, a KA-BLAM burst for PLAY. Loud and friendly.</p></div>
+  <div class="frame"><div class="stage A">
+    <div class="rays"></div><div class="dots"></div>
+    <div class="top"><span class="nm-full">HULL BREACH</span><small>launcher 0.1.0</small><div class="win"><span>⚙</span><span>—</span><span>✕</span></div></div>
+    <div class="cap">CART'S IN · ROM VERIFIED</div>
+    <h2>Fists up,<br><em>player one!</em></h2>
+    <div class="rows">
+      <div class="row"><div class="k">YOUR GAME</div><div class="v">NES ROM, USA <span class="badge">VERIFIED</span><small>Battletoads &amp; Double Dragon (USA).nes · SHA-1 ok</small></div><div class="go">CHANGE</div></div>
+      <div class="row"><div class="k">YOUR BUILD</div><div class="v">Native build 0.1.0<small>94% recompiled · cache ready · built 24 Nov 2026</small></div><div class="go">REBUILD</div></div>
+      <div class="row"><div class="k">ONLINE</div><div class="v">2-player ready<small>UPnP open · host or paste a join code</small></div><div class="go">HOST</div></div>
+    </div>
+    <svg class="emblem" viewBox="0 0 330 330" aria-hidden="true">
+      <circle cx="165" cy="165" r="150" fill="#16c2ff" stroke="#0b0b14" stroke-width="8"/>
+      <ellipse cx="165" cy="170" rx="160" ry="42" fill="none" stroke="#0b0b14" stroke-width="16" transform="rotate(-18 165 170)"/>
+      <ellipse cx="165" cy="170" rx="160" ry="42" fill="none" stroke="#ff2d86" stroke-width="8" transform="rotate(-18 165 170)"/>
+      <path d="M165 15 A150 150 0 0 1 165 315" fill="#0b0b1422"/>
+      <polygon points="190,30 120,175 165,175 135,300 225,140 178,140 215,30" fill="#ffd21f" stroke="#0b0b14" stroke-width="8" stroke-linejoin="round"/>
+      <circle cx="95" cy="95" r="10" fill="#fff8e7"/><circle cx="250" cy="230" r="6" fill="#fff8e7"/>
+    </svg>
+    <div class="logo"><span class="w1 nm1">HULL</span><span class="w2 nm2">BREACH</span><span class="tg tag">Your cartridge. Our engine.</span></div>
+    <div class="play"><span>PLAY!</span></div>
+    <div class="foot"><span>SETTINGS</span><span>CONTROLS</span><span>LOGS</span><span>ABOUT</span></div>
+    <div class="hint"><kbd>A</kbd> / <kbd>ENTER</kbd> play</div>
+  </div></div>
+  <div class="spec">
+    <div><h3>Palette</h3><div class="sw"><i style="background:#16206b"></i><i style="background:#ffd21f"></i><i style="background:#ff2d86"></i><i style="background:#16c2ff"></i><i style="background:#fff8e7"></i><i style="background:#0b0b14"></i></div></div>
+    <div><h3>Type</h3><p>Bangers (display) · Barlow Condensed (labels) · Barlow (body). All OFL.</p></div>
+    <div><h3>Shapes &amp; backdrop</h3><p>Hard 3px ink borders, offset black shadows, tilted panels, halftone field, slow sun-ray spin, ringed planet split by a bolt.</p></div>
+    <div><h3>Motion</h3><p>PLAY burst bounces; panels slam in with a 2° overshoot; page turns between screens.</p></div>
+  </div>
+</section>
+
+<!-- ======== B ======== -->
+<section class="dir">
+  <div><div class="kicker">DIRECTION B</div><h2>Bulkhead</h2>
+  <p class="blurb">The ready room of a battered space ship: riveted plates, hazard stripes, stencil type, green phosphor readouts, a porthole with the ship drifting past.</p></div>
+  <div class="frame"><div class="stage B">
+    <div class="grime"></div>
+    <div class="top"><span class="mark nm-full">HULL BREACH</span><small>LAUNCHER 0.1.0</small><div class="win"><span>[CFG]</span><span>[_]</span><span>[X]</span></div></div>
+    <div class="topstripe haz"></div>
+    <div class="status">ALL SYSTEMS GREEN</div>
+    <h2>Hatch open.<br><em>Suit up, pilot.</em></h2>
+    <p class="sub">Your ROM checks out and your build is current. Esc in game opens settings.</p>
+    <div class="rows">
+      <div class="row"><span class="led"></span><div class="k">YOUR GAME</div><div class="v">NES ROM, USA · verified<small>Battletoads &amp; Double Dragon (USA).nes  SHA-1 OK</small></div><div class="go">[CHANGE]</div></div>
+      <div class="row"><span class="led"></span><div class="k">YOUR BUILD</div><div class="v">Native build 0.1.0<small>94% NATIVE · CACHE READY · 24.11.2026</small></div><div class="go">[REBUILD]</div></div>
+      <div class="row"><span class="led am"></span><div class="k">ONLINE</div><div class="v">UPnP port open<small>HOST OR PASTE A JOIN CODE</small></div><div class="go">[HOST]</div></div>
+    </div>
+    <div class="port"><div class="glass"><div class="stars"></div><div class="planet"></div><div class="hull"></div><div class="glare"></div></div>
+      <i class="bolt" style="left:163px;top:4px"></i><i class="bolt" style="left:163px;top:322px"></i><i class="bolt" style="left:4px;top:163px"></i><i class="bolt" style="left:322px;top:163px"></i>
+      <i class="bolt" style="left:47px;top:47px"></i><i class="bolt" style="left:279px;top:47px"></i><i class="bolt" style="left:47px;top:279px"></i><i class="bolt" style="left:279px;top:279px"></i></div>
+    <div class="logo"><div class="w nm-full">HULL BREACH</div><div class="tg tag">Your cartridge. Our engine.</div></div>
+    <div class="playwrap haz"><div class="play">PLAY</div></div>
+    <div class="foot"><span>SETTINGS</span><span>CONTROLS</span><span>LOGS</span><span>ABOUT</span></div>
+    <div class="hint">A / ENTER = PLAY</div>
+    <div class="botstripe haz"></div>
+  </div></div>
+  <div class="spec">
+    <div><h3>Palette</h3><div class="sw"><i style="background:#1a1f26"></i><i style="background:#2f3742"></i><i style="background:#f2b90f"></i><i style="background:#e3412a"></i><i style="background:#7dff8f"></i><i style="background:#d9dde3"></i></div></div>
+    <div><h3>Type</h3><p>Black Ops One (stencil display) · Chakra Petch (body) · VT323 (readouts). All OFL.</p></div>
+    <div><h3>Shapes &amp; backdrop</h3><p>Plate grid, rivets, hazard tape on edges, status LEDs per row, porthole with drifting stars, a planet and a passing hull.</p></div>
+    <div><h3>Motion</h3><p>LEDs blink, PLAY breathes red; screens slide like a bulkhead door with a short clank sound.</p></div>
+  </div>
+</section>
+
+<!-- ======== C ======== -->
+<section class="dir">
+  <div><div class="kicker">DIRECTION C</div><h2>Airbrush Orbit</h2>
+  <p class="blurb">Box-art painting at sunset in orbit: a huge airbrushed ringed planet, lens flare, chrome logo, 8-bit captions, faint CRT scanlines.</p></div>
+  <div class="frame"><div class="stage C">
+    <div class="starsC"></div><div class="planetC"></div><div class="ring"></div><div class="ring2"></div><div class="flare"></div>
+    <div class="top"><span class="mark nm-full">HULL BREACH</span><small>v0.1.0</small><div class="win"><span>⚙</span><span>—</span><span>✕</span></div></div>
+    <div class="kick">▶ READY FOR LAUNCH</div>
+    <h2>Your ship<br>is <em>fueled up.</em></h2>
+    <p class="sub">Your ROM checks out and your build is current. Esc in game for display, sound and controls.</p>
+    <div class="rows">
+      <div class="row"><div class="k">YOUR GAME</div><div class="v">NES ROM, USA <span class="badge">VERIFIED</span><small>Battletoads &amp; Double Dragon (USA).nes · SHA-1 ok</small></div><div class="go">Change ›</div></div>
+      <div class="row"><div class="k">YOUR BUILD</div><div class="v">Native build 0.1.0<small>94% recompiled · cache ready · 24 Nov 2026</small></div><div class="go">Rebuild ›</div></div>
+      <div class="row"><div class="k">ONLINE</div><div class="v">2-player ready<small>UPnP open · host or paste a join code</small></div><div class="go">Host ›</div></div>
+    </div>
+    <div class="logo"><span class="w1 nm1">HULL</span><span class="w2 nm2">BREACH</span><span class="tg tag">Your cartridge. Our engine.</span></div>
+    <div class="play"><span>PLAY</span></div>
+    <div class="foot"><span>Settings</span><span>Controls</span><span>Logs</span><span>About</span></div>
+    <div class="hint">A / ENTER  PLAY</div>
+    <div class="scan"></div>
+  </div></div>
+  <div class="spec">
+    <div><h3>Palette</h3><div class="sw"><i style="background:#0f0a2c"></i><i style="background:#3b1470"></i><i style="background:#ff3fa4"></i><i style="background:#ff8a1c"></i><i style="background:#33e6ee"></i><i style="background:#f3ecff"></i></div></div>
+    <div><h3>Type</h3><p>Bungee (chrome logo) · Exo 2 (headings, body) · Press Start 2P (small captions). All OFL.</p></div>
+    <div><h3>Shapes &amp; backdrop</h3><p>Slanted chrome buttons, glassy rows with a cyan edge, airbrushed planet and rings, lens flare, CRT scanline overlay.</p></div>
+    <div><h3>Motion</h3><p>Chrome sheen sweeps across PLAY; the planet slowly turns; screens cross-fade with a scanline wipe.</p></div>
+  </div>
+</section>
+</div>
+
+<script>
+const NAMES=[
+  ["HULL","BREACH","Your cartridge. Our engine."],
+  ["KNUCKLE","DRIVE","Your ROM. Our engine. Two fists."],
+  ["SLAM","ORBIT","Bring the cart. We bring the rocket."],
+  ["HARD","DOCK","Dock your ROM. Launch the brawl."],
+  ["RIVET","RIOT","Your ROM, our engine, bolted together."]];
+const chips=document.getElementById('chips');
+function pick(i){
+  const [a,b,t]=NAMES[i];
+  document.querySelectorAll('.nm1').forEach(e=>e.textContent=a);
+  document.querySelectorAll('.nm2').forEach(e=>e.textContent=b);
+  document.querySelectorAll('.nm-full').forEach(e=>e.textContent=a+' '+b);
+  document.querySelectorAll('.tag').forEach(e=>e.textContent=t);
+  chips.querySelectorAll('.chip').forEach((c,j)=>c.setAttribute('aria-pressed',j===i));
+  try{localStorage.setItem('nm',i)}catch(e){}
+}
+NAMES.forEach((n,i)=>{const b=document.createElement('button');b.className='chip';b.id='chip'+i;b.type='button';
+  b.innerHTML='<b>'+n[0]+' '+n[1]+'</b><span>'+n[2]+'</span>';b.onclick=()=>pick(i);chips.appendChild(b)});
+let s=0;try{s=+localStorage.getItem('nm')||0}catch(e){}
+pick(s);
+const fit=()=>document.querySelectorAll('.frame').forEach(f=>{f.querySelector('.stage').style.transform='scale('+(f.clientWidth/1280)+')'});
+new ResizeObserver(fit).observe(document.body);fit();
+</script>
