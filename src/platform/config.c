@@ -28,6 +28,7 @@ void config_defaults(Config *c)
     c->ff_speed = 4;
     c->net_port = 7845;
     c->net_delay = 1;
+    snprintf(c->net_stun, sizeof c->net_stun, "stun.l.google.com:19302");
     memcpy(c->keys[0], p1, sizeof p1);
     memcpy(c->keys[1], p2, sizeof p2);
 }
@@ -79,6 +80,8 @@ static void apply(Config *c, const char *key, const char *val)
         c->net_port = SDL_clamp(atoi(val), 1, 65535);
     else if (!strcmp(key, "net_delay"))
         c->net_delay = SDL_clamp(atoi(val), 0, 3);
+    else if (!strcmp(key, "net_stun"))
+        snprintf(c->net_stun, sizeof c->net_stun, "%s", val);
     else if (!strcmp(key, "net_join"))
         snprintf(c->net_join, sizeof c->net_join, "%s", val);
     else if (!strcmp(key, "ff_speed"))
@@ -131,6 +134,8 @@ static int write_file(const Config *c, const char *path)
     fprintf(f, "rewind_seconds = %d\nff_speed = %d\n", c->rewind_seconds, c->ff_speed);
     fprintf(f, "# online 2-player (docs/M13_NETPLAY.md): host on net_port (forward it on your router), join net_join\n");
     fprintf(f, "net_port = %d\nnet_delay = %d\nnet_join = %s\n", c->net_port, c->net_delay, c->net_join);
+    fprintf(f, "# net_stun: STUN server used to make join codes (it sees your public IP; empty = off)\n");
+    fprintf(f, "net_stun = %s\n", c->net_stun);
     mods_write_settings(f);
     for (p = 0; p < 2; p++)
         for (b = 0; b < BTN_COUNT; b++)

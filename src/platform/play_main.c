@@ -29,6 +29,8 @@
 #include "net/netplay.h"
 #include "platform/menu.h"
 #include "platform/udp.h"
+#include "platform/upnp.h"
+#include "net/joincode.h"
 #include "platform/png.h"
 #include "platform/rewind.h"
 #include "platform/screen.h"
@@ -548,16 +550,95 @@ static void net_stop(void)
     udp_close(net_udp);
     net_udp = NULL;
     net_on = 0;
+    upnp_unmap(); /* close the router port we opened, if any */
 }
 
-/* host = 1: listen on cfg->net_port (2: on 127.0.0.1 only); host = 0: join `addr` */
-static int net_start(int host, const char *addr, const Config *cfg, const char *sha1_hex, char *msg, size_t len)
+/* Connection helpers that run every frame until connected: STUN (our public endpoint -> our join code), punching
+ * towards the other side's endpoints, and plain-language help when nothing answers. */
+static char net_code[JOINCODE_LEN];   /* our join code, once known */
+static char net_upnp[160];            /* UPnP result line */
+static char net_upnp_ip[40];
+static int net_mode;                  /* 0 direct join, 1 host, 2 loopback host (tests), 3 join by code */
+static Uint64 net_started_ns;
+static int net_help_shown;
+
+static void net_make_code(const Config *cfg)
 {
-    char summary[NET_SUMMARY];
+    JoinEndpoints e;
+    uint32_t ip = 0;
+    uint16_t port = 0;
+    memset(&e, 0, sizeof e);
+    if (udp_local_endpoint(net_udp, &e.local_ip, &e.local_port) != 0)
+        return;
+    if (udp_stun_result(net_udp, &ip, &port)) {
+        e.public_ip = ip;
+        e.public_port = port;
+    } else if (net_upnp_ip[0] && SDL_GetTicksNS() - net_started_ns > 3000000000ull) { /* STUN silent: UPnP's */
+        unsigned a, b, c2, d;
+        if (sscanf(net_upnp_ip, "%u.%u.%u.%u", &a, &b, &c2, &d) == 4)
+            e.public_ip = a << 24 | b << 16 | c2 << 8 | d;
+        e.public_port = (uint16_t)cfg->net_port;
+    } else if (SDL_GetTicksNS() - net_started_ns < 4000000000ull) {
+        return; /* wait a little for STUN */
+    }
+    joincode_encode(&e, net_code);
+    SDL_SetClipboardText(net_code);
+    SDL_Log("netplay: our join code %s (copied to the clipboard)%s", net_code,
+            e.public_ip ? "" : "; no public address found: only works on the same network");
+}
+
+static void net_conn_tick(const Config *cfg)
+{
+    if (!net_on || !net_udp)
+        return;
+    udp_stun_poll(net_udp);
+    if (!udp_peer_known(net_udp))
+        udp_punch(net_udp);
+    if (!net_code[0] && net_mode != 0 && net_mode != 2)
+        net_make_code(cfg);
+    if (net.state == NET_HANDSHAKE && !net_help_shown && SDL_GetTicksNS() - net_started_ns > 20000000000ull) {
+        net_help_shown = 1;
+        if (net.local == 1)
+            snprintf(net.message, sizeof net.message,
+                     "no answer from the host yet: ask them to paste YOUR join code (Online menu), or use Tailscale /"
+                     " ZeroTier, or forward UDP port %d on their router", cfg->net_port);
+        else
+            snprintf(net.message, sizeof net.message,
+                     "nobody connected yet: send your join code to player 2 (and paste theirs if they send one back)");
+    }
+}
+
+/* mode 1: host on cfg->net_port (UPnP + join code), 2: host on 127.0.0.1 only (tests), 0: join the address `addr`,
+ * 3: join with the join code `addr` */
+static int net_start(int mode, const char *addr, const Config *cfg, const char *sha1_hex, char *msg, size_t len)
+{
+    char summary[NET_SUMMARY], err[160];
+    JoinEndpoints e = {0};
+    int host = mode == 1 || mode == 2;
     net_stop();
-    net_udp = host ? udp_host(cfg->net_port, host == 2, msg, len) : udp_join(addr, cfg->net_port, msg, len);
+    net_code[0] = 0;
+    net_upnp[0] = net_upnp_ip[0] = 0;
+    net_help_shown = 0;
+    if (mode == 3 && joincode_decode(addr, &e) != 0) {
+        snprintf(msg, len, "that is not a join code (they look like BT1-XXXXX-XXXXX-XXXXX-XXXXXX)");
+        return -1;
+    }
+    if (host)
+        net_udp = udp_host(cfg->net_port, mode == 2, msg, len);
+    else if (mode == 3)
+        net_udp = udp_open(0, 0, msg, len);
+    else
+        net_udp = udp_join(addr, cfg->net_port, msg, len);
     if (!net_udp)
         return -1;
+    if (mode == 3) {
+        udp_add_candidate(net_udp, e.public_ip, e.public_port);
+        udp_add_candidate(net_udp, e.local_ip, e.local_port);
+    }
+    if (mode == 1) /* ask the router to forward our port (often off; then the join code / a VPN) */
+        upnp_map(cfg->net_port, net_upnp_ip, sizeof net_upnp_ip, net_upnp, sizeof net_upnp);
+    if ((mode == 1 || mode == 3) && cfg->net_stun[0] && udp_stun_start(net_udp, cfg->net_stun, err, sizeof err) != 0)
+        SDL_Log("netplay: %s", err);
     power_on(cfg->ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD); /* both sides start from power-on */
     net_summary(cfg, sha1_hex, summary, sizeof summary);
     if (net_init(&net, &nes, host ? 0 : 1, cfg->net_delay, summary, udp_transport(net_udp), net_frame, net_confirmed,
@@ -567,12 +648,31 @@ static int net_start(int host, const char *addr, const Config *cfg, const char *
         return -1;
     }
     net_on = 1;
+    net_mode = mode;
+    net_started_ns = SDL_GetTicksNS();
     net_last_msg[0] = 0;
     if (host)
-        snprintf(msg, len, "hosting on UDP port %d: waiting for player 2", cfg->net_port);
+        snprintf(msg, len, "hosting on UDP port %d: %s", cfg->net_port,
+                 net_upnp[0] ? net_upnp : "waiting for player 2");
+    else if (mode == 3)
+        snprintf(msg, len, "trying the join code...");
     else
         snprintf(msg, len, "joining %s ...", addr);
     SDL_Log("netplay: %s (%s)", msg, summary);
+    return 0;
+}
+
+/* the host pastes player 2's code: also send towards them (punching through the host's own NAT) */
+static int net_add_peer_code(const char *code, char *msg, size_t len)
+{
+    JoinEndpoints e;
+    if (!net_on || joincode_decode(code, &e) != 0) {
+        snprintf(msg, len, "that is not a join code");
+        return -1;
+    }
+    udp_add_candidate(net_udp, e.public_ip, e.public_port);
+    udp_add_candidate(net_udp, e.local_ip, e.local_port);
+    snprintf(msg, len, "trying player 2's join code...");
     return 0;
 }
 
@@ -585,7 +685,8 @@ enum {
 enum {
     ID_RESUME = 1, ID_RESET, ID_POWER, ID_QUIT, ID_SLOT, ID_SAVE, ID_LOAD, ID_SCALE, ID_FULLSCREEN, ID_ASPECT,
     ID_FILTER, ID_SCANLINES, ID_VIDEO, ID_SHADER, ID_VOLUME, ID_REBIND_ALL, ID_REWIND, ID_FF, ID_BACK,
-    ID_NET_HOST, ID_NET_ADDR, ID_NET_JOIN, ID_NET_DELAY, ID_NET_LEAVE, ID_NET_RESYNC,
+    ID_NET_HOST, ID_NET_ADDR, ID_NET_JOIN, ID_NET_DELAY, ID_NET_LEAVE, ID_NET_RESYNC, ID_NET_JOINCODE,
+    ID_NET_COPY, ID_NET_PEERCODE,
     ID_KEY_BASE = 100, /* + player * BTN_COUNT + button */
     ID_MOD_BASE = 200, /* + mod index */
 };
@@ -695,21 +796,31 @@ static void build_page(Menu *m, PlayCtx *c)
         if (net_on) {
             net_status(&net, h, sizeof h);
             menu_add(m, ITEM_INFO, 0, h, "", "");
+            if (net_upnp[0])
+                menu_add(m, ITEM_INFO, 0, net_upnp, "", "");
+            if (net.state == NET_HANDSHAKE && net_code[0]) {
+                menu_add(m, ITEM_INFO, 0, net_code, "", "");
+                menu_add(m, ITEM_ACTION, ID_NET_COPY, "Copy my join code", "", "send it to the other player");
+                if (net.local == 0)
+                    menu_add(m, ITEM_ACTION, ID_NET_PEERCODE, "Paste player 2's code", "",
+                             "if they sent theirs back (strict routers)");
+            }
             if (net.state == NET_DESYNC && net.local == 0)
                 menu_add(m, ITEM_ACTION, ID_NET_RESYNC, "Resync", "", "send your game to player 2; both continue");
             menu_add(m, ITEM_ACTION, ID_NET_LEAVE, "Leave online game", "", "back to playing alone");
         } else {
             snprintf(v, sizeof v, "port %d", c->cfg->net_port);
-            menu_add(m, ITEM_ACTION, ID_NET_HOST, "Host game", v, "you are player 1; forward this UDP port");
+            menu_add(m, ITEM_ACTION, ID_NET_HOST, "Host game", v, "you are player 1: send your join code");
+            menu_add(m, ITEM_ACTION, ID_NET_JOINCODE, "Join with code", "", "paste the host's join code (clipboard)");
             menu_add(m, ITEM_CHOICE, ID_NET_ADDR, "Address", c->text_edit ? "type, Enter" : c->cfg->net_join,
                      c->text_edit ? "IP or IP:port, then Enter" : "Enter to type the host's IP:port");
             menu_add(m, ITEM_ACTION, ID_NET_JOIN, "Join game", "", "you are player 2");
         }
         snprintf(v, sizeof v, "%d", c->cfg->net_delay);
         menu_add(m, ITEM_CHOICE, ID_NET_DELAY, "Input delay", v, "frames; 1-2 for most connections");
-        menu_add(m, ITEM_INFO, 0, "Host: forward the UDP port on", "", "");
-        menu_add(m, ITEM_INFO, 0, "your router, or use a VPN", "", "");
-        menu_add(m, ITEM_INFO, 0, "(Tailscale, ZeroTier).", "", "");
+        menu_add(m, ITEM_INFO, 0, "No port forwarding needed: the", "", "");
+        menu_add(m, ITEM_INFO, 0, "game tries UPnP and join codes", "", "");
+        menu_add(m, ITEM_INFO, 0, "(a STUN server sees your IP).", "", "");
         add_back(m);
         break;
     case PG_GAMEPLAY:
@@ -919,14 +1030,33 @@ static void menu_apply(PlayCtx *c, MenuEvent ev, int id, int dir)
         c->dirty = 1;
         break;
     }
+    case ID_NET_JOINCODE:
     case ID_NET_HOST:
-    case ID_NET_JOIN:
-        if (net_start(id == ID_NET_HOST, cfg->net_join, cfg, c->hash, c->status, sizeof c->status) == 0) {
+    case ID_NET_JOIN: {
+        char *clip = id == ID_NET_JOINCODE ? SDL_GetClipboardText() : NULL;
+        int r = net_start(id == ID_NET_HOST ? 1 : id == ID_NET_JOINCODE ? 3 : 0, clip ? clip : cfg->net_join, cfg,
+                          c->hash, c->status, sizeof c->status);
+        SDL_free(clip);
+        if (r == 0) {
             c->dirty = 1;
             menu_leave(c);
         }
         say(c->status);
         break;
+    }
+    case ID_NET_COPY:
+        if (net_code[0]) {
+            SDL_SetClipboardText(net_code);
+            say("join code copied");
+        }
+        break;
+    case ID_NET_PEERCODE: {
+        char *clip = SDL_GetClipboardText();
+        net_add_peer_code(clip ? clip : "", c->status, sizeof c->status);
+        SDL_free(clip);
+        say(c->status);
+        break;
+    }
     case ID_NET_ADDR:
         c->text_edit = 1;
         SDL_StartTextInput(c->video->win);
@@ -1113,6 +1243,9 @@ int main(int argc, char **argv)
             net_cli = 3;
             if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9')
                 cfg.net_port = arg_int(argv[++i], 1, 65535);
+        } else if (!strcmp(argv[i], "--join-code") && i + 1 < argc) { /* join with a join code */
+            net_cli = 4;
+            snprintf(cfg.net_join, sizeof cfg.net_join, "%s", argv[++i]);
         } else if (!strcmp(argv[i], "--join") && i + 1 < argc) {
             net_cli = 2;
             snprintf(cfg.net_join, sizeof cfg.net_join, "%s", argv[++i]);
@@ -1237,7 +1370,8 @@ int main(int argc, char **argv)
     rewind_record(0);
     net_audio = audio;
     if (net_cli) {
-        if (net_start(net_cli == 1 ? 1 : net_cli == 3 ? 2 : 0, cfg.net_join, &cfg, hash, msg, sizeof msg) != 0)
+        if (net_start(net_cli == 1 ? 1 : net_cli == 3 ? 2 : net_cli == 4 ? 3 : 0, cfg.net_join, &cfg, hash, msg,
+                      sizeof msg) != 0)
             return fail(msg);
         net_dump = dump;
         say(msg);
@@ -1410,6 +1544,7 @@ int main(int argc, char **argv)
                 continue;
             }
             next_tick = (now - next_tick > 100000000u) ? now : next_tick + (Uint64)(1e9 / FRAME_HZ);
+            net_conn_tick(&cfg);
             {
                 int l = net.local;
                 uint8_t pad = movie.frames ? (net.have[l] < (uint32_t)movie.count ? movie.frames[net.have[l]].pad[l] : 0)

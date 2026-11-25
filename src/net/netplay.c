@@ -395,6 +395,8 @@ static void receive(NetSession *s)
                 snprintf(s->message, sizeof s->message, "resynced at frame %lu", (unsigned long)s->rs_frame);
             }
             break;
+        case 9: /* punch packet (hole punching, src/platform/udp.c): nothing to do */
+            break;
         default:
             s->stats.bad_packets++;
             break;
