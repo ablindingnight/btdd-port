@@ -264,8 +264,9 @@ int main(int argc, char **argv)
            link.ping, link.jitter, link.loss, (unsigned long long)link.lost, link.dup, (unsigned long long)link.dupd,
            delay, ticks, frames);
     if (desync_at >= 0)
-        printf("desync injected at guest frame %ld; detected and resynced at frame %ld (host resyncs %u, guest %u)\n",
-               desync_at, resync_frame, peer[0].s.stats.resyncs, peer[1].s.stats.resyncs);
+        printf("desync injected at guest frame %ld (%d time(s)); detected and resynced at frame %ld "
+               "(host resyncs %u, guest %u)\n",
+               desync_at, desyncs_injected, resync_frame, peer[0].s.stats.resyncs, peer[1].s.stats.resyncs);
     k = !peer[0].bad && !peer[1].bad && peer[0].s.stats.desync_frame < 0 && peer[1].s.stats.desync_frame < 0 &&
         (desync_at < 0 || (resync_frame > 0 && peer[1].s.stats.resyncs > 0));
     printf("%s\n", k ? "PASS" : "FAIL");
