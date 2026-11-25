@@ -283,4 +283,29 @@ if(BTDD_SDL)
         target_link_libraries(btdd_play PRIVATE btdd_mods)
         target_compile_definitions(btdd_play PRIVATE BTDD_HAVE_MODS)
     endif()
+
+    # M11: the Knuckle Drive launcher (docs/LAUNCHER.md, docs/LAUNCHER_STYLE.md). Shares btdd.cfg with btdd_play
+    # through src/platform/config.c; fonts (SIL OFL) are copied next to the exe.
+    add_executable(btdd_launcher WIN32
+        src/launcher/launcher_main.c src/launcher/app.c src/launcher/screens.c src/launcher/theme.c
+        src/launcher/kit.c src/launcher/stb_impl.c src/launcher/unzip.c
+        src/platform/config.c src/platform/video.c src/platform/gpu.c)
+    set_target_properties(btdd_launcher PROPERTIES OUTPUT_NAME KnuckleDrive)
+    target_include_directories(btdd_launcher PRIVATE src src/launcher third_party/stb)
+    target_link_libraries(btdd_launcher PRIVATE btdd_screen btdd_mods SDL3::SDL3-static)
+    execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                    OUTPUT_VARIABLE BTDD_GIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    target_compile_definitions(btdd_launcher PRIVATE "BTDD_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\"")
+    if(BTDD_GIT_HASH)
+        target_compile_definitions(btdd_launcher PRIVATE "BTDD_GIT_HASH=\"${BTDD_GIT_HASH}\"")
+    endif()
+    btdd_warnings(btdd_launcher)
+    # third-party single header: its own warnings are not ours
+    if(MSVC)
+        set_source_files_properties(src/launcher/stb_impl.c PROPERTIES COMPILE_OPTIONS "/w")
+    else()
+        set_source_files_properties(src/launcher/stb_impl.c PROPERTIES COMPILE_OPTIONS "-w")
+    endif()
+    add_custom_command(TARGET btdd_launcher POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/res/fonts" "$<TARGET_FILE_DIR:btdd_launcher>/fonts")
 endif()

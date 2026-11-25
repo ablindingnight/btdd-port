@@ -56,3 +56,22 @@ green on the user's request, Home headline "Two Brothers, Three Toads... Zero Me
 `docs/design/README_DRAFT.md` (release README). Placeholder screenshots `docs/images/launcher-*.png` come from the
 mockup page (`#only-<screen>`) until `--ui-shot` exists. Open items: trademark search for the name; the remaining
 icons (list in the style sheet); an 8x8 font for the in-game menu; app icon sizes.
+
+## Built (2026-11-24, branch m11-launcher)
+`KnuckleDrive.exe` (CMake target `btdd_launcher`, `src/launcher/`), SDL3 + stb_truetype, no Windows-only code:
+- `kit.c` drawing kit (shapes and TTF text through SDL_RenderGeometry, a transform stack for tilted pieces; text is
+  rasterized at the window's pixel scale so it stays sharp), `theme.c` the Knuckle Drive pieces (backdrop, rocket
+  fist, logo, PLAY burst, icons, stickers, stamps), `screens.c` the 12 screens (immediate-mode focus: keyboard,
+  mouse and gamepad), `app.c` state, the first-run worker, game runs and logs.
+- Settings are `btdd.cfg` through `src/platform/config.c` (same file and rules as btdd_play); launcher-only state is
+  `launcher.ini` next to it (`first_run_sha1`). Logs: `<settings folder>/logs/` (`firstrun-*.log`, `run-*.log`; each
+  run's output is appended with `# what / # took / # result` lines). Save report: `<settings folder>/reports/`, with the
+  user profile path and user name replaced.
+- First run: pick (dialog or drag and drop) -> verify (`rom_load`) -> compile (`btdd_jit ROM --frames 1` when it is
+  next to the launcher; skipped otherwise) -> self-check (`btdd_headless` and `btdd_jit` 600 frames, RAM dumps must be
+  equal) -> enhance (skipped until M10) -> ready. PLAY starts `btdd_play ROM`; Online starts it with `--host`,
+  `--join-code` or `--join`.
+- `--ui-shot <screen> out.png [w h] [--demo]`, `--launch-game`, `--selftest` (the checklist without a window, prints
+  each step; exit 0 when ready). The window opens at up to 2x the 1280x720 design (85% of the desktop).
+- Not yet: the in-game menu restyle (btdd_play still draws the old overlay), per-channel mute, sprite packs, zip ROMs,
+  a packaged release folder.
