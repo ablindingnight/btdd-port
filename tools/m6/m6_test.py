@@ -81,9 +81,15 @@ def write_names(path, exclude=()):
         f.write('\n'.join(lines) + '\n')
 
 
-def corpus_files(bank, addr, dirs):
+def corpus_dirs():
+    """Every corpus source: one folder per movie or snapshot set under Gamefiles/Movies/m6/corpus."""
+    base = os.path.join(M6, 'corpus')
+    return sorted(os.path.join(base, d) for d in os.listdir(base) if os.path.isdir(os.path.join(base, d)))
+
+
+def corpus_files(bank, addr, dirs=None):
     out = []
-    for d in dirs:
+    for d in dirs or corpus_dirs():
         p = os.path.join(d, 'b%d_%04x.m6c' % (bank, addr))
         if os.path.isfile(p) and os.path.getsize(p) > 12:  # 12 = header only: the routine never ran in that movie
             out.append(p)
@@ -184,21 +190,26 @@ def build(candidate, work, callees=None, bank=None):
     return exe, ''
 
 
-def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000, show=None, callees=None):
-    """-> (code, message). code 0 pass, 1 mismatch, 2 setup, 3 compile error."""
-    dirs = dirs or [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
+def run_test(bank, addr, candidate, outputs='-', dirs=None, work=None, fuzz=2000, show=None, callees=None,
+             random_only=False):
+    """-> (code, message). code 0 pass, 1 mismatch, 2 setup, 3 compile error.
+    random_only: a routine with no corpus anywhere is tested on random entry states only (>= 200 must finish);
+    the message then starts with 'RANDOM-ONLY'."""
+    dirs = dirs or corpus_dirs()
     work = work or os.path.join(M6, 'work')
     files = corpus_files(bank, addr, dirs)
-    if not files:
+    if not files and not random_only:
         return 2, 'no corpus for bank %d $%04X' % (bank, addr)
     if 'm6_call' in open(candidate, encoding='utf-8', errors='replace').read():
         return 3, 'COMPILE ERROR: the routine must not use m6_call (that runs the original code); call callees by name'
     exe, err = build(candidate, work, callees, bank)
     if not exe:
         return 3, 'COMPILE ERROR: ' + err
-    env = dict(os.environ, M6_FUZZ=str(fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])), M6_TRACE='1')
+    env = dict(os.environ, M6_FUZZ=str(max(fuzz, 2000) if not files else fuzz), M6_SHOW=','.join('%04X' % x for x in (show or [])), M6_TRACE='1')
     out_path = os.path.join(work, 'harness_out.txt')
     with open(out_path, 'w') as out:
+        if not files:
+            env['M6_RANDOM_ONLY'] = '1'
         p = subprocess.Popen([exe, ROM, str(bank), '%04X' % addr, outputs or '-'] + files, stdout=out,
                              stderr=subprocess.STDOUT, text=True, env=env)
         try:

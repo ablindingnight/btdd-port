@@ -216,6 +216,7 @@ static Box exp_box, got_box;
 static int outputs[7];
 static unsigned routine_addr;
 static uint8_t hw_seen[0x10000]; /* hardware addresses the corpus shows this routine touching */
+static int random_only;           /* M6_RANDOM_ONLY=1: no corpus (never runs in any movie or snapshot) */
 
 /* Checks the candidate on smp. Returns 0 pass, 1 mismatch (printed), 2 unusable sample, 3 unreachable random
  * state. */
@@ -237,7 +238,7 @@ static int check(const char *label, int fuzz)
          * in the corpus is one the game does not reach (e.g. a pointer into PPU space, where a page-crossing
          * (ptr),y even adds a 6502 dummy read no C can express): skip it. */
         for (k = 0; k < smp.n_acc; k++)
-            if (!hw_seen[smp.acc[k].addr])
+            if (!hw_seen[smp.acc[k].addr] && !random_only)
                 return 3;
     } else if (run_original(&exp_box, &cpu, (uint16_t)routine_addr) != 0 || exp_box.err[0] ||
                exp_box.pos != smp.n_acc || cpu.a != smp.out_a || cpu.x != smp.out_x || cpu.y != smp.out_y ||
@@ -326,7 +327,8 @@ int main(int argc, char **argv)
     int f, total = 0, passed = 0, unusable = 0, fuzz_n = getenv("M6_FUZZ") ? atoi(getenv("M6_FUZZ")) : 0;
     int fuzz_done = 0, fuzz_skip = 0, fuzz_unreach = 0, k;
     uint8_t first_bank = 0, first_s = 0xFD;
-    if (argc < 6) {
+    random_only = getenv("M6_RANDOM_ONLY") != NULL;
+    if (argc < (random_only ? 5 : 6)) {
         fprintf(stderr, "usage: m6_harness ROM BANK ADDR OUTPUTS corpus.m6c...   (env M6_FUZZ=n, M6_VALIDATE=1)\n");
         return 2;
     }
@@ -415,5 +417,7 @@ int main(int argc, char **argv)
         printf(" + %d/%d random states (%d did not finish, %d touched hardware the routine never touches in play)",
                fuzz_done, fuzz_n, fuzz_skip, fuzz_unreach);
     printf("\n");
+    if (random_only) /* no corpus: random states are the whole test; ask for a fair number of them */
+        return fuzz_done >= 200 ? 0 : 2;
     return passed > 0 ? 0 : 2;
 }

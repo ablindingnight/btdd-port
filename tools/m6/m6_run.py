@@ -32,11 +32,12 @@ TEMPS = [0.2, 0.7, 0.7]
 # 12k thinking budget (llama-server honours `thinking_budget_tokens`; `reasoning_budget` and a template kwarg had
 # no effect in a probe). A try that hits the cap counts as failed and the next one runs with thinking OFF and a
 # shorter prompt (the mechanical C left out): the passing C is usually short.
-MAX_TOKENS = 16000          # first try
-THINK_BUDGET = 12000
+MAX_TOKENS = int(os.environ.get('M6_MAX_TOKENS', 16000))  # first try (M6_MAX_TOKENS/M6_THINK_BUDGET: day-plan retries)
+THINK_BUDGET = int(os.environ.get('M6_THINK_BUDGET', 12000))
 RETRY_MAX_TOKENS = 24000    # retries after a wrong answer: harder routines needed more thinking (a 12k budget lost
 RETRY_THINK_BUDGET = 20000  # two routines that had passed with 14-19k); prompt + 24k stays under the 40k slot limit
 NOTHINK_MAX_TOKENS = 6000
+RANDOM_OK = False  # --random-only: routines with no corpus anywhere are tested on random states only
 SERVER_WAIT = int(os.environ.get('M6_SERVER_WAIT', 1800))  # seconds to wait for a restarting server
 # A/B switches: M6_LEGACY=1 = the night's first setting (32k cap, no thinking budget, no thinking-off fallback);
 # M6_TAG=<name> is written into every log line so m6_stats.py --tag can compare settings.
@@ -140,8 +141,12 @@ def solve(bank, addr, tries, keep_existing=False):
             cand = os.path.join(work, 'try%d.c' % (t + 1))
             with open(cand, 'w', newline='\n') as f:
                 f.write(code)
+            rnd = RANDOM_OK and not m6_test.corpus_files(bank, addr)
             rc, msg = m6_test.run_test(bank, addr, cand, outs or '-', work=work, show=m6_prompt.ram_reads(bank, addr),
-                                       callees=r.get('callees'))
+                                       callees=r.get('callees'), random_only=rnd)
+            if rnd:
+                entry['random_only'] = True
+                msg = 'RANDOM-ONLY (no corpus anywhere) ' + msg
             result = {0: 'pass', 1: 'mismatch', 3: 'compile'}.get(rc, 'setup')
         entry.update({'result': result, 'message': msg[:400]})
         log(entry)
@@ -210,11 +215,15 @@ def main():
     ap.add_argument('--kinds', help='comma list of routine kinds (m6_pick.classify: calls,tail,alt,far,dispatch,'
                     'leaf): every routine of those kinds with a corpus, callees with passing C first, then by calls')
     ap.add_argument('--max-size', type=int, default=256, help='with --kinds: largest routine in bytes')
+    ap.add_argument('--random-only', action='store_true', help='with --kinds: the routines with no corpus anywhere '
+                    '(never run in a movie or snapshot), tested on random entry states only')
     ap.add_argument('--max-series', type=int, help='with --kinds: skip routines already tried in more than N series '
                     '(--max-series 1 retries the ones that failed once)')
     ap.add_argument('--shard', default='0/1', help='i/n: only routines with (bank*0x10000+addr) %% n == i, so n '
                     'processes (one per llama-server slot) never take the same routine')
     a = ap.parse_args()
+    global RANDOM_OK
+    RANDOM_OK = bool(getattr(a, 'random_only', False))
     if a.kinds:
         return kinds_mode(a)
     if a.callgraph and not a.only and not a.list:
@@ -238,7 +247,7 @@ def main():
             continue
         if a.new_only and name in tried_before():
             continue
-        if not m6_test.corpus_files(bank, addr, [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]):
+        if not m6_test.corpus_files(bank, addr):
             continue
         print('%s (bank %d $%04X)' % (name, bank, addr))
         ok, n, tot = safe_solve(bank, addr, a.tries, a.rerun)
@@ -249,20 +258,22 @@ def main():
         callgraph_mode(a)
 
 
-def kinds_ready(kinds, max_size, skip):
+def kinds_ready(kinds, max_size, skip, random_only=False):
     """[(routine, kind, share of callees with passing C, calls)] best first."""
     pick = m6_prompt.m6_pick
     raw = open(m6_test.ROM, 'rb').read()[16:]
     passing = m6_test.passing_keys()  # (bank, start): names repeat across banks
     calls = pick.call_counts()
-    dirs = [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
+    dirs = m6_test.corpus_dirs()
     out = []
     for r in pick.routines():
-        if (r['bank'], r['start']) in passing or r['name'] in skip or r['conf'] != 'verified' or r['end'] - r['start'] + 1 > max_size:
+        if (r['bank'], r['start']) in passing or r['name'] in skip or r['end'] - r['start'] + 1 > max_size or (
+                r['conf'] != 'verified' and not random_only):
             continue
         mem = raw[r['bank'] * 0x8000:(r['bank'] + 1) * 0x8000]
         ok, kind, targets, why = pick.classify(mem, r)
-        if not ok or kind not in kinds or not m6_test.corpus_files(r['bank'], r['start'], dirs):
+        has = bool(m6_test.corpus_files(r['bank'], r['start'], dirs))
+        if not ok or kind not in kinds or has == random_only:  # random_only: exactly the ones with no corpus
             continue
         cs = [ad for nm, ad, how in targets if how in ('call', 'tail')]
         share = sum(1 for ad in cs if (r['bank'], ad) in passing) / len(cs) if cs else 1.0
@@ -279,7 +290,7 @@ def kinds_mode(a):
         skip = tried | (tried_before() if a.new_only else set()) | (
             tried_before(a.max_series) if a.max_series is not None else set())
         si, sn = (int(x) for x in a.shard.split('/'))
-        ready = [x for x in kinds_ready(kinds, a.max_size, skip)
+        ready = [x for x in kinds_ready(kinds, a.max_size, skip, a.random_only)
                  if (x[0]['bank'] * 0x10000 + x[0]['start']) % sn == si]
         if not ready:
             print('no more routines of kinds %s with a corpus' % a.kinds)
@@ -296,7 +307,7 @@ def kinds_mode(a):
 def callgraph_mode(a):
     """Non-leaf routines whose callees all pass, one at a time (the ready set grows as routines pass)."""
     tried, results = set(), []
-    dirs = [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
+    dirs = m6_test.corpus_dirs()
     while len(results) < a.routines:
         passing = set(os.path.splitext(n)[0] for n in os.listdir(PRIVATE)) if os.path.isdir(PRIVATE) else set()
         ready = [(c, r, names) for c, r, names in m6_prompt.m6_pick.callgraph_ready(passing, stubs=a.stub_callees)

@@ -1,6 +1,11 @@
 /* m6_capture: builds the M6 entry-state corpus from a TAS replay on the reference interpreter.
  *
  *   m6_capture ROM --movie X.fm2 [--ppu old|new] --routines list.txt --out DIR [--max N] [--frames N]
+ *   m6_capture ROM --snaps snaps.txt [--snap-frames N] [--seed S] --routines list.txt --out DIR [--max N]
+ *
+ * --snaps: instead of a movie, every snapshot listed (one .snap path per line, from btdd_headless --snap-dir)
+ * is loaded in turn and played for N frames (default 600) with random pads (a random button set held for 4-40
+ * frames, Start rarely), as the coverage explorer does: reaches code the TAS movies never run.
  *
  * list.txt: one routine per line, "bank addr" in hex (e.g. "0 8b5f"). For every entry into a listed routine
  * (its first instruction starts executing in its bank), the registers and RAM are taken, and every hardware access
@@ -10,6 +15,7 @@
  * represented too. Output: DIR/b<bank>_<addr>.m6c (format in m6_corpus.h). ROM-derived: never inside the repo.
  */
 #include "m6_corpus.h"
+#include "cov/snapshot.h"
 #include "nes/nes.h"
 #include "rom/rom.h"
 #include "runtime/fm2.h"
@@ -18,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_ROUTINES 256
+#define MAX_ROUTINES 4096
 #define MAX_DEPTH 24
 
 typedef struct Routine {
@@ -264,10 +270,63 @@ static int write_corpus(const char *dir, const Routine *r)
     return 0;
 }
 
+/* --snaps: each snapshot in turn, played for snap_frames frames with random pads */
+static int run_snaps(const Rom *rom, const char *snaps, long snap_frames)
+{
+    char line[1024];
+    FILE *sf = fopen(snaps, "r");
+    long n_snaps = 0, i;
+    if (!sf) {
+        fprintf(stderr, "cannot read %s\n", snaps);
+        return 1;
+    }
+    while (fgets(line, sizeof line, sf)) {
+        uint8_t pad[2] = {0, 0};
+        int hold[2] = {0, 0}, p;
+        line[strcspn(line, "\r\n")] = 0;
+        if (!line[0])
+            continue;
+        nes_init(&nes, rom);
+        nes_power(&nes, PPU_MODEL_OLD); /* sets the internal pointers (ppu.cpu); the snapshot replaces the state */
+        if (snap_load(&nes, NULL, line) != 0) {
+            fprintf(stderr, "cannot load %s\n", line);
+            continue;
+        }
+        n_snaps++;
+        depth = 0;
+        orig_read = nes.cpu.read;
+        orig_write = nes.cpu.write;
+        nes.cpu.read = rd;
+        nes.cpu.write = wr;
+        memset(watch_all, 1, sizeof watch_all);
+        nes.cpu.exec_watch = watch_all;
+        nes.cpu.exec_hook = hook;
+        for (i = 0; i < snap_frames; i++) {
+            for (p = 0; p < 2; p++)
+                if (--hold[p] <= 0) {
+                    pad[p] = (uint8_t)(next_rand() & 0xFF);
+                    if ((next_rand() % 16) != 0)
+                        pad[p] &= (uint8_t)~0x08; /* Start (pause) only now and then */
+                    if ((pad[p] & 0x30) == 0x30)
+                        pad[p] &= (uint8_t)~0x20; /* not Up and Down together */
+                    if ((pad[p] & 0xC0) == 0xC0)
+                        pad[p] &= (uint8_t)~0x40; /* not Left and Right together */
+                    hold[p] = 4 + (int)(next_rand() % 37);
+                }
+            nes_set_pads(&nes, pad[0], pad[1]);
+            nes_run_frame(&nes);
+        }
+    }
+    fclose(sf);
+    fprintf(stderr, "%ld snapshots, %ld frames each\n", n_snaps, snap_frames);
+    return n_snaps ? 0 : 1;
+}
+
 int main(int argc, char **argv)
 {
     static Rom rom;
-    const char *movie = NULL, *list = NULL, *out = NULL, *ppu = "old";
+    const char *movie = NULL, *list = NULL, *out = NULL, *ppu = "old", *snaps = NULL;
+    long snap_frames = 600;
     long frames = -1, i;
     char hash[41], line[256];
     Fm2 fm = {0};
@@ -281,9 +340,12 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[a], "--ppu") && a + 1 < argc) ppu = argv[++a];
         else if (!strcmp(argv[a], "--max") && a + 1 < argc) max_keep = atoi(argv[++a]);
         else if (!strcmp(argv[a], "--frames") && a + 1 < argc) frames = atol(argv[++a]);
+        else if (!strcmp(argv[a], "--snaps") && a + 1 < argc) snaps = argv[++a];
+        else if (!strcmp(argv[a], "--snap-frames") && a + 1 < argc) snap_frames = atol(argv[++a]);
+        else if (!strcmp(argv[a], "--seed") && a + 1 < argc) rng ^= (uint64_t)strtoull(argv[++a], NULL, 10) * 0x9E3779B97F4A7C15ull;
         else { fprintf(stderr, "unknown option %s\n", argv[a]); return 2; }
     }
-    if (argc < 2 || !movie || !list || !out) {
+    if (argc < 2 || (!movie && !snaps) || !list || !out) {
         fprintf(stderr, "usage: m6_capture ROM --movie X.fm2 [--ppu old|new] --routines list.txt --out DIR [--max N]\n");
         return 2;
     }
@@ -317,6 +379,11 @@ int main(int argc, char **argv)
         lookup[b][ad - 0x8000] = (int16_t)(++n_routines);
     }
     fclose(lf);
+    if (snaps) {
+        if (run_snaps(&rom, snaps, snap_frames) != 0)
+            return 1;
+        goto write;
+    }
     if (fm2_load(movie, &fm, line, sizeof line) != 0) {
         fprintf(stderr, "%s\n", line);
         return 1;
@@ -337,6 +404,7 @@ int main(int argc, char **argv)
         nes_set_pads(&nes, fr ? fr->pad[0] : 0, fr ? fr->pad[1] : 0);
         nes_run_frame(&nes);
     }
+write:
     for (a = 0; a < n_routines; a++) {
         Routine *r = &routines[a];
         if (write_corpus(out, r) != 0) {

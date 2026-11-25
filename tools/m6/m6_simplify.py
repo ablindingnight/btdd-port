@@ -96,6 +96,7 @@ def main():
     ap.add_argument('--routines', type=int, default=5)
     ap.add_argument('--only')
     ap.add_argument('--tries', type=int, default=2)
+    ap.add_argument('--shard', default='0/1', help='i/n: only routines with (bank*0x10000+addr) %% n == i')
     a = ap.parse_args()
     info = m6_lint.routine_info()
     done_before = set()  # routines that already had a readability try: kept or replaced, not asked again
@@ -115,6 +116,9 @@ def main():
         if 'Simplified' in text or (name in done_before and not a.only):
             continue
         bank, addr, insns, mem = info[name]
+        si, sn = (int(x) for x in a.shard.split('/'))
+        if (bank * 0x10000 + addr) % sn != si:
+            continue
         outs, _ = m6_prompt.caller_outputs(bank, addr, mem)
         rows.append((m6_lint.total(m6_lint.score(os.path.join(m6_test.PRIVATE, f), outs), insns), name))
     rows.sort(reverse=True)
