@@ -47,3 +47,12 @@ dedicated design session for the launcher before building its screens:
 - Nice Crash uses GDI+ (Windows only). Options: reuse its launcher code (fastest, Windows-only), or rebuild the same
   screens on SDL3 + our renderer (cross-platform, shares input/gamepad code with btdd_play). Default: SDL3, reusing
   Nice Crash's screen flow, task checklist and settings/logs code where it ports cleanly.
+
+## Design session result (2026-11-24)
+Name **Knuckle Drive** ("Your ROM. Our engine. Two fists."), direction "Splash Page" (comic cover) recoloured toad
+green on the user's request, Home headline "Two Brothers, Three Toads... Zero Mercy!". Style sheet:
+`docs/LAUNCHER_STYLE.md`. Mockups: `docs/design/launcher-screens.html` (13 screens incl. the in-game menu),
+`docs/design/launcher-directions.html` (the three directions), `docs/design/project-page.html` +
+`docs/design/README_DRAFT.md` (release README). Placeholder screenshots `docs/images/launcher-*.png` come from the
+mockup page (`#only-<screen>`) until `--ui-shot` exists. Open items: trademark search for the name; the remaining
+icons (list in the style sheet); an 8x8 font for the in-game menu; app icon sizes.
