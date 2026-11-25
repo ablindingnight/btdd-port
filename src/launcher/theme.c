@@ -139,73 +139,149 @@ void theme_stamp(float rx, float cy, const char *text, Rgb c)
     kit_pop();
 }
 
-/* rocket fist on a deep-space disc with an orange ring (drawn in a 330 px box, scaled) */
+/* ---------- emblem: a fist bump over a disc that is half pond, half night city ----------
+ * Drawn in a 330 px design box, scaled by hand (the transform stack has no scale). */
+static float ES; /* emblem scale */
+static float EX, EY; /* emblem box origin */
+#define EXX(v) (EX + (v) * ES)
+#define EYY(v) (EY + (v) * ES)
+
+static void e_rrect(float x, float y, float w, float h, float r, Rgb c, float ink)
+{
+    if (ink > 0)
+        kit_rrect(EXX(x - ink), EYY(y - ink), (w + 2 * ink) * ES, (h + 2 * ink) * ES, (r + ink) * ES, C_INK, 1);
+    kit_rrect(EXX(x), EYY(y), w * ES, h * ES, r * ES, c, 1);
+}
+
+/* a fist seen from the side, knuckles toward `dir` (+1 = right), centred at (fx, fy) */
+static void e_fist(float fx, float fy, int dir, Rgb skin, Rgb shade, Rgb cuff, int wrap)
+{
+    float d = (float)dir;
+    int k;
+#define FX(v) (fx + d * (v))
+    /* forearm and cuff */
+    e_rrect(dir > 0 ? FX(-118) : FX(-58), fy - 26, 60, 52, 10, skin, 5);
+    e_rrect(dir > 0 ? FX(-72) : FX(-46), fy - 32, 26, 64, 6, cuff, 5);
+    if (wrap)
+        for (k = 0; k < 3; k++)
+            kit_line(EXX(dir > 0 ? FX(-70 + 8 * k) : FX(-46 - 8 * k + 26)), EYY(fy - 30), EXX(dir > 0 ? FX(-62 + 8 * k) : FX(-38 - 8 * k + 26)),
+                     EYY(fy + 30), 2.5f * ES, C_INK, 0.5f);
+    /* palm block */
+    e_rrect(dir > 0 ? FX(-50) : FX(-6), fy - 40, 56, 80, 16, skin, 5);
+    /* four curled fingers stacked at the front */
+    for (k = 0; k < 4; k++) {
+        float yy = fy - 42 + (float)k * 21;
+        e_rrect(dir > 0 ? FX(-6) : FX(-30), yy, 36, 22, 10, skin, 4);
+        kit_line(EXX(dir > 0 ? FX(14) : FX(-14)), EYY(yy + 5), EXX(dir > 0 ? FX(14) : FX(-14)), EYY(yy + 17), 2.5f * ES, shade, 1);
+    }
+    /* thumb over the fingers */
+    e_rrect(dir > 0 ? FX(-40) : FX(-8), fy - 50, 48, 24, 12, skin, 5);
+    kit_line(EXX(FX(-26)), EYY(fy - 38), EXX(FX(0)), EYY(fy - 38), 2.5f * ES, shade, 1);
+#undef FX
+}
+
 void theme_emblem(float cx, float cy, float size)
 {
-    float s = size / 330.0f;
-    kit_push();
-    kit_translate(cx - 165 * s, cy - 165 * s);
-    /* the transform has no scale, so scale coordinates by hand */
-#define S(v) ((v) * s)
-    kit_circle(S(165), S(165), S(154), C_INK, 1);
-    kit_circle(S(165), S(165), S(146), C_SPACE, 1);
-    kit_circle(S(96), S(88), S(9), C_PAPER, 1);
-    kit_circle(S(262), S(110), S(6), C_PAPER, 1);
-    kit_circle(S(70), S(150), S(3), C_PAPER, 0.8f);
-    kit_line(S(60), S(230), S(30), S(260), S(8), C_PAPER, 1);
-    kit_line(S(85), S(255), S(60), S(290), S(8), C_PAPER, 1);
-    kit_line(S(250), S(235), S(285), S(265), S(8), C_PAPER, 1);
-    kit_ellipse_ring(S(165), S(175), S(162), S(40), S(16), -18, C_INK, 1);
-    kit_ellipse_ring(S(165), S(175), S(162), S(40), S(8), -18, C_RED, 1);
-    kit_push();
-    kit_rotate_at(-14, S(165), S(180));
+    const float R = 150, ccx = 165, ccy = 165, horizon = 200; /* disc and the waterline (design units) */
+    int i;
+    ES = size / 330.0f;
+    EX = cx - 165 * ES;
+    EY = cy - 165 * ES;
+    /* disc: night sky */
+    kit_circle(EXX(ccx), EYY(ccy), (R + 8) * ES, C_INK, 1);
+    kit_circle(EXX(ccx), EYY(ccy), R * ES, C_SPACE, 1);
+    kit_circle(EXX(110), EYY(60), 15 * ES, C_PAPER, 1); /* moon */
+    kit_circle(EXX(118), EYY(55), 13 * ES, C_SPACE, 1);
+    kit_circle(EXX(230), EYY(50), 3 * ES, C_PAPER, 1);
+    kit_circle(EXX(70), EYY(105), 2.5f * ES, C_PAPER, 1);
+    kit_circle(EXX(260), EYY(95), 2 * ES, C_PAPER, 1);
+    /* skyline: blocks standing on the waterline, trimmed to the disc */
     {
-        static const float flame_o[] = {112, 262, 218, 262, 240, 296, 204, 288, 192, 324, 166, 292, 140, 324, 128, 288, 92, 296};
-        static const float flame_i[] = {130, 262, 200, 262, 210, 282, 186, 278, 166, 300, 146, 278, 120, 282};
-        float p[18], q[14];
-        int i;
-        for (i = 0; i < 18; i++)
-            p[i] = S(flame_o[i]);
-        for (i = 0; i < 14; i++)
-            q[i] = S(flame_i[i]);
-        /* ink outline by drawing the flame slightly larger first */
-        kit_push();
-        kit_poly(p, 9, C_INK, 1);
-        kit_pop();
-        {
-            float pi2[18];
-            float mx = S(166), my = S(285);
-            for (i = 0; i < 9; i++) {
-                pi2[2 * i] = mx + (p[2 * i] - mx) * 0.9f;
-                pi2[2 * i + 1] = my + (p[2 * i + 1] - my) * 0.9f;
+        static const float bld[][3] = {{30, 40, 150}, {62, 34, 118}, {92, 26, 160}, {116, 30, 96}, {144, 22, 128},
+                                       {164, 36, 84}, {198, 26, 136}, {222, 34, 108}, {254, 30, 146}, {282, 28, 165}};
+        for (i = 0; i < 10; i++) {
+            float x0 = bld[i][0], x1 = x0 + bld[i][1], top = bld[i][2], lim, wy;
+            float dy = top - ccy, half;
+            if (dy * dy >= R * R)
+                continue;
+            half = sqrtf(R * R - dy * dy) - 4;
+            lim = horizon - ccy;
+            if (lim * lim < R * R) {
+                float h2 = sqrtf(R * R - lim * lim) - 4;
+                if (h2 < half)
+                    half = h2;
             }
-            kit_poly(pi2, 9, C_RED, 1);
-        }
-        kit_poly(q, 7, C_YELLOW, 1);
-        /* cuff */
-        theme_box(S(108), S(234), S(114), S(38), C_RED, S(8) > 2 ? S(8) : 2, 0);
-        /* fist: palm, knuckles, thumb (ink first, then paper inset) */
-        {
-            static const float parts[][5] = {
-                {98, 128, 136, 118, 24}, {98, 92, 38, 66, 17}, {131, 84, 38, 70, 17},
-                {164, 88, 38, 68, 17},   {197, 100, 36, 60, 16},
-            };
-            int k;
-            for (k = 0; k < 5; k++)
-                kit_rrect(S(parts[k][0] - 4), S(parts[k][1] - 4), S(parts[k][2] + 8), S(parts[k][3] + 8), S(parts[k][4] + 4), C_INK, 1);
-            for (k = 0; k < 5; k++)
-                kit_rrect(S(parts[k][0] + 4), S(parts[k][1] + 4), S(parts[k][2] - 8), S(parts[k][3] - 8), S(parts[k][4] - 4), C_PAPER, 1);
-            /* finger gaps */
-            for (k = 1; k < 4; k++)
-                kit_line(S(98 + 33 * k), S(110), S(98 + 33 * k), S(150), S(6), C_INK, 1);
-            kit_rrect(S(84), S(164), S(112), S(48), S(24), C_INK, 1);
-            kit_rrect(S(92), S(172), S(96), S(32), S(16), C_PAPER, 1);
+            if (x0 < ccx - half)
+                x0 = ccx - half;
+            if (x1 > ccx + half)
+                x1 = ccx + half;
+            if (x1 - x0 < 6)
+                continue;
+            kit_rect(EXX(x0), EYY(top), (x1 - x0) * ES, (horizon - top) * ES, 0x120822, 1);
+            if (i == 4) { /* a spire */
+                float p[6];
+                p[0] = EXX(x0), p[1] = EYY(top), p[2] = EXX(x1), p[3] = EYY(top), p[4] = EXX((x0 + x1) / 2), p[5] = EYY(top - 34);
+                kit_poly(p, 3, 0x120822, 1);
+            }
+            for (wy = top + 8; wy < horizon - 8; wy += 12) { /* lit windows */
+                float wx;
+                for (wx = x0 + 5; wx < x1 - 6; wx += 9)
+                    if ((((int)wx * 7 + (int)wy * 3 + i) % 5) < 2)
+                        kit_rect(EXX(wx), EYY(wy), 4 * ES, 5 * ES, C_YELLOW, 0.85f);
+            }
         }
     }
-    kit_pop();
-#undef S
-    kit_pop();
+    /* pond: the disc below the waterline */
+    {
+        float p[2 * 64], a0 = asinf((horizon - ccy) / R);
+        int n = 0;
+        for (i = 0; i <= 40; i++) {
+            float t = a0 + (3.14159265f - 2 * a0) * (float)i / 40.0f;
+            p[2 * n] = EXX(ccx + R * cosf(t));
+            p[2 * n + 1] = EYY(ccy + R * sinf(t));
+            n++;
+        }
+        kit_poly(p, n, 0x1d6f86, 1);
+        kit_rect(EXX(ccx - sqrtf(R * R - (horizon - ccy) * (horizon - ccy))), EYY(horizon - 2),
+                 2 * sqrtf(R * R - (horizon - ccy) * (horizon - ccy)) * ES, 5 * ES, C_INK, 1);
+        /* skyline reflections and ripples */
+        kit_ellipse_ring(EXX(232), EYY(272), 30 * ES, 6 * ES, 2.5f * ES, 0, C_CYAN, 0.7f);
+        kit_ellipse_ring(EXX(92), EYY(268), 26 * ES, 5 * ES, 2.5f * ES, 0, C_CYAN, 0.7f);
+        /* lily pad */
+        kit_circle(EXX(92), EYY(268), 19 * ES, C_INK, 1);
+        kit_circle(EXX(92), EYY(268), 15 * ES, C_GREEN_HI, 1);
+        {
+            float q[6];
+            q[0] = EXX(92), q[1] = EYY(268), q[2] = EXX(110), q[3] = EYY(256), q[4] = EXX(112), q[5] = EYY(268);
+            kit_poly(q, 3, 0x1d6f86, 1);
+        }
+    }
+    /* impact burst behind the knuckles */
+    {
+        float p[2 * 16];
+        for (i = 0; i < 16; i++) {
+            float t = (float)i * 3.14159265f / 8.0f, r = (i & 1) ? 26.0f : 50.0f;
+            p[2 * i] = EXX(165 + r * cosf(t));
+            p[2 * i + 1] = EYY(196 + r * sinf(t));
+        }
+        kit_poly(p, 16, C_INK, 1);
+        for (i = 0; i < 16; i++) {
+            p[2 * i] = EXX(165) + (p[2 * i] - EXX(165)) * 0.82f;
+            p[2 * i + 1] = EYY(196) + (p[2 * i + 1] - EYY(196)) * 0.82f;
+        }
+        kit_poly(p, 16, C_YELLOW, 1);
+    }
+    /* the two fists meet in the middle: green from the pond side, a wrapped human fist from the city side */
+    e_fist(129, 205, +1, 0x58c24a, 0x2e7d2a, C_RED, 0);
+    e_fist(201, 205, -1, 0xf0b58a, 0xb7744f, C_PAPER, 1);
+    /* motion lines */
+    kit_line(EXX(-8), EYY(180), EXX(22), EYY(180), 6 * ES, C_PAPER, 1);
+    kit_line(EXX(-14), EYY(206), EXX(16), EYY(206), 6 * ES, C_PAPER, 1);
+    kit_line(EXX(308), EYY(180), EXX(338), EYY(180), 6 * ES, C_PAPER, 1);
+    kit_line(EXX(314), EYY(206), EXX(344), EYY(206), 6 * ES, C_PAPER, 1);
 }
+#undef EXX
+#undef EYY
 
 void theme_logo(float cx, float y, float s1, float s2, int tagline)
 {

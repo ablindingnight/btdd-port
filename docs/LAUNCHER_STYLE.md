@@ -12,9 +12,11 @@ how `docs/images/launcher-*.png` were made until the launcher's own `--ui-shot` 
   PLAY button, on a toad-green field with orange-red and yellow accents and a deep-space emblem.
 - **Home headline**: "Two Brothers, Three Toads... Zero Mercy!" (user's line). Three lines: "Two Brothers," /
   "Three Toads..." / "Zero Mercy!" (last line yellow).
-- **Logo**: the rocket fist: a cream fist with an orange-red cuff and flame, flying up through an orange ring around
-  a deep-purple planet disc (SVG in `docs/design/launcher-screens.html`, `FIST`). Wordmark: "POND TO" over "PAVEMENT"
-  in Bangers, yellow with a 4 px ink outline, an orange-red offset and an ink offset, tilted -4°.
+- **Logo**: a fist bump: a green fist from the left (cuffed in red) meets a human fist in a paper-white wrist wrap
+  from the right, with a yellow impact burst, over a disc that is half night city (skyline with lit windows, a moon)
+  and half pond (water, ripples, a lily pad): pond to pavement. Hands only, no faces or characters. Drawn in
+  `src/launcher/theme.c` (`theme_emblem`). Wordmark: "POND TO" over "PAVEMENT" in Bangers, yellow with a 4 px ink
+  outline, an orange-red offset and an ink offset, tilted -4°. (The first design's rocket fist is in the mockups.)
 - **Never** in the launcher, package, icon or page: the game's characters, logos, sprites, screenshots, music, or the
   Battletoads / Double Dragon / Rare / Tradewest / Nintendo names as branding. The game title appears only as plain
   text where we say which ROM is needed (Your game row, first-run step 1, About). "Toads" and "brothers" in the
@@ -54,8 +56,8 @@ Scale steps used: 13, 15, 17, 21, 22, 30, 44, 66, 96. Line height 0.95 for displ
   (300, 70).
 - Borders: 3 px ink everywhere (2 px on badges and key chips, 4 px dashed paper on the drop zone).
 - Shadows are flat offsets, never blur: 3 px (tabs), 4 px (buttons, stickers), 5-7 px (cards, selected nav).
-- Tilts give the comic feel: stickers and headlines -2°, logo -4°, Home rows alternate -0.6° / +0.6°, selected nav
-  -1.5° and shifted 10 px right. Settings rows themselves stay straight so they read fast.
+- Tilts give the comic feel: stickers and headlines -2°, logo -4°, Home rows straight (small tilts on long boxes look jagged), selected nav
+  shifted 10 px right (not tilted: straight edges read cleaner). Settings rows themselves stay straight so they read fast.
 - Dashed 2 px ink-at-19% separators between setting rows.
 
 ## Backdrop

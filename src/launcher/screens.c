@@ -393,10 +393,8 @@ static void settings_shell(void)
         const char *t = s == SCR_HOME ? "HOME" : PAGE_TITLE[s];
         int hot = inside(x, y, 236, 40);
         kit_push();
-        if (on) {
+        if (on)
             kit_translate(10, 0);
-            kit_rotate_at(-1.5f, x + 118, y + 20);
-        }
         theme_box(x, y, 236, 40, on ? C_YELLOW : hot ? 0x1f7a29 : C_GREEN_DEEP, 3, on ? 5.0f : 3.0f);
         theme_icon(PAGE_ICON[s], x + 14, y + 10, 20, on ? C_INK : C_PAPER);
         kit_text(FONT_LABEL, 18, x + 46, y + 9, t, on ? C_INK : C_PAPER, 1, ALIGN_LEFT);
