@@ -80,10 +80,90 @@ static void ensure_big(Video *v, int k)
     v->big_scale = v->big ? k : 0;
 }
 
-/* GPU path: the chain draws the picture; text goes through an RGBA overlay at twice the NES resolution. */
-static void present_gpu(Video *v, const uint32_t *pixels, const char *const *text, int text_lines)
+/* ---- text overlay in the launcher's look (docs/LAUNCHER_STYLE.md), in NES pixels, 8x8 debug font ---- */
+enum { TEXT_TOAST, TEXT_MENU };
+static void fill(SDL_Renderer *r, float x, float y, float w, float h, Uint8 cr, Uint8 cg, Uint8 cb, Uint8 ca)
 {
-    int ww, wh, i, keep = v->filter;
+    SDL_FRect f = {x, y, w, h};
+    SDL_SetRenderDrawColor(r, cr, cg, cb, ca);
+    SDL_RenderFillRect(r, &f);
+}
+#define INK 0x0b, 0x0b, 0x14
+#define PAPER 0xff, 0xf8, 0xe7
+#define YELLOW 0xff, 0xd2, 0x1f
+#define RED 0xff, 0x4a, 0x1c
+#define CYAN 0x5f, 0xd8, 0xff
+#define GREY 0xc9, 0xc3, 0xb4
+
+static void draw_overlay(SDL_Renderer *r, float x0, float y0, const char *const *text, int n, int style)
+{
+    int i;
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    if (style == TEXT_TOAST) { /* each line in its own cyan sticker */
+        for (i = 0; i < n; i++) {
+            float w = (float)SDL_strlen(text[i]) * 8 + 8, y = y0 + 4 + (float)i * 14;
+            if (!text[i][0])
+                continue;
+            fill(r, x0 + 5, y + 1, w + 2, 12, INK, 255);        /* offset shadow */
+            fill(r, x0 + 3, y - 1, w + 2, 12, INK, 255);        /* border */
+            fill(r, x0 + 4, y, w, 10, CYAN, 255);
+            SDL_SetRenderDrawColor(r, INK, 255);
+            SDL_RenderDebugText(r, x0 + 8, y + 1, text[i]);
+        }
+        return;
+    }
+    {
+        int help = n; /* help = the lines after the last blank line (index > 1) */
+        float top = y0 + 10, h, y;
+        for (i = n - 1; i > 1; i--)
+            if (!text[i][0]) {
+                help = i + 1;
+                break;
+            }
+        h = (float)(n - 1) * 10 + 10;
+        fill(r, x0 + 5, top + 3, 250, h, RED, 255);       /* red offset shadow */
+        fill(r, x0 + 2, top, 250, h, YELLOW, 255);        /* 2 px yellow border */
+        fill(r, x0 + 4, top + 2, 246, h - 4, INK, 240);   /* ink body */
+        if (n > 0) {                                      /* title tab on the top border */
+            float tw = (float)SDL_strlen(text[0]) * 8 + 8;
+            fill(r, x0 + 8, y0 + 2, tw + 4, 14, INK, 255);
+            fill(r, x0 + 9, y0 + 3, tw + 2, 12, YELLOW, 255);
+            SDL_SetRenderDrawColor(r, INK, 255);
+            SDL_RenderDebugText(r, x0 + 13, y0 + 5, text[0]);
+        }
+        y = top + 9;
+        for (i = 2; i < n; i++, y += 10) {
+            const char *t = text[i];
+            if (i >= help) {
+                if (i == help) { /* dotted rule above the help text */
+                    float dx;
+                    for (dx = x0 + 8; dx < x0 + 246; dx += 4)
+                        fill(r, dx, y - 4, 2, 1, PAPER, 90);
+                }
+                SDL_SetRenderDrawColor(r, GREY, 255);
+                SDL_RenderDebugText(r, x0 + 8, y, t);
+                continue;
+            }
+            if (!t[0])
+                continue;
+            if (t[0] == '>') { /* the selected item: yellow bar, ink text, red pointer */
+                fill(r, x0 + 4, y - 1, 246, 10, YELLOW, 255);
+                fill(r, x0 + 6, y, 2, 8, RED, 255);
+                fill(r, x0 + 8, y + 1, 2, 6, RED, 255);
+                fill(r, x0 + 10, y + 2, 2, 4, RED, 255);
+                fill(r, x0 + 12, y + 3, 2, 2, RED, 255);
+                SDL_SetRenderDrawColor(r, INK, 255);
+            } else
+                SDL_SetRenderDrawColor(r, PAPER, 255);
+            SDL_RenderDebugText(r, x0 + 16, y, t[0] && t[1] ? t + 2 : t);
+        }
+    }
+}
+
+/* GPU path: the chain draws the picture; text goes through an RGBA overlay at twice the NES resolution. */
+static void present_gpu(Video *v, const uint32_t *pixels, const char *const *text, int text_lines, int style)
+{
+    int ww, wh, keep = v->filter;
     SDL_FRect dst;
     SDL_GetWindowSizeInPixels(v->win, &ww, &wh);
     v->filter = v->preset == GPU_PRESET_NEAREST ? FILTER_NEAREST : FILTER_SHARP;
@@ -99,28 +179,21 @@ static void present_gpu(Video *v, const uint32_t *pixels, const char *const *tex
         SDL_SetRenderDrawColor(r, 0, 0, 0, 0);
         SDL_RenderClear(r);
         SDL_SetRenderScale(r, 2, 2);
-        SDL_SetRenderDrawColor(r, 0, 0, 0, 200);
-        {
-            SDL_FRect box = {0, 0, NES_W, (float)(text_lines * 10 + 6)};
-            SDL_RenderFillRect(r, &box);
-        }
-        SDL_SetRenderDrawColor(r, 255, 255, 255, 255);
-        for (i = 0; i < text_lines; i++)
-            SDL_RenderDebugText(r, 4, 4 + i * 10.0f, text[i]);
+        draw_overlay(r, 0, 0, text, text_lines, style);
         SDL_SetRenderScale(r, 1, 1);
         SDL_RenderPresent(r);
     }
     gpu_present(v->gpu, pixels, (GpuPreset)v->preset, dst, text_lines > 0 && v->overlay_ren ? v->overlay : NULL);
 }
 
-void video_present(Video *v, const uint32_t *pixels, const char *const *text, int text_lines)
+static void present(Video *v, const uint32_t *pixels, const char *const *text, int text_lines, int style)
 {
     int ww, wh, i;
     SDL_FRect dst;
     SDL_Texture *src = v->tex;
 
     if (v->gpu) {
-        present_gpu(v, pixels, text, text_lines);
+        present_gpu(v, pixels, text, text_lines, style);
         return;
     }
 
@@ -160,18 +233,25 @@ void video_present(Video *v, const uint32_t *pixels, const char *const *text, in
     if (text_lines > 0) {
         float scale = SDL_max(1.0f, SDL_floorf(dst.h / NES_H));
         SDL_SetRenderScale(v->ren, scale, scale);
-        SDL_SetRenderDrawBlendMode(v->ren, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(v->ren, 0, 0, 0, 200);
-        {
-            SDL_FRect box = {dst.x / scale, dst.y / scale, NES_W, (float)(text_lines * 10 + 6)};
-            SDL_RenderFillRect(v->ren, &box);
-        }
-        SDL_SetRenderDrawColor(v->ren, 255, 255, 255, 255);
-        for (i = 0; i < text_lines; i++)
-            SDL_RenderDebugText(v->ren, dst.x / scale + 4, dst.y / scale + 4 + i * 10.0f, text[i]);
+        draw_overlay(v->ren, dst.x / scale, dst.y / scale, text, text_lines, style);
         SDL_SetRenderScale(v->ren, 1, 1);
     }
     SDL_RenderPresent(v->ren);
+}
+
+void video_draw_overlay(SDL_Renderer *r, float x0, float y0, const char *const *text, int n, int menu)
+{
+    draw_overlay(r, x0, y0, text, n, menu ? TEXT_MENU : TEXT_TOAST);
+}
+
+void video_present(Video *v, const uint32_t *pixels, const char *const *text, int text_lines)
+{
+    present(v, pixels, text, text_lines, TEXT_TOAST);
+}
+
+void video_present_menu(Video *v, const uint32_t *pixels, const char *const *text, int text_lines)
+{
+    present(v, pixels, text, text_lines, TEXT_MENU);
 }
 
 int video_set_width(Video *v, int w)

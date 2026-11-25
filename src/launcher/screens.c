@@ -3,6 +3,7 @@
 #include "mods/mods.h"
 #include "platform/gpu.h"
 #include "platform/video.h"
+#include "platform/menu.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +28,7 @@ static SDL_AtomicInt pending_flag;
 void screens_set_window(SDL_Window *w) { U.win = w; }
 
 static const char *const SCR_NAMES[SCR_COUNT] = {"home", "first-run", "display", "graphics", "audio", "controls",
-                                                 "gameplay", "mods", "online", "builds", "logs", "about"};
+                                                 "gameplay", "mods", "online", "builds", "logs", "about", "in-game"};
 Screen screen_from_name(const char *n)
 {
     int i;
@@ -373,9 +374,9 @@ static void draw_first_run(void)
 
 /* ---------------------------------------------------------------- SETTINGS shell + rows */
 static const char *const PAGE_TITLE[SCR_COUNT] = {"", "", "DISPLAY", "GRAPHICS", "AUDIO", "CONTROLS", "GAMEPLAY", "MODS",
-                                                  "ONLINE PLAY", "BUILDS", "LOGS", "ABOUT"};
+                                                  "ONLINE PLAY", "BUILDS", "LOGS", "ABOUT", ""};
 static const Icon PAGE_ICON[SCR_COUNT] = {ICON_HOME, ICON_HOME, ICON_DISPLAY, ICON_GRAPHICS, ICON_AUDIO, ICON_CONTROLS,
-                                          ICON_GAMEPLAY, ICON_MODS, ICON_ONLINE, ICON_BUILDS, ICON_LOGS, ICON_ABOUT};
+                                          ICON_GAMEPLAY, ICON_MODS, ICON_ONLINE, ICON_BUILDS, ICON_LOGS, ICON_ABOUT, ICON_HOME};
 
 #define PX 330.0f   /* panel content left */
 #define PR 1216.0f  /* panel content right */
@@ -1192,6 +1193,49 @@ static void draw_about(void)
     }
 }
 
+/* ---------------------------------------------------------------- IN-GAME (screenshots only) */
+static void draw_ingame(void)
+{
+    static Menu m;
+    SDL_Renderer *r = kit_renderer();
+    float sx = 1, sy = 1, gx = (KIT_W - 768) / 2.0f, stripe;
+    const char *toast[1] = {"SAVED TO SLOT 3"};
+    int n;
+    kit_rect(0, 0, KIT_W, KIT_H, 0x050508, 1);
+    kit_rect(gx, 0, 768, 720, 0x1b1f3c, 1); /* placeholder for the game picture (never the real one here) */
+    for (stripe = -720; stripe < 768; stripe += 48) {
+        float p[8];
+        p[0] = gx + stripe, p[1] = 0, p[2] = gx + stripe + 24, p[3] = 0;
+        p[4] = gx + stripe + 24 + 720, p[5] = 720, p[6] = gx + stripe + 720, p[7] = 720;
+        kit_quad(p, 0x161a34, 1);
+    }
+    kit_rect(0, 0, gx, KIT_H, 0x050508, 1);
+    kit_rect(gx + 768, 0, gx, KIT_H, 0x050508, 1);
+    kit_text(FONT_LABEL, 18, gx + 384, 600, "the game picture is here (256 x 240, shown at 3x)", 0x8890b0, 1, ALIGN_CENTER);
+    menu_open(&m, 0);
+    menu_begin(&m, "SETTINGS");
+    menu_add(&m, ITEM_ACTION, 1, "Resume", "", "Esc closes this menu");
+    menu_add(&m, ITEM_PAGE, 2, "Save states", "", "");
+    menu_add(&m, ITEM_PAGE, 3, "Display", "", "window, fullscreen, aspect, widescreen");
+    menu_add(&m, ITEM_PAGE, 4, "Graphics", "", "");
+    menu_add(&m, ITEM_PAGE, 5, "Audio", "", "");
+    menu_add(&m, ITEM_PAGE, 6, "Controls", "", "");
+    menu_add(&m, ITEM_PAGE, 7, "Gameplay", "", "");
+    menu_add(&m, ITEM_PAGE, 8, "Mods", "", "");
+    menu_add(&m, ITEM_PAGE, 9, "Cheats", "", "the game's own codes, entered for you");
+    menu_add(&m, ITEM_PAGE, 10, "Online 2-player", "", "play with a friend over the internet");
+    menu_add(&m, ITEM_ACTION, 11, "Reset", "", "F1 in game");
+    menu_add(&m, ITEM_ACTION, 12, "Power cycle", "", "Ctrl+F1 in game");
+    menu_add(&m, ITEM_ACTION, 13, "Quit", "", "settings are saved");
+    m.cursor[0] = 2;
+    n = menu_render(&m);
+    SDL_GetRenderScale(r, &sx, &sy);
+    SDL_SetRenderScale(r, sx * 3, sy * 3);
+    video_draw_overlay(r, gx / 3, 0, m.lines, n, 1);
+    video_draw_overlay(r, gx / 3 + 150, 214, toast, 1, 0);
+    SDL_SetRenderScale(r, sx, sy);
+}
+
 /* ---------------------------------------------------------------- ROM picking */
 static void SDLCALL dialog_cb(void *ud, const char *const *files, int filter)
 {
@@ -1260,6 +1304,7 @@ void screens_draw(App *a, UiIn *in)
         draw_home();
         break;
     case SCR_FIRST_RUN: draw_first_run(); break;
+    case SCR_INGAME: draw_ingame(); break;
     default:
         settings_shell();
         if ((int)a->screen != U.scr) /* page changed in the shell */

@@ -32,11 +32,17 @@ typedef struct Video {
  * falling back to the SDL renderer. Returns 0 on success. */
 int video_open(Video *v, const char *title, int scale, int aspect, int fullscreen, int filter, int scanlines,
                const char *renderer, int use_gpu, int preset);
-/* Draws the picture (0xFFRRGGBB, 256x240) plus optional text lines at the top-left, then presents. */
+/* Draws the picture (0xFFRRGGBB, 256x240) plus optional text lines at the top-left (status toasts), then presents. */
 void video_present(Video *v, const uint32_t *pixels, const char *const *text, int text_lines);
+/* Same, with the lines laid out as the settings menu from menu_render() (title, blank, items with "> " marking the
+ * selection, blank, help): the launcher's look, docs/LAUNCHER_STYLE.md "In-game menu". */
+void video_present_menu(Video *v, const uint32_t *pixels, const char *const *text, int text_lines);
 /* Picture width for the next frames (256 or a wide picture); -1 if this path cannot (GPU path for now). */
 int video_set_width(Video *v, int w);
 void video_close(Video *v);
+/* The overlay alone, in NES pixels on any renderer (current render scale applies); menu = 1 for menu_render() lines,
+ * 0 for status toasts. The launcher's --ui-shot in-game uses it. */
+void video_draw_overlay(SDL_Renderer *r, float x0, float y0, const char *const *text, int n, int menu);
 int video_filter_from_name(const char *name); /* -1 if unknown */
 
 #endif

@@ -301,7 +301,7 @@ def gate_m6(out):
 
 
 LAUNCHER_SCREENS = ['home', 'first-run', 'display', 'graphics', 'audio', 'controls', 'gameplay', 'mods', 'online',
-                    'builds', 'logs', 'about']
+                    'builds', 'logs', 'about', 'in-game']
 
 
 def gate_launcher(build, out):

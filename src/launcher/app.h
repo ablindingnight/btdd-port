@@ -12,8 +12,9 @@
 typedef enum Screen {
     SCR_HOME, SCR_FIRST_RUN,
     SCR_DISPLAY, SCR_GRAPHICS, SCR_AUDIO, SCR_CONTROLS, SCR_GAMEPLAY, SCR_MODS, SCR_ONLINE, SCR_BUILDS, SCR_LOGS,
-    SCR_ABOUT, SCR_COUNT
+    SCR_ABOUT, SCR_INGAME, SCR_COUNT
 } Screen;
+/* SCR_INGAME is only for --ui-shot: btdd_play's in-game menu as it looks, over a placeholder picture */
 #define SCR_FIRST_SETTINGS SCR_DISPLAY
 #define SCR_LAST_SETTINGS SCR_ABOUT
 

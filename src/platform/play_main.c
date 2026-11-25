@@ -1516,7 +1516,7 @@ int main(int argc, char **argv)
                     SDL_UpdateJoysticks();
                 }
                 build_page(&menu, &ctx);
-                video_present(&video, pixels, menu.lines, menu_render(&menu));
+                video_present_menu(&video, pixels, menu.lines, menu_render(&menu));
             } else {
                 video_present(&video, pixels, lines, overlay(&rb, &cfg, paused, lines));
             }

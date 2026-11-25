@@ -108,14 +108,18 @@ rectangle with contacts, no console shape), sprite pack (generic brush), app ico
 - Idle: PLAY bounce (scale 1.04, -1.5°, 1.6 s), rays turn (80 s), working stamp pulses. Nothing else moves at rest.
 - Reduced motion (system setting or launcher toggle): no idle motion, cross-fades only.
 
-## In-game menu (btdd_play overlay, `src/platform/menu.c`)
-Drawn at NES resolution (256x240) in RGB, scaled with the picture, so it matches at every window size:
-- body `ink`, 2 px `yellow` border, 4 px `red` offset shadow (bottom-right), title tab `yellow` with `ink` text
-  sitting on the top border;
-- items in the 8x8 font, `paper`; values and `›` in `cyan`; selected line = `yellow` bar with `ink` text, `red`
-  value and a `red` triangle at the left;
-- a dotted `paper`-at-25% line above the help text (`grey`); toasts ("SAVED TO SLOT 3") in a `cyan` box, top-right;
+## In-game menu (btdd_play overlay: `video_present_menu`, `src/platform/video.c`)
+Drawn in NES pixels (256x240) over the picture with SDL's 8x8 debug font, scaled with the picture, so it matches at
+every window size and on both renderers (SDL and the GPU preset path). Built from `menu_render()`'s lines:
+- body `ink` (94% opaque), 2 px `yellow` border, 3 px `red` offset shadow; title in a `yellow` tab with an `ink`
+  outline sitting on the top border;
+- items in `paper`; the selected item is a full-width `yellow` bar with `ink` text and a `red` pixel triangle at
+  the left; the help line(s) in `grey` under a dotted `paper` rule;
+- status messages (slot saved, mod toggled, paused) are separate `cyan` stickers with an `ink` border and shadow at
+  the top-left;
 - same page order and names as the launcher's settings; 31 columns (MENU_COLS).
+`PondToPavement --ui-shot in-game out.png` renders it with the real drawing code over a striped placeholder
+(docs/images/launcher-in-game.png); it never shows the game picture.
 
 ## Voice
 Short, loud, friendly; say what happens ("Rebuild", "Copied", "Nothing is sent anywhere"). Comic exclamation only in
