@@ -1,0 +1,65 @@
+<title>Knuckle Drive Project Page</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow:wght@400;600;700&family=JetBrains+Mono&display=swap">
+<style>
+/* A repo-page mock: plain readable column, launcher screenshots where the README places them. Follows the viewer theme. */
+:root{--bg:#ffffff;--fg:#1f2328;--dim:#59636e;--line:#d1d9e0;--code:#f6f8fa;--link:#0b6b1a;--acc:#2f9a3a;
+  --f:"Barlow",system-ui,sans-serif;--fd:"Bangers",Impact,sans-serif;--fm:"JetBrains Mono",Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1117;--fg:#e6edf3;--dim:#9198a1;--line:#3d444d;--code:#151b23;--link:#5fd47a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1117;--fg:#e6edf3;--dim:#9198a1;--line:#3d444d;--code:#151b23;--link:#5fd47a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f);font-size:16px;line-height:1.6;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 64px}
+main{max-width:900px;margin:0 auto;display:grid;gap:4px}
+.repo{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px;color:var(--dim);font-size:14px}
+.repo b{color:var(--fg);font-size:18px}
+.repo span{border:1px solid var(--line);border-radius:999px;padding:0 10px}
+h1{font-family:var(--fd);font-weight:400;font-size:52px;letter-spacing:.03em;margin:0;line-height:1;color:var(--acc)}
+h2{font-size:24px;margin:28px 0 6px;padding-bottom:6px;border-bottom:1px solid var(--line);text-wrap:balance}
+p,li{max-width:72ch} p{margin:6px 0}
+a{color:var(--link)}
+code{font-family:var(--fm);font-size:13.5px;background:var(--code);padding:1px 5px;border-radius:4px}
+img{max-width:100%;border-radius:6px;border:1px solid var(--line);display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.grid figure{margin:0;min-width:0}.grid figcaption{font-size:13px;color:var(--dim)}
+.cap{font-size:13px;color:var(--dim);margin:4px 0 12px}
+.note{border-left:4px solid var(--acc);background:var(--code);padding:8px 14px;border-radius:4px}
+@media (max-width:620px){.grid{grid-template-columns:1fr}h1{font-size:40px}}
+</style>
+<main>
+<div class="repo"><b>ablindingnight / knuckle-drive</b><span>Public</span><span>MIT</span><span>C</span></div>
+<p class="note">Mockup of the release README. Screenshots are the design mockups; the real ones will come from the launcher's <code>--ui-shot</code>, so they never contain game graphics.</p>
+<h1>KNUCKLE DRIVE</h1>
+<p><b>Your ROM. Our engine. Two fists.</b> A native PC port of a 1993 NES co-op brawler, built on your computer from your own cartridge dump.</p>
+<img src="launcher-home.png" alt="Launcher home screen with the rocket-fist logo and the PLAY button" width="1280" height="720">
+<p class="cap">The launcher: your ROM verified, your build ready, PLAY.</p>
+
+<h2>How to play</h2>
+<ol>
+<li>You need your own backup of the <b>Battletoads &amp; Double Dragon (USA)</b> NES cartridge as a <code>.nes</code> file (or a <code>.zip</code> that holds it). Knuckle Drive does not include the game and can't get it for you.</li>
+<li>Download the latest release and unzip it anywhere. Start <code>KnuckleDrive.exe</code>.</li>
+<li>Drag your ROM onto the launcher, or pick it.</li>
+<li>The launcher checks it's the USA cartridge, compiles the game into a native program and runs a quick self-check. Then press <b>PLAY</b>.</li>
+</ol>
+<img src="launcher-first-run.png" alt="First run checklist: pick ROM, verify, compile, self-check, enhance, ready" width="1280" height="720" loading="lazy">
+<p class="cap">First run: building your game.</p>
+<p>Everything is in the launcher and in game (Esc): window size, widescreen, CRT and smoothing presets, no sprite flicker, two players on keyboard and gamepads, save states, rewind, fast forward, the game's own cheat codes, and online 2-player with join codes.</p>
+<div class="grid">
+<figure><img src="launcher-graphics.png" alt="Graphics settings" width="1280" height="720" loading="lazy"><figcaption>Graphics</figcaption></figure>
+<figure><img src="launcher-online.png" alt="Online play settings" width="1280" height="720" loading="lazy"><figcaption>Online play</figcaption></figure>
+<figure><img src="launcher-controls.png" alt="Controls for two players" width="1280" height="720" loading="lazy"><figcaption>Controls</figcaption></figure>
+<figure><img src="launcher-gameplay.png" alt="Save states, rewind and cheats" width="1280" height="720" loading="lazy"><figcaption>Gameplay</figcaption></figure>
+</div>
+<p><b>If something goes wrong</b>: the <b>Logs</b> page lists every run, and <i>Save report</i> makes a folder with the logs and your settings (your user name removed). Nothing is sent anywhere.</p>
+
+<h2>What's in the download</h2>
+<p>The launcher, the game engine (<code>btdd_play.exe</code>), the compiler used on first run (<code>libtcc.dll</code>), the game description file (<code>btdd.meta</code>: names, addresses and code layout, no bytes from the cartridge), and our fonts and art.</p>
+
+<h2>No game data here</h2>
+<p>No code, graphics, music or text from the cartridge, and no ROM. The engine reads your ROM and compiles it on your PC. Every release is scanned for cartridge bytes before upload. Not affiliated with or endorsed by the game's publishers or by Nintendo; game names are used only to say which ROM you need.</p>
+
+<h2>Licence</h2>
+<p>MIT. The launcher art (rocket fist, logo, backdrop) is our own and MIT too. Fonts: SIL Open Font License 1.1.</p>
+
+<h2>For developers</h2>
+<p>Build steps, layout and tests: <code>docs/ARCHITECTURE.md</code>, <code>docs/ROADMAP.md</code>. Launcher design: <code>docs/LAUNCHER.md</code>, <code>docs/LAUNCHER_STYLE.md</code>.</p>
+</main>

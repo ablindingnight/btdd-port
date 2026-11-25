@@ -1,0 +1,476 @@
+<title>Knuckle Drive Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Press+Start+2P&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Light table of 1280x720 launcher screens (Splash Page direction), scaled to fit. Single dark look by choice. */
+:root{
+  --page:#0c0d12; --pnl:#16181f; --line:#2a2d38; --tx:#ecebf2; --dim:#9a9aae; --hi:#ffd21f;
+  /* launcher tokens (mirrored in docs/LAUNCHER_STYLE.md) */
+  --ink:#0b0b14; --paper:#fff8e7; --yel:#ffd21f; --mag:#ff4a1c; --cy:#5fd8ff; --navy:#2f9a3a; --navy2:#17611f; --space:#24123f; --grey:#c9c3b4; --ok:#22c46b; --warn:#ff8a1c;
+  --f-disp:"Bangers",Impact,sans-serif; --f-lab:"Barlow Condensed","Arial Narrow",sans-serif; --f-body:"Barlow",system-ui,sans-serif; --f-mono:"JetBrains Mono",Consolas,monospace; --f-pix:"Press Start 2P",monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--tx);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 60px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--page)}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:44px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--page);padding:14px 0 10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.bar strong{font-family:var(--f-disp);font-size:26px;letter-spacing:.05em;color:var(--hi);margin-right:8px;font-weight:400}
+.bar a{color:var(--dim);text-decoration:none;font-family:var(--f-lab);font-weight:700;letter-spacing:.06em;font-size:15px;text-transform:uppercase}
+.bar a:hover,.bar a:focus-visible{color:var(--tx)}
+.intro{margin-top:24px;color:var(--dim);max-width:72ch}
+.intro b{color:var(--tx)}
+.shot{display:grid;gap:10px;scroll-margin-top:70px}
+.shot h2{margin:0;font-family:var(--f-lab);font-weight:800;font-size:22px;letter-spacing:.06em;text-transform:uppercase}
+.shot h2 small{color:var(--dim);font-weight:600;font-size:15px;letter-spacing:.02em;text-transform:none;margin-left:10px}
+.frame{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:8px;border:1px solid var(--line);max-width:100%}
+.stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform-origin:0 0;overflow:hidden}
+.why{margin:0;color:var(--dim);font-size:14px;max-width:90ch}
+.hlpick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:-26px}
+.hlpick span{font-family:var(--f-lab);font-weight:700;letter-spacing:.06em;color:var(--dim);text-transform:uppercase}
+.hlpick button{appearance:none;border:1px solid var(--line);background:var(--pnl);color:var(--tx);border-radius:6px;padding:6px 12px;font:600 14px var(--f-body);cursor:pointer}
+.hlpick button[aria-pressed="true"]{border-color:var(--hi);box-shadow:0 0 0 1px var(--hi) inset}
+.hlpick button:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+
+/* ===== launcher base ===== */
+.K{background:radial-gradient(ellipse at 30% 35%,#3fb64a 0,var(--navy) 45%,var(--navy2) 100%);color:var(--paper);font-family:var(--f-lab)}
+.K .dots{position:absolute;inset:0;background:radial-gradient(circle,#0b3d12 2.4px,transparent 2.8px) 0 0/14px 14px;
+  -webkit-mask:radial-gradient(circle at 78% 42%,#000 0,transparent 62%);mask:radial-gradient(circle at 78% 42%,#000 0,transparent 62%);opacity:.75}
+.K.set .dots{-webkit-mask:radial-gradient(circle at 100% 100%,#000 0,transparent 55%);mask:radial-gradient(circle at 100% 100%,#000 0,transparent 55%);opacity:.6}
+.K .rays{position:absolute;left:980px;top:300px;width:1800px;height:1800px;margin:-900px;background:repeating-conic-gradient(from 0deg,#ffffff10 0 6deg,transparent 6deg 14deg);animation:spin 80s linear infinite}
+.K.set .rays{left:1280px;top:720px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.K .top{position:absolute;left:0;right:0;top:0;height:46px;background:var(--ink);display:flex;align-items:center;padding:0 26px;gap:12px;font-family:var(--f-disp);font-size:22px;letter-spacing:.06em;color:var(--yel);z-index:2}
+.K .top small{font-family:var(--f-lab);font-size:15px;color:#ffffff88;letter-spacing:.08em}
+.K .top .crumb{font-family:var(--f-lab);font-size:16px;color:var(--paper);letter-spacing:.1em;margin-left:14px;font-weight:700}
+.K .top .crumb::before{content:"/ ";color:var(--mag)}
+.K .top .win{margin-left:auto;display:flex;gap:18px;color:#ffffffaa;font-family:var(--f-lab);font-size:18px}
+.K kbd{background:var(--paper);color:var(--ink);border:2px solid var(--ink);padding:0 6px;font-family:var(--f-lab);font-weight:800;font-size:14px;border-radius:2px}
+.K .hints{position:absolute;right:40px;bottom:22px;display:flex;gap:16px;font-weight:700;letter-spacing:.06em;color:#ffffffbb;font-size:15px;align-items:center}
+.K .cap{background:var(--yel);color:var(--ink);border:3px solid var(--ink);padding:4px 12px;font-weight:800;letter-spacing:.14em;font-size:16px;box-shadow:4px 4px 0 var(--ink);display:inline-block}
+.K .h{font-family:var(--f-disp);font-weight:400;color:var(--paper);-webkit-text-stroke:3px var(--ink);text-shadow:6px 6px 0 var(--ink);letter-spacing:.02em;margin:0;line-height:.95}
+.K .h em{font-style:normal;color:var(--yel)}
+.K .card{background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:7px 7px 0 var(--ink)}
+.K .badge{display:inline-block;background:var(--cy);color:var(--ink);border:2px solid var(--ink);font-size:13px;padding:0 6px;margin-left:6px;vertical-align:3px;letter-spacing:.06em;font-weight:800}
+.K .badge.m{background:var(--mag);color:var(--paper)}
+.K .badge.y{background:var(--yel)}
+.K .badge.g{background:var(--grey)}
+.K .go{font-family:var(--f-disp);font-size:20px;letter-spacing:.06em;color:var(--ink);border-bottom:3px solid var(--mag);white-space:nowrap}
+.K .btn{display:inline-block;font-family:var(--f-disp);font-size:22px;letter-spacing:.06em;background:var(--yel);color:var(--ink);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:3px 16px}
+.K .btn.w{background:var(--paper)} .K .btn.m{background:var(--mag);color:var(--paper)} .K .btn.c{background:var(--cy)}
+
+/* emblem + logo */
+.K .emblem{position:absolute}
+.K .logo{position:absolute;text-align:center;transform:rotate(-4deg)}
+.K .logo .w1,.K .logo .w2{display:block;font-family:var(--f-disp);line-height:.86;color:var(--yel);-webkit-text-stroke:4px var(--ink);text-shadow:6px 6px 0 var(--mag),10px 10px 0 var(--ink);letter-spacing:.04em}
+.K .logo .tg{display:inline-block;margin-top:10px;background:var(--ink);color:var(--paper);padding:4px 14px;font-weight:700;letter-spacing:.16em;font-size:15px;text-transform:uppercase}
+
+/* burst PLAY */
+.K .play{position:absolute;background:var(--ink);
+  clip-path:polygon(0% 32%,9% 22%,6% 2%,24% 16%,36% 0%,46% 15%,62% 2%,68% 18%,90% 6%,86% 28%,100% 38%,90% 54%,99% 76%,80% 72%,74% 100%,58% 80%,44% 98%,34% 78%,14% 94%,16% 70%,1% 62%,10% 48%);animation:pop 1.6s ease-in-out infinite}
+.K .play::before{content:"";position:absolute;inset:7px;background:var(--yel);clip-path:inherit}
+.K .play span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-disp);color:var(--mag);-webkit-text-stroke:3px var(--ink);letter-spacing:.06em;text-shadow:4px 4px 0 var(--ink)}
+.K .play.off{animation:none;filter:grayscale(1);opacity:.55}
+@keyframes pop{50%{transform:scale(1.04) rotate(-1.5deg)}}
+
+/* home */
+.home .head{position:absolute;left:70px;top:82px;transform:rotate(-2deg)}
+.home h2.h{position:absolute;left:66px;top:118px;font-size:66px;transform:rotate(-2deg);width:760px}
+.home .rows{position:absolute;left:70px;top:330px;width:620px;display:grid;gap:14px}
+.home .row{display:grid;grid-template-columns:150px 1fr auto;align-items:center;padding:10px 16px;gap:14px}
+.home .row:nth-child(1){transform:rotate(-.6deg)} .home .row:nth-child(2){transform:rotate(.6deg)}
+.K .lb{font-weight:800;letter-spacing:.12em;font-size:15px;color:var(--mag)}
+.K .v{font-weight:700;font-size:21px;line-height:1.15}
+.K .v small{display:block;font-family:var(--f-body);font-weight:500;font-size:13px;color:#0b0b14a0}
+.home .foot{position:absolute;left:70px;bottom:34px;display:flex;gap:12px}
+.home .foot span,.K .tab{background:var(--paper);color:var(--ink);border:3px solid var(--ink);padding:4px 12px;font-weight:800;letter-spacing:.08em;font-size:16px;box-shadow:3px 3px 0 var(--ink)}
+
+/* settings shell */
+.set .side{position:absolute;left:34px;top:76px;width:236px;display:grid;gap:7px}
+.set .side .nv{background:var(--navy2);color:var(--paper);border:3px solid var(--ink);padding:5px 12px 4px;font-weight:800;letter-spacing:.08em;font-size:17px;display:flex;align-items:center;gap:10px;box-shadow:3px 3px 0 var(--ink)}
+.set .side .nv svg{width:20px;height:20px;flex:none}
+.set .side .nv.on{background:var(--yel);color:var(--ink);transform:translateX(10px) rotate(-1.5deg);box-shadow:5px 5px 0 var(--ink)}
+.set .side .nv.sep{margin-top:8px}
+.set .panel{position:absolute;left:300px;top:70px;width:946px;height:590px;padding:22px 30px 20px}
+.set .ptitle{position:absolute;left:290px;top:58px;z-index:3;font-family:var(--f-disp);font-size:44px;color:var(--yel);-webkit-text-stroke:2.5px var(--ink);text-shadow:4px 4px 0 var(--ink);transform:rotate(-2deg);letter-spacing:.04em;background:var(--mag);border:3px solid var(--ink);padding:0 16px;line-height:1.1}
+.set .inner{position:absolute;left:30px;right:30px;top:62px;bottom:18px}
+.set .rws{display:grid;gap:0}
+.set .rw{display:grid;grid-template-columns:1fr 330px;gap:18px;align-items:center;padding:9px 6px;border-bottom:2px dashed #0b0b1430}
+.set .rw:last-child{border-bottom:0}
+.set .rw.sel{background:#ffd21f55;outline:3px solid var(--ink);outline-offset:-1px;position:relative}
+.set .rw.sel::before{content:"";position:absolute;left:-26px;top:50%;margin-top:-10px;border:10px solid transparent;border-left:14px solid var(--mag)}
+.set .rw .l{font-weight:800;font-size:20px;letter-spacing:.02em;line-height:1.1}
+.set .rw .l small{display:block;font-family:var(--f-body);font-weight:500;font-size:13px;color:#0b0b14a0;letter-spacing:0;margin-top:2px}
+.set .rw .c{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+.set .rw.dis{opacity:.45}
+.set .grp{font-family:var(--f-disp);font-size:20px;letter-spacing:.08em;color:var(--mag);margin:8px 0 0;padding:0 6px}
+.ch{display:inline-flex;align-items:center;gap:10px;border:3px solid var(--ink);background:#fff;padding:2px 8px;font-weight:800;font-size:17px;min-width:200px;justify-content:space-between}
+.ch b{color:var(--mag);font-size:20px;line-height:1}
+.tgl{display:inline-flex;border:3px solid var(--ink);font-weight:800;font-size:15px;letter-spacing:.06em}
+.tgl i{font-style:normal;padding:2px 10px;background:#fff;color:#0b0b1466}
+.tgl.on i:first-child{background:var(--yel);color:var(--ink)}
+.tgl:not(.on) i:last-child{background:var(--ink);color:var(--paper)}
+.sld{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
+.sld .tr{width:200px;height:18px;border:3px solid var(--ink);background:#fff;position:relative;overflow:hidden}
+.sld .tr i{position:absolute;left:0;top:0;bottom:0;background:radial-gradient(circle,var(--ink) 1.3px,transparent 1.6px) 0 0/6px 6px,var(--yel);border-right:3px solid var(--ink)}
+.nx{display:inline-block;background:var(--mag);color:var(--paper);font-weight:800;font-size:12px;letter-spacing:.1em;padding:1px 6px;transform:rotate(-3deg);border:2px solid var(--ink)}
+.key{display:inline-block;min-width:34px;text-align:center;border:2px solid var(--ink);border-bottom-width:5px;background:#fff;padding:0 7px;font-weight:800;font-size:15px;border-radius:3px}
+.mono{font-family:var(--f-mono);font-size:13px}
+
+/* graphics preset cards */
+.presets{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:4px 0 10px}
+.pc{border:3px solid var(--ink);background:#fff;padding:5px;display:grid;gap:4px;font-weight:800;font-size:14px;text-align:center;letter-spacing:.04em}
+.pc .sw{height:62px;border:2px solid var(--ink);background:conic-gradient(from 45deg,var(--mag) 0 25%,var(--cy) 0 50%,var(--yel) 0 75%,var(--navy) 0) 0 0/24px 24px}
+.pc.on{background:var(--yel);box-shadow:4px 4px 0 var(--ink);transform:translateY(-3px)}
+.pc .sw.sharp{background-size:24px 24px;filter:contrast(1.1)}
+.pc .sw.bil{filter:blur(2px)}
+.pc .sw.crt{background:repeating-linear-gradient(0deg,#0006 0 2px,transparent 2px 4px),conic-gradient(from 45deg,var(--mag) 0 25%,var(--cy) 0 50%,var(--yel) 0 75%,var(--navy) 0) 0 0/24px 24px;filter:blur(.6px) saturate(1.3)}
+.pc .sw.smo{filter:blur(1px) contrast(1.3);border-radius:2px}
+.pc .sw.smc{background:repeating-linear-gradient(0deg,#0006 0 2px,transparent 2px 4px),conic-gradient(from 45deg,var(--mag) 0 25%,var(--cy) 0 50%,var(--yel) 0 75%,var(--navy) 0) 0 0/24px 24px;filter:blur(1.2px) contrast(1.3)}
+
+/* controls page */
+.pl{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.pl .pcol{border:3px solid var(--ink);padding:10px 14px;background:#fff}
+.pl .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.pl .ph b{font-family:var(--f-disp);font-size:28px;letter-spacing:.05em}
+.pl .kr{display:grid;grid-template-columns:90px 1fr 1fr;align-items:center;padding:3px 0;border-bottom:2px dashed #0b0b1424;font-weight:800;font-size:16px}
+.pl .kr:last-child{border:0}
+.pl .kr.cap .key{background:var(--yel);animation:blinkb .8s steps(2) infinite}
+@keyframes blinkb{50%{background:#fff}}
+
+/* slots */
+.slots{display:grid;grid-template-columns:repeat(10,1fr);gap:8px}
+.slot{border:3px solid var(--ink);background:#fff;height:62px;display:grid;place-items:center;font-family:var(--f-disp);font-size:24px;position:relative}
+.slot.u{background:repeating-linear-gradient(-45deg,#5fd8ff 0 6px,#9be6ff 6px 12px)}
+.slot.u small{position:absolute;bottom:1px;font-family:var(--f-lab);font-size:11px;font-weight:800}
+.slot.on{outline:4px solid var(--mag);outline-offset:2px}
+
+/* mods cards */
+.mods{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mc{border:3px solid var(--ink);background:#fff;padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:start}
+.mc b{font-size:21px;font-weight:800}
+.mc p{margin:0;grid-column:1/-1;font-family:var(--f-body);font-size:13.5px;color:#0b0b14b0}
+.mc .meta{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.mc.on{box-shadow:5px 5px 0 var(--mag)}
+
+/* online */
+.onl{display:grid;grid-template-columns:1.1fr 1fr;gap:22px;height:100%}
+.codebox{border:4px solid var(--ink);background:var(--ink);color:var(--yel);font-family:var(--f-mono);font-size:30px;font-weight:600;letter-spacing:.08em;padding:12px 16px;text-align:center}
+.onl .rw{grid-template-columns:1fr 190px}.onl .ch{min-width:150px}
+.stat{display:grid;grid-template-columns:auto 1fr auto;gap:8px 12px;align-items:center;font-weight:800;font-size:18px}
+.dot{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink)}
+.dot.g{background:var(--ok)}.dot.y{background:var(--yel)}.dot.r{background:var(--mag)}
+.ping{display:flex;align-items:flex-end;gap:4px;height:70px;border-bottom:3px solid var(--ink);padding:0 2px}
+.ping i{flex:1;background:var(--cy);border:2px solid var(--ink);border-bottom:0}
+
+/* logs */
+.tbl{width:100%;border-collapse:collapse;font-size:16px;font-weight:700}
+.tbl th{text-align:left;font-size:13px;letter-spacing:.12em;color:var(--mag);padding:4px 8px;border-bottom:3px solid var(--ink)}
+.tbl td{padding:6px 8px;border-bottom:2px dashed #0b0b1430;font-variant-numeric:tabular-nums}
+.tbl tr.sel td{background:#ffd21f66}
+.logv{border:3px solid var(--ink);background:var(--ink);color:#d8d6e8;font-family:var(--f-mono);font-size:12.5px;line-height:1.55;padding:10px 12px;height:150px;overflow:hidden;white-space:pre}
+.logv b{color:var(--yel);font-weight:600}.logv i{color:var(--cy);font-style:normal}
+
+/* first run */
+.fr h2.h{position:absolute;left:66px;top:108px;font-size:80px;transform:rotate(-2deg);width:720px}
+.fr .steps{position:absolute;left:66px;top:262px;width:700px;padding:14px 18px;display:grid;gap:4px}
+.st{display:grid;grid-template-columns:46px 1fr auto;gap:14px;align-items:center;padding:7px 4px;border-bottom:2px dashed #0b0b1430}
+.st:last-child{border:0}
+.st .n{width:40px;height:40px;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--f-disp);font-size:24px;background:#fff;transform:rotate(-4deg)}
+.st.done .n{background:var(--cy)} .st.run .n{background:var(--yel);animation:pop 1s ease-in-out infinite} .st.opt .n{border-style:dashed}
+.st.wait{opacity:.5}
+.st .t{font-weight:800;font-size:20px;line-height:1.1}
+.st .t small{display:block;font-family:var(--f-body);font-weight:500;font-size:13px;color:#0b0b14a8}
+.prog{height:14px;border:3px solid var(--ink);background:#fff;margin-top:5px;width:420px;position:relative;overflow:hidden}
+.prog i{position:absolute;left:0;top:0;bottom:0;width:62%;background:repeating-linear-gradient(-45deg,var(--yel) 0 8px,var(--mag) 8px 16px);animation:mv 1s linear infinite;background-size:22.6px 22.6px}
+@keyframes mv{to{background-position:22.6px 0}}
+.stamp{font-family:var(--f-disp);font-size:18px;letter-spacing:.06em;border:3px solid currentColor;padding:0 8px;transform:rotate(-6deg);display:inline-block}
+.stamp.ok{color:#0e8a4a}.stamp.go{color:var(--mag)}.stamp.sk{color:#0b0b1466}
+.drop{position:absolute;left:830px;top:96px;width:380px;height:300px;border:4px dashed var(--paper);display:grid;place-items:center;text-align:center;background:#0b0b1440}
+.drop .f{font-family:var(--f-disp);font-size:34px;letter-spacing:.04em;color:var(--yel);-webkit-text-stroke:1.5px var(--ink)}
+.drop p{margin:4px 18px 0;font-family:var(--f-body);font-size:14px;color:#fff8e7cc}
+
+/* in-game: NES picture at 3x (768x720) with the 8px menu font */
+.IG{background:#050508}
+.IG .scr{position:absolute;left:256px;top:0;width:768px;height:720px;overflow:hidden;
+  background:repeating-linear-gradient(135deg,#1d2140 0 24px,#191c36 24px 48px)}
+.IG .scr .ph{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-pix);font-size:12px;color:#ffffff33;text-align:center;line-height:2}
+.IG .side{position:absolute;top:0;bottom:0;width:256px;background:#0b0b14;color:#ffffff55;font-family:var(--f-lab);font-size:14px;letter-spacing:.1em;display:grid;place-items:center;text-align:center}
+.IG .menu{position:absolute;left:48px;top:72px;width:672px;padding:24px 24px 18px;background:var(--ink);border:6px solid var(--yel);box-shadow:12px 12px 0 var(--mag);font-family:var(--f-pix);font-size:24px;line-height:1;color:var(--paper)}
+.IG .menu .tt{position:absolute;left:24px;top:-30px;background:var(--yel);color:var(--ink);padding:9px 12px;border:6px solid var(--ink)}
+.IG .menu ul{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:0}
+.IG .menu li{display:flex;justify-content:space-between;padding:4px 12px 4px 36px;position:relative}
+.IG .menu li span{color:var(--cy)}
+.IG .menu li.sel{background:var(--yel);color:var(--ink)}
+.IG .menu li.sel span{color:var(--mag)}
+.IG .menu li.sel::before{content:"";position:absolute;left:10px;top:7px;border:9px solid transparent;border-left:12px solid var(--mag)}
+.IG .menu li.sep{height:12px;padding:0}
+.IG .menu .help{margin-top:16px;padding-top:14px;border-top:6px dotted #ffffff40;font-size:16px;color:#c9c3b4;line-height:1.4}
+.IG .toast{position:absolute;right:30px;top:20px;background:var(--cy);color:var(--ink);font-family:var(--f-pix);font-size:16px;padding:12px 14px;border:6px solid var(--ink);box-shadow:6px 6px 0 var(--ink)}
+@media (prefers-reduced-motion:reduce){.stage *{animation:none!important}}
+</style>
+
+<div class="wrap">
+<nav class="bar" aria-label="Screens">
+  <strong>KNUCKLE DRIVE</strong>
+  <a href="#home">Home</a><a href="#first-run">First run</a><a href="#display">Display</a><a href="#graphics">Graphics</a><a href="#audio">Audio</a><a href="#controls">Controls</a><a href="#gameplay">Gameplay</a><a href="#mods">Mods</a><a href="#online">Online</a><a href="#builds">Builds</a><a href="#logs">Logs</a><a href="#about">About</a><a href="#in-game">In-game menu</a>
+</nav>
+<p class="intro"><b>Direction A, "Splash Page", with the name Knuckle Drive.</b> Every screen is a 1280×720 launcher window, drawn with our own shapes and open-licence fonts. The game picture never appears: the in-game mockup uses a striped placeholder. Settings mirror what <code>btdd_play</code> can already do, plus the planned M10 sprite-pack switch.</p>
+<div class="hlpick" role="group" aria-label="Home headline"><span>Home headline:</span></div>
+<div id="shots" class="wrap" style="gap:44px"></div>
+</div>
+
+<script>
+/* ---------- shared bits ---------- */
+const ICON={
+ home:'<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/>',
+ display:'<rect x="3" y="4" width="18" height="12"/><path d="M8 20h8M12 16v4"/>',
+ graphics:'<path d="M12 3 14.6 9.2 21 9.6 16 13.8 17.6 20 12 16.6 6.4 20 8 13.8 3 9.6 9.4 9.2z"/>',
+ audio:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8c2 2 2 6 0 8M19 5c4 4 4 10 0 14"/>',
+ controls:'<rect x="2" y="7" width="20" height="10" rx="5"/><path d="M7 10v4M5 12h4"/><circle cx="16" cy="11" r="1"/><circle cx="18" cy="13" r="1"/>',
+ gameplay:'<path d="M12 5a7 7 0 1 1-7 7"/><path d="M5 5v7h7" transform="translate(0 -4) scale(.6) translate(3 8)"/><path d="M3 4v5h5"/>',
+ mods:'<path d="M14 3h3a1 1 0 0 1 1 1v3h-2a2 2 0 1 0 0 4h2v3a1 1 0 0 1-1 1h-3v-2a2 2 0 1 0-4 0v2H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3v2a2 2 0 1 0 4 0z" transform="translate(0 3)"/>',
+ online:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+ builds:'<path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 6l6 6"/>',
+ logs:'<rect x="5" y="3" width="14" height="18"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+ about:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v1"/>'};
+const ico=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${ICON[k]}</svg>`;
+const ch=v=>`<span class="ch"><b>‹</b>${v}<b>›</b></span>`;
+const tg=on=>`<span class="tgl ${on?'on':''}"><i>ON</i><i>OFF</i></span>`;
+const sl=(p,l)=>`<span class="sld"><span class="tr"><i style="width:${p}%"></i></span>${l}</span>`;
+const NX='<span class="nx">NEXT START</span>';
+const k=t=>`<span class="key">${t}</span>`;
+const row=(l,d,c,cls='')=>`<div class="rw ${cls}"><div class="l">${l}${d?`<small>${d}</small>`:''}</div><div class="c">${c}</div></div>`;
+const grp=t=>`<div class="grp">${t}</div>`;
+const TOP=(crumb)=>`<div class="top"><span>KNUCKLE DRIVE</span><small>launcher 0.1.0</small>${crumb?`<span class="crumb">${crumb}</span>`:''}<div class="win"><span>⚙</span><span>—</span><span>✕</span></div></div>`;
+const BG='<div class="rays"></div><div class="dots"></div>';
+const FIST=(w)=>`<svg class="emblem" style="${w}" viewBox="0 0 330 330" aria-hidden="true">
+ <circle cx="165" cy="165" r="150" fill="#24123f" stroke="#0b0b14" stroke-width="8"/>
+ <path d="M60 230 30 260M85 255 60 290M250 235 285 265" stroke="#fff8e7" stroke-width="8" stroke-linecap="round"/>
+ <ellipse cx="165" cy="175" rx="162" ry="40" fill="none" stroke="#0b0b14" stroke-width="16" transform="rotate(-18 165 175)"/>
+ <ellipse cx="165" cy="175" rx="162" ry="40" fill="none" stroke="#ff4a1c" stroke-width="8" transform="rotate(-18 165 175)"/>
+ <g transform="rotate(-14 165 180)" stroke="#0b0b14" stroke-width="8" stroke-linejoin="round">
+  <polygon points="112,262 218,262 240,296 204,288 192,324 166,292 140,324 128,288 92,296" fill="#ff4a1c"/>
+  <polygon points="130,262 200,262 210,282 186,278 166,300 146,278 120,282" fill="#ffd21f" stroke-width="5"/>
+  <rect x="112" y="238" width="106" height="30" fill="#ff4a1c"/>
+  <rect x="98" y="128" width="136" height="118" rx="24" fill="#fff8e7"/>
+  <rect x="98" y="92" width="38" height="66" rx="17" fill="#fff8e7"/>
+  <rect x="131" y="84" width="38" height="70" rx="17" fill="#fff8e7"/>
+  <rect x="164" y="88" width="38" height="68" rx="17" fill="#fff8e7"/>
+  <rect x="197" y="100" width="36" height="60" rx="16" fill="#fff8e7"/>
+  <rect x="88" y="168" width="104" height="40" rx="20" fill="#fff8e7"/>
+ </g>
+ <circle cx="96" cy="88" r="9" fill="#fff8e7"/><circle cx="262" cy="110" r="6" fill="#fff8e7"/>
+</svg>`;
+const LOGO=(st,s1,s2)=>`<div class="logo" style="${st}"><span class="w1" style="font-size:${s1}px">KNUCKLE</span><span class="w2" style="font-size:${s2}px">DRIVE</span><span class="tg">Your ROM. Our engine. Two fists.</span></div>`;
+const NAV=[['display','DISPLAY'],['graphics','GRAPHICS'],['audio','AUDIO'],['controls','CONTROLS'],['gameplay','GAMEPLAY'],['mods','MODS'],['online','ONLINE PLAY'],['builds','BUILDS'],['logs','LOGS'],['about','ABOUT']];
+const SIDE=on=>`<div class="side"><div class="nv">${ico('home')}HOME</div>${NAV.map(([id,t],i)=>`<div class="nv ${id===on?'on':''} ${i===7?'sep':''}">${ico(id)}${t}</div>`).join('')}</div>`;
+const HINTS=(extra='')=>`<div class="hints">${extra}<span><kbd>A</kbd> change</span><span><kbd>B</kbd> back</span><span><kbd>LB</kbd><kbd>RB</kbd> page</span></div>`;
+const SET=(id,title,body,hints)=>`<div class="stage K set">${BG}${TOP('SETTINGS')}${SIDE(id)}<div class="panel card"><div class="inner">${body}</div></div><div class="ptitle">${title}</div>${HINTS(hints)}</div>`;
+
+/* ---------- screens ---------- */
+const S=[];
+S.push(['home','Home','the one screen most people see: what is ready, then PLAY',
+`<div class="stage K home">${BG}${TOP()}
+ <div class="head"><span class="cap">ROM VERIFIED · BUILD READY</span></div>
+ <h2 class="h hl">Two Brothers,<br>Three Toads...<br><em>Zero Mercy!</em></h2>
+ <div class="rows">
+  <div class="row card"><div class="lb">YOUR GAME</div><div class="v">NES ROM, USA <span class="badge">VERIFIED</span><small>Battletoads &amp; Double Dragon (USA).nes · SHA-1 ok</small></div><div class="go">CHANGE</div></div>
+  <div class="row card"><div class="lb">YOUR BUILD</div><div class="v">Native build 0.1.0<small>94% recompiled · cache ready · built 24 Nov 2026</small></div><div class="go">REBUILD</div></div>
+  <div class="row card"><div class="lb">ONLINE</div><div class="v">2-player ready<small>UPnP port open · host, or paste a friend's join code</small></div><div class="go">HOST</div></div>
+ </div>
+ ${FIST('left:850px;top:62px;width:300px;height:300px')}
+ ${LOGO('left:770px;top:362px;width:450px',58,92)}
+ <div class="play" style="left:890px;top:572px;width:320px;height:134px"><span style="font-size:64px">PLAY!</span></div>
+ <div class="foot"><span>SETTINGS</span><span>CONTROLS</span><span>ONLINE</span><span>LOGS</span><span>ABOUT</span></div>
+ <div class="hints" style="right:auto;left:640px;bottom:40px"><span><kbd>A</kbd> / <kbd>ENTER</kbd> play</span></div>
+</div>`]);
+
+S.push(['first-run','First run','a checklist on a worker thread; PLAY unlocks at the end',
+`<div class="stage K fr">${BG}${TOP('FIRST RUN')}
+ <div style="position:absolute;left:70px;top:72px;transform:rotate(-2deg)"><span class="cap">STEP 3 OF 6</span></div>
+ <h2 class="h">Let's build<br><em>your game.</em></h2>
+ <div class="steps card">
+  <div class="st done"><div class="n">1</div><div class="t">Pick your ROM<small>Battletoads &amp; Double Dragon (USA).nes · or a .zip that holds it</small></div><span class="stamp ok">GOT IT</span></div>
+  <div class="st done"><div class="n">2</div><div class="t">Verify it<small>SHA-1 matches the USA cartridge</small></div><span class="stamp ok">VERIFIED</span></div>
+  <div class="st run"><div class="n">3</div><div class="t">Compile the native build<small>Built-in compiler turns your ROM's code into a PC program · 62%</small><div class="prog"><i></i></div></div><span class="stamp go">WORKING</span></div>
+  <div class="st wait"><div class="n">4</div><div class="t">Self-check<small>Boot to the title; native and reference frames must match</small></div><span class="stamp sk">NEXT</span></div>
+  <div class="st opt wait"><div class="n">5</div><div class="t">Enhance my game <span class="badge g">OPTIONAL</span><small>Upscaled tiles or a sprite pack. You can do this later in Graphics</small></div><span class="stamp sk">SKIP</span></div>
+  <div class="st wait"><div class="n">6</div><div class="t">Ready to play</div><span class="stamp sk">SOON</span></div>
+ </div>
+ <div class="drop"><div><div class="f">ROM ACCEPTED</div><p>Drop a different .nes or .zip here to start over. Your file stays where it is; we only read it.</p></div></div>
+ ${LOGO('left:800px;top:420px;width:420px',44,70)}
+ <div class="play off" style="left:900px;top:590px;width:280px;height:110px"><span style="font-size:52px">PLAY!</span></div>
+ <div class="hints" style="right:auto;left:70px"><span><kbd>B</kbd> cancel</span><span>the log for this run is in Logs</span></div>
+</div>`]);
+
+S.push(['display','Settings · Display','window, fullscreen, aspect and widescreen',
+SET('display','DISPLAY',`<div class="rws">
+ ${row('Window size','in NES pixels; 3x = 768 × 720',ch('3x'),'sel')}
+ ${row('Fullscreen','F11 or Alt+Enter in game',ch('Borderless'))}
+ ${row('Aspect','square pixels, or the 4:3 a TV showed',ch('4:3 TV'))}
+ ${row('Integer scaling','sharp pixels, black bars where needed',tg(true))}
+ ${row('Vsync','smooth motion; off lowers input lag a little',tg(true))}
+ ${grp('WIDESCREEN')}
+ ${row('Widescreen','draws the level past the old screen edges (F10)',ch('16:9'))}
+ ${row('Sprites in the margins','enemies stay visible in the wide area',tg(true))}
+ ${row('Status bar at the edges','each player\'s half moves outward',tg(true))}
+ ${row('Fade outer edges','hides enemies popping in at the far edges',tg(true))}
+</div>`)]);
+
+S.push(['graphics','Settings · Graphics','GPU presets with live swatches; sprite packs are switched here when M10 lands',
+SET('graphics','GRAPHICS',`<div class="rws">
+ ${row('Renderer','GPU runs the shader presets (Direct3D 12)',NX+ch('GPU'))}
+</div>
+<div class="grp" style="margin-bottom:6px">SHADER PRESET <span style="font-family:var(--f-lab);font-size:14px;color:#0b0b1499;letter-spacing:.04em">· F3 cycles in game</span></div>
+<div class="presets">
+ <div class="pc"><div class="sw"></div>NEAREST</div><div class="pc"><div class="sw sharp"></div>SHARP</div><div class="pc"><div class="sw bil"></div>BILINEAR</div>
+ <div class="pc on"><div class="sw crt"></div>CRT</div><div class="pc"><div class="sw smo"></div>SMOOTH</div><div class="pc"><div class="sw smc"></div>SMOOTH CRT</div>
+</div>
+<div class="rws">
+ ${row('Scanlines','F4 in game',tg(false))}
+ ${row('No sprite flicker','draw every sprite on every line (F8)',tg(true),'sel')}
+ ${row('Sprite pack <span class="badge g">COMING</span>','your own art for the game\'s sprites; off = original look',ch('Off'),'dis')}
+ ${row('Import HD pack…','folder or .zip; checked before use','<span class="btn w">BROWSE</span>','dis')}
+</div>`)]);
+
+S.push(['audio','Settings · Audio','one volume, per-channel mute for the five sound channels',
+SET('audio','AUDIO',`<div class="rws">
+ ${row('Volume','',sl(80,'80%'),'sel')}
+ ${row('Mute when the window is in the background','',tg(true))}
+ ${row('Latency','lower = snappier, higher = no crackle',ch('Normal · 50 ms'))}
+ ${grp('CHANNELS')}
+ ${row('Pulse 1','lead melody',tg(true))}
+ ${row('Pulse 2','harmony and effects',tg(true))}
+ ${row('Triangle','bass',tg(true))}
+ ${row('Noise','drums and hits',tg(true))}
+ ${row('Samples','sampled sounds',tg(true))}
+</div>`)]);
+
+const KEYS1=[['A','X','Pad A'],['B','Z','Pad B'],['SELECT','R-SHIFT','Back'],['START','ENTER','Start'],['UP','↑','D-pad ↑'],['DOWN','↓','D-pad ↓'],['LEFT','←','D-pad ←'],['RIGHT','→','D-pad →']];
+const KEYS2=[['A','G','Pad A'],['B','F','Pad B'],['SELECT','Q','Back'],['START','E','Start'],['UP','W','D-pad ↑'],['DOWN','S','D-pad ↓'],['LEFT','A','D-pad ←'],['RIGHT','D','D-pad →']];
+const kcol=(p,dev,K,cap)=>`<div class="pcol"><div class="ph"><b>PLAYER ${p}</b>${ch(dev)}</div>${K.map(([n,a,b],i)=>`<div class="kr ${cap&&i===1?'cap':''}"><span>${n}</span><span>${cap&&i===1?k('PRESS A KEY'):k(a)}</span><span>${k(b)}</span></div>`).join('')}
+<div class="kr"><span>TURBO</span><span>${k('C')} A</span><span>${k('V')} B</span></div></div>`;
+S.push(['controls','Settings · Controls','both players side by side; rebinding shows "press a key" right in the slot',
+SET('controls','CONTROLS',`<div class="pl">${kcol(1,'Keyboard + Pad 1',KEYS1,false)}${kcol(2,'Keyboard + Pad 2',KEYS2,true)}</div>
+<div style="display:flex;gap:12px;margin-top:12px;align-items:center"><span class="btn">REDEFINE ALL</span><span class="btn w">RESET TO DEFAULTS</span><span style="margin-left:auto;font-family:var(--f-body);font-size:13px;color:#0b0b14a0">Hotkeys: F6/F7 save/load · Backspace rewind · Tab fast forward · F10 widescreen</span></div>`,
+'<span><kbd>ESC</kbd> keep old key</span>')]);
+
+S.push(['gameplay','Settings · Gameplay','save slots, rewind, fast forward and the game\'s own cheat codes',
+SET('gameplay','GAMEPLAY',`<div class="grp" style="margin:0 0 6px">SAVE STATES</div>
+<div class="slots">${[0,1,2,3,4,5,6,7,8,9].map(i=>`<div class="slot ${[0,1,3,4].includes(i)?'u':''} ${i===3?'on':''}">${i}${[0,1,3,4].includes(i)?`<small>${['STAGE 1','STAGE 2','','STAGE 4','STAGE 5'][i]||''}</small>`:''}</div>`).join('')}</div>
+<div class="rws" style="margin-top:6px">
+ ${row('Slot 3','F6 saves, F7 loads, 0-9 picks a slot in game','<span class="btn">SAVE</span><span class="btn c">LOAD</span>')}
+ ${row('Rewind length','hold Backspace; about 1 MB of memory per second',ch('60 s'),'sel')}
+ ${row('Fast forward','speed while Tab is held',ch('4x'))}
+ ${grp('CHEATS · THE GAME\'S OWN CODES, ENTERED FOR YOU')}
+ ${row('Held code: 5 lives','Up + A + B when you press Start',tg(false))}
+ ${row('Title code 1: 5 lives for everyone','',tg(true))}
+ ${row('Title code 2: 10 lives for everyone','',tg(false))}
+</div>`)]);
+
+S.push(['mods','Settings · Mods','each mod is a card; online play needs the same mods on both sides',
+SET('mods','MODS',`<div class="mods">
+ <div class="mc on"><b>No sprite flicker</b>${tg(true)}<p>Every sprite on every line is drawn. Picture only, the game plays the same.</p><div class="meta"><span class="badge">PICTURE</span><span class="badge y">F8</span></div></div>
+ <div class="mc on"><b>Starting lives</b>${ch('5')}<p>Start and continue with this many lives instead of 3.</p><div class="meta"><span class="badge m">GAMEPLAY</span><span class="badge y">F9</span><span class="badge g">NEXT PLAYER START</span></div></div>
+ <div class="mc on"><b>Widescreen</b>${tg(true)}<p>Margins drawn from the level's own map. Settings live under Display.</p><div class="meta"><span class="badge">PICTURE</span><span class="badge y">F10</span></div></div>
+ <div class="mc"><b>Cheat codes</b>${tg(false)}<p>The game's own codes, entered for you. Pick them under Gameplay.</p><div class="meta"><span class="badge m">GAMEPLAY</span></div></div>
+</div>
+<div class="rws" style="margin-top:12px">
+ ${row('Mods folder','drop-in mods load from here (later)','<span class="mono">%APPDATA%\\knuckle-drive\\mods</span>','dis')}
+ ${row('Online check','both players need the same gameplay mods','<span class="badge">PICTURE MODS ARE FREE TO DIFFER</span>')}
+</div>`)]);
+
+S.push(['online','Settings · Online play','host shows a join code and connection health; guests paste a code',
+SET('online','ONLINE PLAY',`<div class="onl">
+ <div style="display:grid;gap:12px;align-content:start">
+  <div style="display:flex;gap:10px"><span class="btn">HOST GAME</span><span class="btn w">JOIN WITH CODE</span><span class="btn w">ADDRESS</span></div>
+  <div class="grp" style="padding:0">YOUR JOIN CODE</div>
+  <div class="codebox">BT1-K3QF-92XA-LM7P</div>
+  <div style="display:flex;gap:10px;align-items:center"><span class="btn c">COPY</span><span style="font-family:var(--f-body);font-size:14px">Send it to player 2 in any chat. Copied already.</span></div>
+  <div class="rws">${row('Input delay','frames; raise to 2-3 on slow links',ch('1'),'sel')}${row('Port','UDP; forward it only if UPnP fails',ch('7845'))}</div>
+ </div>
+ <div style="display:grid;gap:12px;align-content:start;border-left:3px dashed #0b0b1440;padding-left:20px">
+  <div class="grp" style="padding:0">CONNECTION</div>
+  <div class="stat"><i class="dot g"></i>UPnP opened port 7845<span class="badge">OK</span>
+   <i class="dot g"></i>Player 2 connected<span class="badge">P2</span>
+   <i class="dot g"></i>Same ROM, build and mods<span class="badge">MATCH</span>
+   <i class="dot y"></i>Last rollback 2 frames<span class="badge y">FINE</span></div>
+  <div class="grp" style="padding:0">PING · 38 MS</div>
+  <div class="ping">${[34,36,40,38,35,52,44,38,37,36,39,38,41,37,38].map(v=>`<i style="height:${v}%"></i>`).join('')}</div>
+  <div style="display:flex;gap:10px"><span class="btn m">LEAVE</span><span class="btn w">RESYNC</span></div>
+  <p style="margin:0;font-family:var(--f-body);font-size:13px;color:#0b0b14a0">Strict router on both sides? Forward UDP 7845 on the host, or join over a VPN address.</p>
+ </div>
+</div>`)]);
+
+S.push(['builds','Settings · Builds','what runs when you press PLAY, and the button to rebuild',
+SET('builds','BUILDS',`<div class="rws">
+ ${row('Game code','native = compiled from your ROM; reference = interpreted',ch('Native'),'sel')}
+ ${row('Native cache','94% of instructions compiled · 1.8 MB · up to date','<span class="btn">REBUILD</span>')}
+ ${row('Self-check','last run: 24 Nov 2026 17:02 · frames match','<span class="stamp ok">PASSED</span>')}
+ ${row('Run self-check now','boots to the title in the background, about 10 s','<span class="btn w">RUN</span>')}
+ ${grp('VERSIONS')}
+ ${row('Launcher','','<span class="mono">0.1.0 · m11-launcher</span>')}
+ ${row('Game engine','','<span class="mono">btdd_play 0.1.0 · c43b4f2</span>')}
+ ${row('Game description file','','<span class="mono">btdd.meta 0.3</span>')}
+ ${row('Newest version','update checks are off until there is an update host','<span class="badge g">LOCAL BUILD</span>')}
+</div>`)]);
+
+S.push(['logs','Settings · Logs','every run is listed; Save report removes your user name and sends nothing',
+SET('logs','LOGS',`<table class="tbl"><thead><tr><th>WHEN</th><th>WHAT</th><th>RESULT</th><th>TIME</th></tr></thead><tbody>
+ <tr class="sel"><td>24 Nov 17:31</td><td>Play · 2P online (host)</td><td><span class="badge">OK</span></td><td>42 min</td></tr>
+ <tr><td>24 Nov 17:02</td><td>Self-check</td><td><span class="badge">PASSED</span></td><td>9 s</td></tr>
+ <tr><td>24 Nov 16:58</td><td>First run · compile</td><td><span class="badge">OK</span></td><td>48 s</td></tr>
+ <tr><td>23 Nov 22:14</td><td>Play</td><td><span class="badge m">DESYNC SAVED</span></td><td>15 min</td></tr>
+</tbody></table>
+<div class="logv" style="margin-top:12px"><b>17:31:02</b> start  native build 0.1.0  renderer gpu  preset crt
+<b>17:31:02</b> rom    <i>%USERPROFILE%</i>\\Games\\...(USA).nes  sha1 ok
+<b>17:31:07</b> net    upnp: port 7845 open  join code copied
+<b>17:31:22</b> net    player 2 connected  ping 38 ms  settings match
+<b>18:13:40</b> stop   frames 151,210  rollbacks avg 1.4  max 5</div>
+<div style="display:flex;gap:10px;margin-top:12px;align-items:center"><span class="btn">SAVE REPORT</span><span class="btn w">OPEN FOLDER</span><span style="font-family:var(--f-body);font-size:13px;color:#0b0b14a0;margin-left:6px">A report is a folder with logs and settings. Nothing is sent anywhere.</span></div>`)]);
+
+S.push(['about','Settings · About','licences, the no-affiliation line, and credits',
+SET('about','ABOUT',`<div style="display:grid;grid-template-columns:260px 1fr;gap:26px;align-items:start">
+ <div style="text-align:center">${FIST('position:static;width:220px;height:220px')}
+ <div style="font-family:var(--f-disp);font-size:40px;line-height:1;margin-top:6px">KNUCKLE DRIVE</div><div style="font-weight:800;letter-spacing:.12em;font-size:14px;color:var(--mag)">YOUR ROM. OUR ENGINE.</div></div>
+ <div style="display:grid;gap:12px;font-family:var(--f-body);font-size:15px;line-height:1.45">
+  <p style="margin:0"><b>Knuckle Drive</b> rebuilds a 1993 NES game as a native PC program from <b>your own ROM</b>. It ships no game code, graphics, music or names; everything it shows before you press PLAY is our own work.</p>
+  <p style="margin:0">Not affiliated with or endorsed by the game's publishers or by Nintendo. It needs a legally obtained ROM of <i>Battletoads &amp; Double Dragon (USA)</i>.</p>
+  <div class="tbl" style="display:grid;grid-template-columns:auto 1fr;gap:4px 18px;font-family:var(--f-lab);font-weight:700;font-size:16px">
+   <span style="color:var(--mag)">CODE</span><span>MIT licence</span>
+   <span style="color:var(--mag)">ART</span><span>launcher art and logo: our own, MIT</span>
+   <span style="color:var(--mag)">FONTS</span><span>Bangers, Barlow, Barlow Condensed, JetBrains Mono, Press Start 2P (SIL OFL 1.1)</span>
+   <span style="color:var(--mag)">LIBRARIES</span><span>SDL3 (zlib), TinyCC (LGPL, separate DLL)</span>
+  </div>
+  <div style="display:flex;gap:10px"><span class="btn w">LICENCES</span><span class="btn w">PROJECT PAGE</span></div>
+ </div>
+</div>`)]);
+
+S.push(['in-game','In-game menu (Esc)','btdd_play\'s overlay at 3x: same ink, yellow and magenta, an 8-pixel font, 31 columns',
+`<div class="stage IG"><div class="side">window border<br>(4:3 picture, 3x)</div>
+ <div class="scr"><div class="ph">YOUR GAME<br>RUNS HERE<br>256 × 240</div>
+  <div class="menu"><div class="tt">SETTINGS</div>
+   <ul><li>RESUME</li><li>SAVE STATES <span>›</span></li><li class="sel">DISPLAY <span>›</span></li><li>GRAPHICS <span>›</span></li><li>AUDIO <span>›</span></li><li>CONTROLS <span>›</span></li><li>GAMEPLAY <span>›</span></li><li>MODS <span>›</span></li><li>CHEATS <span>›</span></li><li>ONLINE 2P <span>›</span></li><li class="sep"></li><li>RESET <span>F1</span></li><li>QUIT</li></ul>
+   <div class="help">WINDOW, FULLSCREEN, ASPECT,<br>WIDESCREEN</div></div>
+  <div class="toast">SAVED TO SLOT 3</div></div>
+ <div class="side" style="left:1024px">window border</div></div>`]);
+
+const box=document.getElementById('shots');
+box.innerHTML=S.map(([id,t,why,html])=>`<section class="shot" id="${id}"><h2>${t}<small>${why}</small></h2><div class="frame">${html}</div></section>`).join('');
+/* headline picker (Home) */
+const HL=[['Two Brothers,<br>Three Toads...','Zero Mercy!'],['Grab a friend.','Start a brawl.'],['Hit the deck.','The ship is yours.'],['Two players.','One big ship.'],['Warts and all.','Let\'s go.'],null];
+const hp=document.querySelector('.hlpick');
+function setHL(i){const h=HL[i];document.querySelectorAll('.hl').forEach(e=>{e.hidden=!h;if(h)e.innerHTML=h[0]+'<br><em>'+h[1]+'</em>'});
+  hp.querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-pressed',j===i));try{localStorage.setItem('hl',i)}catch(e){}}
+HL.forEach((h,i)=>{const b=document.createElement('button');b.type='button';b.id='hl'+i;b.textContent=h?h.join(' ').replace('<br>',' '):'No headline';b.onclick=()=>setHL(i);hp.appendChild(b)});
+let hl0=0;try{hl0=+localStorage.getItem('hl')||0}catch(e){}setHL(hl0);
+/* #only-<id>: one screen at exactly 1280x720 (for PNG exports and README placeholders) */
+const solo=location.hash.startsWith('#only-')&&location.hash.slice(6);
+if(solo){document.body.innerHTML='';const st=S.find(s=>s[0]===solo);document.body.style.cssText='padding:0;margin:0;width:1280px;height:720px;overflow:hidden;position:relative';
+  document.body.insertAdjacentHTML('beforeend',st?st[3]:'');}
+const fit=()=>!solo&&document.querySelectorAll('.frame').forEach(f=>{f.querySelector('.stage').style.transform='scale('+(f.clientWidth/1280)+')'});
+new ResizeObserver(fit).observe(document.body);fit();
+</script>
