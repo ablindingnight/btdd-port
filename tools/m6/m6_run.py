@@ -149,7 +149,7 @@ def solve(bank, addr, tries, keep_existing=False):
             t + 1, result, usage.get('prompt_tokens'), usage.get('completion_tokens'), secs, msg[:160]))
         if result == 'pass':
             os.makedirs(PRIVATE, exist_ok=True)
-            out = os.path.join(PRIVATE, '%s.c' % r['name'])
+            out = m6_test.private_file(r['name'], bank, for_write=True)
             if keep_existing and os.path.isfile(out):  # re-run for measurements: keep the passing file we have
                 out = os.path.join(work, 'rerun_pass.c')
             with open(out, 'w', newline='\n') as f:
@@ -253,19 +253,19 @@ def kinds_ready(kinds, max_size, skip):
     """[(routine, kind, share of callees with passing C, calls)] best first."""
     pick = m6_prompt.m6_pick
     raw = open(m6_test.ROM, 'rb').read()[16:]
-    passing = set(os.path.splitext(n)[0] for n in os.listdir(PRIVATE)) if os.path.isdir(PRIVATE) else set()
+    passing = m6_test.passing_keys()  # (bank, start): names repeat across banks
     calls = pick.call_counts()
     dirs = [os.path.join(M6, 'corpus', '2p'), os.path.join(M6, 'corpus', '1p')]
     out = []
     for r in pick.routines():
-        if r['name'] in passing or r['name'] in skip or r['conf'] != 'verified' or r['end'] - r['start'] + 1 > max_size:
+        if (r['bank'], r['start']) in passing or r['name'] in skip or r['conf'] != 'verified' or r['end'] - r['start'] + 1 > max_size:
             continue
         mem = raw[r['bank'] * 0x8000:(r['bank'] + 1) * 0x8000]
         ok, kind, targets, why = pick.classify(mem, r)
         if not ok or kind not in kinds or not m6_test.corpus_files(r['bank'], r['start'], dirs):
             continue
-        cs = [nm for nm, ad, how in targets if how in ('call', 'tail')]
-        share = sum(1 for n in cs if n in passing) / len(cs) if cs else 1.0
+        cs = [ad for nm, ad, how in targets if how in ('call', 'tail')]
+        share = sum(1 for ad in cs if (r['bank'], ad) in passing) / len(cs) if cs else 1.0
         out.append((r, kind, share, calls.get((r['bank'], r['start']), 0)))
     out.sort(key=lambda x: (-x[2], -x[3], x[0]['end'] - x[0]['start']))
     return out

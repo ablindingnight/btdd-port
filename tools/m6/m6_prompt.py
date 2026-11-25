@@ -414,8 +414,8 @@ def build(bank, addr):
             co, _ = caller_outputs(bank, ca, mem)
             lines.append('- `void %s(M6 *m);` ($%04X), callers use its: %s' % (
                 name, ca, ', '.join('m->' + o for o in co) or 'nothing (only its RAM/hardware effects)'))
-            mine = os.path.join(m6_test.PRIVATE, name + '.c')
-            if os.path.isfile(mine):
+            mine = m6_test.private_file(name, bank)
+            if mine:
                 body = [l for l in open(mine, encoding='utf-8').read().splitlines()[1:]]
                 if len(body) <= 60:
                     lines.append('  its C (`routine` is `%s`):\n```c\n%s\n```' % (name, '\n'.join(body)))
