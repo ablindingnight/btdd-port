@@ -225,6 +225,29 @@ themselves. 991 of 1,143 meta routines classify (leaf 213, calls 80, tail 277, a
   like. Keep two processes; compare on the same routine set to measure the real gain.
 - 187 routines have passing C now (private/m6, never committed).
 
+## Overnight and day runs (2026-11-24 16:25 -> 2026-11-25 14:30, branch m6-overnight)
+- Overnight (`m6_overnight.py`, two shards): 443 routines with passing C at 04:00 (+256) when no untried routine
+  with a corpus was left. Its retry-once phase then ran on until 08:00, alongside the day run (up to four requests
+  queued on the two slots from 04:52 to 08:00; 68 retry tries).
+- Corpus from every source: `m6_capture` handled at most 256 routines per run (the overnight list of 496 lost its
+  second half; now 4096). New sources, one corpus folder each: 7 more movies (koh x2, feos 3154 + truncated,
+  sub553/635 converted, lamp, dl2312) and ~19,300 coverage snapshots played 300 frames each with random pads
+  (`--snaps`). Snapshots are raw `Nes` dumps: the snap2-* set needs a capture built on the 1715f44 tree, the
+  forced/snap-tas2p/modes set one built on the coverage tree; explore-a/b (older layout) are not used.
+- Random-only test: a routine with no corpus anywhere is tested on random entry states only (>= 200 must finish,
+  any hardware access allowed); such passes say RANDOM-ONLY in the header and are counted apart.
+- Day run (`m6_day.py`, 04:52-14:30; from 10:31 one slot on new -> random-only, one on the readability pass):
+  passing C 444 -> 595; 9 of them random-only. Readability: 68 routines rewritten under the test gate, 27
+  replaced; mean lint of the 444 routines that passed before the day 22.2 -> 20.7 (595 routines now: 21.9).
+
+All runs, by kind (last series per routine): leaf 149/197, calls 41/70, tail 135/182, alt 187/322, far 14/27,
+dispatch 10/12.
+
+What is left of the 1,143 routines: 152 unsupported (74 fall through their end into unknown code, 33 jump to
+unknown code, 14 RTI handlers, 14 trampolines, 10 TXS, 3 code in RAM, 3 JSR to unknown code, 1 BRK); of the 991
+supported: 595 pass, 270 failed with a corpus (retry candidates, e.g. with the 20k budget), 126 have no corpus
+anywhere (76 never tried on random states, 50 whose only earlier tries were "no corpus" setups).
+
 ## Not done / next
 - `facts.py` output: allowed and wired in (`M6_FACTS=1`), off by default after the A/B above.
 - Non-leaf routines: done for same-bank callees (below). Far calls (`$FFCB`), indirect jumps and tail jumps out
