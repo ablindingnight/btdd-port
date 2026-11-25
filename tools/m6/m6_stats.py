@@ -54,6 +54,8 @@ def by_kind(series):
         row[1] += s[0]['result'] == 'pass'
         row[2] += s[-1]['result'] == 'pass'
         row[3] += sum(t['seconds'] for t in s)
+    ro = sum(1 for s in series.values() if s[-1]['result'] == 'pass' and s[-1].get('random_only'))
+    print('random-only passes (no corpus anywhere, random entry states only): %d' % ro)
     print('kind        routines  try-1  passed  pass%  passes/GPU-h')
     for k, (n, f, p, sec) in rows.items():
         if n:
