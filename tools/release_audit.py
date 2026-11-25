@@ -45,13 +45,28 @@ def is_progression(w, slack=3):
     return best + 1 >= len(w) - slack
 
 
+def _const_step(seg):
+    return len(seg) < 3 or all(((seg[k + 1] - seg[k]) & 0xFF) == ((seg[1] - seg[0]) & 0xFF) for k in range(len(seg) - 1))
+
+
+def is_pad_plus_counter(w):
+    """True for a run of one byte value followed (or preceded) by a constant-step sequence, e.g.
+    00 x9 then 01 02 03 04 05 06 07: compiler padding in front of a lookup table, no ROM content."""
+    for k in range(1, len(w)):
+        a, b = w[:k], w[k:]
+        if (len(set(a)) == 1 and _const_step(b)) or (len(set(b)) == 1 and _const_step(a)):
+            return True
+    return False
+
+
 def windows(data, n):
     out = set()
     for i in range(len(data) - n + 1):
         w = data[i:i + n]
         # skip low-information runs: few distinct values, one byte filling most of the run (padding followed by a
         # short counter, e.g. 00 x12 01 02 03 04), or a near constant-step sequence (C runtime lookup tables)
-        if len(set(w)) >= MIN_DISTINCT and max(w.count(b) for b in set(w)) < 10 and not is_progression(w):
+        if (len(set(w)) >= MIN_DISTINCT and max(w.count(b) for b in set(w)) < 10 and not is_progression(w)
+                and not is_pad_plus_counter(w)):
             out.add(w)
     return out
 
