@@ -52,13 +52,31 @@ and refuse. Display-only mods (widescreen, no flicker, shaders) may differ.
   machine state: RAM, CHR-RAM, registers; no ROM data) in chunks; the guest loads it and both continue from there.
   Nothing is sent anywhere but the peer.
 
-## Connection
-- Direct IP: the host listens on a UDP port (default 7845), the guest enters `IP:port`. The host needs that port
-  forwarded on its router (or both on the same LAN / a VPN such as Tailscale/ZeroTier, which needs no forwarding).
-- Later (planned, not built): a small relay / NAT hole-punching rendezvous server so neither side forwards ports;
-  the lobby in the launcher (M11).
-- btdd_play settings menu: **Netplay** page: Host game (port), Join game (address), input delay, status line
-  (connected / ping / rollback frames per second / desyncs).
+## Connection (only the host needs to be reachable; the guest never forwards a port)
+Tried in this order when the host picks **Host game**; the status line says in plain words what worked:
+1. **UPnP-IGD port mapping** (`src/platform/upnp.c`, miniupnpc 2.3.3, BSD licence, fetched by CMake): the host asks
+   its router to forward UDP `net_port` to itself for the session ("UPnP opened UDP port 7845 on the router
+   (public IP ...)" or "UPnP: no router answered (UPnP may be off)"; the join code still works). The
+   mapping is removed when the session ends or the game quits. Many routers have UPnP off; nothing breaks then.
+2. **UDP hole punching with a join code** (`src/net/joincode.c`, `src/platform/udp.c`): the host asks a STUN
+   server (`net_stun`, default `stun.l.google.com:19302`; empty = off) for its public address. Its join code
+   (`BT1-XXXXX-XXXXX-XXXXX-XXXXXX`, 13 bytes in Crockford base32: public IP:port, LAN IP:port, checksum; case and
+   O/0, I/L/1 forgiving) is copied to the clipboard and shown in the menu. The guest copies it and picks **Join with
+   code**; it gets its own code too. Both sides send small punch packets to every endpoint they know (public and
+   LAN) twice a second until one answers, then lock onto that address. If the host's router drops the guest's
+   first packets, the guest sends its code back and the host picks **Paste player 2's code**, so both punch at the
+   same time. Works on most home routers; fails when either side is behind a symmetric NAT or carrier-grade NAT
+   (some mobile / fibre providers). After 20 s without an answer the status explains the next step.
+   **Privacy:** the STUN server sees the player's public IP address (nothing else: no game data, no code). Set
+   `net_stun =` (empty) to turn it off; the code then holds only the UPnP / LAN address.
+3. **Direct IP** (always works when reachable): the guest types `IP:port` under **Address** and picks **Join game**.
+   For a router without UPnP and a NAT that defeats punching: forward the port by hand, or both install a VPN such
+   as Tailscale or ZeroTier and use its address (no forwarding).
+4. **Relay** (plan only, not built): an optional small UDP relay (both connect out to it; it forwards packets
+   between two session ids, sees only encrypted-or-not input packets, never stores them). Would be opt-in with a
+   configurable address, since it is the only path that sends game traffic through a third machine.
+- btdd_play settings menu: **Online 2-player** page: Host game, Join with code, Address + Join game, input delay,
+  status line (connected / ping / rollbacks / desyncs), the join code with **Copy my join code**, Leave, Resync.
 
 ## Security basics
 - Every packet: fixed magic and version, exact size checks against the type, frame numbers within a window of the
@@ -73,23 +91,31 @@ and refuse. Display-only mods (widescreen, no flicker, shaders) may differ.
   the 2P TAS inputs split between them (pad 1 on the host, pad 2 on the guest). Pass: on both peers, the RAM after
   every confirmed frame equals the solo run's RAM for that frame, for the whole movie, at e.g. 100 ms ping +
   jitter + 5 % loss; prints rollbacks and stalls. In `tools/check_all.py` as a gate.
+- `joincode_test` (`tests/net/joincode_test.c`): join-code round trip and checksum rejection, then two real UDP
+  sockets on 127.0.0.1 whose codes carry fake, unreachable public endpoints (TEST-NET addresses) and their real
+  local ones; both paste each other's code and punch, must lock onto the working endpoint, finish the handshake and
+  play 1,500 frames of the 2P TAS equal to the solo run. In `tools/check_all.py` as the `joincode` gate.
 - Two `btdd_play` instances on localhost (real UDP) for the handshake, menu and audio.
 
 ## How to play online (built 2026-11-24)
 1. Both players use the same game ROM and the same btdd_play build, with the same mods/cheats on (display
    settings can differ).
 2. The host (player 1): settings menu (Esc) -> **Online 2-player** -> **Host game**. The game restarts and waits.
-   The host's router must forward **UDP port 7845** (or `net_port`) to the host's PC; easier: both install a VPN
-   such as Tailscale or ZeroTier and use its address (no forwarding needed). Command line: `btdd_play --host [port]`.
-3. The guest (player 2): Esc -> Online 2-player -> **Address** (type the host's `IP:port`, Enter) -> **Join game**.
-   Command line: `btdd_play --join IP:port`.
+   After a few seconds the status says whether UPnP opened the port, and the **join code** is copied to the
+   clipboard (also shown in the menu, **Copy my join code**). Send it to player 2 (chat, text message).
+   Command line: `btdd_play --host [port]`.
+3. The guest (player 2): copy the host's code, then Esc -> Online 2-player -> **Join with code** (reads the
+   clipboard). Command line: `btdd_play --join-code BT1-...`. If nothing connects within ~20 s, the guest's own
+   code is on its clipboard: send it to the host, who picks **Paste player 2's code**.
+   Without codes: **Address** (type the host's `IP:port`, Enter) -> **Join game**, or `btdd_play --join IP:port`.
+   If neither works (strict NAT on both sides): forward UDP port 7845 on the host's router, or use Tailscale /
+   ZeroTier and join the host's VPN address.
 4. Each player plays with their own player 1 keys or pad. Input delay (default 1) can be raised to 2-3 on slow
    connections (fewer corrections, a little more lag). The window title shows ping and the last rollback size.
 5. A different setting on either side is refused with both summaries shown. On a desync both sides save their
    state to `<settings folder>/netplay/` and the host gets **Resync** in the menu.
 
-Not yet: relay / NAT punch-through (no port forwarding), a lobby (M11 launcher), spectators, pausing together,
-save states during online play.
+Not yet: the relay, a lobby (M11 launcher), spectators, pausing together, save states during online play.
 
 ## Results
 - `nettest`, whole 2P TAS (59,351 frames), both peers equal to the solo run on every confirmed frame: 100 ms ping +
@@ -102,3 +128,7 @@ save states during online play.
   both sides' RAM after every confirmed frame equals FCEUX's for 3,000 frames; a guest with a different logic mod is
   refused; joining from the menu (typed address) connects.
 - `tools/check_all.py` gate `netplay` (the 100 ms / 5 % loss run over the whole movie).
+- Join code (`joincode_test`): both sides lock onto the working 127.0.0.1 endpoint past the unreachable fake
+  public ones, 1,500 frames confirmed on both, 0 differ from the solo run (about 9 s). UPnP and STUN against a
+  real router / STUN server were not exercised by the automated tests (they would change the router's port map and
+  contact Google); they need a manual try on the players' machines.
