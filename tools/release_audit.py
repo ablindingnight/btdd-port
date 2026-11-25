@@ -31,18 +31,34 @@ FORBIDDEN_DIRS = {'private', 'generated', 'assets'}  # ROM-derived by definition
 HEX_TOKEN = re.compile(r'(?:0x|\$)?([0-9A-Fa-f]{2})(?![0-9A-Fa-f])')
 
 
+def is_progression(w, slack=3):
+    """True when all but `slack` bytes of the run form one constant-step sequence (0,1,2,3..., FF,FE,...,
+    00,10,20..., '+,-./0123'). Such runs carry no ROM content: C runtimes and compilers emit identity/lookup
+    tables like these in every exe, and they also occur in the ROM, so they are not evidence of copying."""
+    best = run = 1
+    for k in range(1, len(w) - 1):
+        if ((w[k + 1] - w[k]) & 0xFF) == ((w[k] - w[k - 1]) & 0xFF):
+            run += 1
+        else:
+            run = 1
+        best = max(best, run)
+    return best + 1 >= len(w) - slack
+
+
 def windows(data, n):
     out = set()
     for i in range(len(data) - n + 1):
         w = data[i:i + n]
-        if len(set(w)) >= MIN_DISTINCT:
+        # skip low-information runs: few distinct values, one byte filling most of the run (padding followed by a
+        # short counter, e.g. 00 x12 01 02 03 04), or a near constant-step sequence (C runtime lookup tables)
+        if len(set(w)) >= MIN_DISTINCT and max(w.count(b) for b in set(w)) < 10 and not is_progression(w):
             out.add(w)
     return out
 
 
 def rom_strings(prg):
     return {m.group() for m in re.finditer(rb'[\x20-\x7e]{%d,}' % MIN_STRING, prg)
-            if len(set(m.group())) >= 4}
+            if len(set(m.group())) >= 4 and not is_progression(m.group())}
 
 
 def hex_runs(text):
