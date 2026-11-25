@@ -9,7 +9,7 @@ compiler, 1P new PPU), APU vs FCEUX's log, picture vs FCEUX's index dumps, save 
 the M13 netplay tests (two rollback peers over a lossy simulated link, whole 2P movie; join-code punch on
 localhost), the M7 mod tests (every other gate runs with mods compiled in but off; the native gate also checks a logic mod
 gives the same run natively and interpreted),
-CPU/APU unit tests, M5 native lockstep (btdd_gen + zig cc), the M6 harness self-test (needs a passing private
+the M11 launcher (every screen renders headless, first run ends ready, package audit), CPU/APU unit tests, M5 native lockstep (btdd_gen + zig cc), the M6 harness self-test (needs a passing private
 candidate, see below), and release_audit. Exit code 0 only if nothing FAILed (SKIP and WARN do not fail).
 
 Reference data is read from ..\\Gamefiles (never copied); outputs (ROM-derived dumps, generated C, the native
@@ -300,6 +300,73 @@ def gate_m6(out):
     return g
 
 
+LAUNCHER_SCREENS = ['home', 'first-run', 'display', 'graphics', 'audio', 'controls', 'gameplay', 'mods', 'online',
+                    'builds', 'logs', 'about']
+
+
+def gate_launcher(build, out):
+    """M11: the Pond to Pavement launcher, in its own folder (own btdd.cfg, so the player's settings are never
+    touched): every screen renders headless (--ui-shot --demo) to a non-trivial PNG; the first-run checklist
+    (--selftest: verify, compile when btdd_jit is there, self-check) ends ready on the 2P ROM; and release_audit finds
+    no ROM content in the launcher package (exe + fonts), so no ROM-derived image can be embedded."""
+    def g():
+        src = exe(build, 'PondToPavement')
+        if not os.path.isfile(src):
+            return 'SKIP', 'PondToPavement not built (BTDD_SDL off?)'
+        d = os.path.join(out, 'launcher')
+        shutil.rmtree(d, ignore_errors=True)
+        os.makedirs(os.path.join(d, 'shots'))
+        bindir = os.path.dirname(src)
+        for n in ('PondToPavement', 'btdd_play', 'btdd_headless', 'btdd_jit'):
+            if os.path.isfile(exe(build, n)):
+                shutil.copy2(exe(build, n), d)
+        for dll in [f for f in os.listdir(bindir) if f.lower().endswith('.dll')]:
+            shutil.copy2(os.path.join(bindir, dll), d)
+        shutil.copytree(os.path.join(REPO, 'res', 'fonts'), os.path.join(d, 'fonts'))
+        with open(os.path.join(d, 'btdd.cfg'), 'w') as f:
+            f.write('rom = %s' % ROM + chr(10))
+        launcher = os.path.join(d, 'PondToPavement' + EXE)
+        for sc in LAUNCHER_SCREENS:
+            png = os.path.join(d, 'shots', sc + '.png')
+            code, o = run([launcher, '--ui-shot', sc, png, '--demo'], timeout=120, cwd=d)
+            if code != 0 or not os.path.isfile(png) or os.path.getsize(png) < 20000:
+                return 'FAIL', 'screen %s: exit %d, %s' % (sc, code, o.strip()[-120:])
+        code, o = run([launcher, '--selftest'], timeout=900, cwd=d)
+        if code != 0:
+            bad = [l for l in o.splitlines() if 'FAIL' in l or 'wait' in l]
+            return 'FAIL', 'first run: ' + ((bad or o.strip().splitlines() or ['no output'])[0])[:150]
+        steps = [l.split(':', 1)[1].split()[0] for l in o.splitlines() if l.startswith('step ')]
+        pkg = os.path.join(d, 'package')
+        os.makedirs(pkg)
+        shutil.copy2(launcher, pkg)
+        shutil.copytree(os.path.join(d, 'fonts'), os.path.join(pkg, 'fonts'))
+        code, a = run([sys.executable, os.path.join(REPO, 'tools', 'release_audit.py'), pkg])
+        if code != 0 or 'CLEAN' not in a:
+            # Every C runtime carries a 0..255 identity table (ctype/tolower); its ascending runs (bytes and
+            # printable characters in order) also occur in the ROM. Only those count as known false positives.
+            blob = open(os.path.join(pkg, os.path.basename(launcher)), 'rb').read()
+            ascii_run = bytes(range(0x20, 0x7f))
+            real = []
+            for l in a.splitlines():
+                if not l.startswith('ROM CONTENT'):
+                    continue
+                m = re.search(r'(\d+)-byte ROM run at file offset (\d+)', l)
+                if m:
+                    n, o = int(m.group(1)), int(m.group(2))
+                    w = blob[o:o + n]
+                    if len(w) == n and all(w[i + 1] == (w[i] + 1) & 255 for i in range(n - 1)):
+                        continue
+                m = re.search(r"ROM string '(.*)'$", l)
+                if m and m.group(1).encode('latin-1', 'replace') in ascii_run:
+                    continue
+                real.append(l)
+            if real or 'problem' not in a:
+                return 'FAIL', 'launcher package audit: ' + (real[0] if real else a.strip()[-150:])[-150:]
+        return 'PASS', '%d screens render; first run ready (%s); package audit clean' % (
+            len(LAUNCHER_SCREENS), ' '.join(steps))
+    return g
+
+
 def gate_audit():
     code, o = run([sys.executable, os.path.join(REPO, 'tools', 'release_audit.py')])
     line = [l for l in o.splitlines() if l.startswith('release_audit')]
@@ -357,6 +424,7 @@ def main():
                   ('netplay', gate_netplay(m)),
                   ('joincode', gate_joincode(m)),
                   ('native-lockstep', gate_native(m, out)),
+                  ('launcher', gate_launcher(m, out)),
                   ('m6-selftest', gate_m6(out))]
         for b in BUILDS:
             if b is not m and built.get(b[0]):

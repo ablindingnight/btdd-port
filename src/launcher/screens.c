@@ -187,7 +187,7 @@ static void draw_home(void)
     kit_pop();
 
     snprintf(game_small, sizeof game_small, "%s · %s", rom[0] ? base : "no file yet", a->rom_msg);
-    home_row(330, -0.6f, "YOUR GAME", a->rom_ok ? "NES ROM, USA" : "No ROM yet", a->rom_ok ? "VERIFIED" : (rom[0] ? "CHECK" : NULL),
+    home_row(330, 0, "YOUR GAME", a->rom_ok ? "NES ROM, USA" : "No ROM yet", a->rom_ok ? "VERIFIED" : (rom[0] ? "CHECK" : NULL),
              a->rom_ok ? C_CYAN : C_RED, game_small, rom[0] ? "CHANGE" : "PICK", &act[0]);
     if (a->demo)
         snprintf(build_small, sizeof build_small, "reference engine · native cache ready · 24 Nov 2026");
@@ -196,7 +196,7 @@ static void draw_home(void)
         app_cache_info(a, c, sizeof c);
         snprintf(build_small, sizeof build_small, "%s · native cache %s", app_ready(a) ? "self-check passed" : "setup not finished", c);
     }
-    home_row(406, 0.6f, "YOUR BUILD", "Pond to Pavement " LAUNCHER_VERSION, NULL, 0, build_small, app_ready(a) ? "REBUILD" : "SET UP", &act[1]);
+    home_row(406, 0, "YOUR BUILD", "Pond to Pavement " LAUNCHER_VERSION, NULL, 0, build_small, app_ready(a) ? "REBUILD" : "SET UP", &act[1]);
     home_row(482, 0, "ONLINE", "2-player online", NULL, 0, "host a game, or paste a friend's join code", "HOST", &act[2]);
     if (act[0])
         open_rom_dialog();
@@ -1264,7 +1264,7 @@ void screens_draw(App *a, UiIn *in)
     case SCR_FIRST_RUN: draw_first_run(); break;
     default:
         settings_shell();
-        if (a->screen != U.scr) /* page changed in the shell */
+        if ((int)a->screen != U.scr) /* page changed in the shell */
             break;
         switch (a->screen) {
         case SCR_DISPLAY: draw_display(); break;
