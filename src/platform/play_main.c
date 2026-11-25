@@ -26,7 +26,11 @@
 #include "nes/nes.h"
 #include "nes/state.h"
 #include "mods/mods.h"
+#include "net/netplay.h"
 #include "platform/menu.h"
+#include "platform/udp.h"
+#include "platform/upnp.h"
+#include "net/joincode.h"
 #include "platform/png.h"
 #include "platform/rewind.h"
 #include "platform/screen.h"
@@ -481,15 +485,208 @@ static int states_script(int phase, long *frame, const char *sha1, uint8_t *ram_
     return phase;
 }
 
+/* ---- M13 online 2-player (src/net/netplay.c over src/platform/udp.c; docs/M13_NETPLAY.md) ---- */
+
+static NetSession net;
+static Udp *net_udp;
+static int net_on;
+static SDL_AudioStream *net_audio;
+static FILE *net_dump; /* --dump-ram while online: RAM after every confirmed frame */
+static long net_dumped;
+static char net_last_msg[160];
+static int net_logged_desync = -1;
+
+/* one frame for the netplay session; re-simulated frames (rollback) make no sound */
+static void net_frame(void *ctx, Nes *n, uint8_t p1, uint8_t p2, int resim)
+{
+    size_t k;
+    (void)ctx;
+    nes_set_pads(n, p1, p2);
+    nes_run_frame(n);
+    apu_render(&n->apu, n->cpu.cycles);
+    k = apu_take(&n->apu);
+    if (!resim && net_audio && k)
+        SDL_PutAudioStreamData(net_audio, samples, (int)(k * sizeof(float)));
+    apu_set_buffer(&n->apu, samples, sizeof samples / sizeof samples[0]);
+}
+
+static void net_confirmed(void *ctx, uint32_t f, const uint8_t *ram)
+{
+    (void)ctx;
+    if (net_dump && (long)f + 1 > net_dumped) {
+        uint8_t h[4] = {(uint8_t)(f + 1), (uint8_t)((f + 1) >> 8), (uint8_t)((f + 1) >> 16), (uint8_t)((f + 1) >> 24)};
+        fwrite(h, 1, 4, net_dump);
+        fwrite(ram, 1, 0x800, net_dump);
+        net_dumped = (long)f + 1;
+    }
+}
+
+/* What both sides must share: protocol, core layout, PPU model, CPU path, logic mods and cheats, ROM. Display
+ * settings (widescreen, shaders, no flicker) may differ. */
+static void net_summary(const Config *cfg, const char *sha1_hex, char *out, size_t len)
+{
+    char mods[48] = "none";
+#ifdef BTDD_HAVE_MODS
+    {
+        int i;
+        size_t n = 0;
+        for (i = 0; i < mods_count() && n + 16 < sizeof mods; i++)
+            if (mods_enabled(i) && mods_def(i)->kind == MOD_LOGIC)
+                n += (size_t)snprintf(mods + n, sizeof mods - n, "%s%.12s=%d", n ? "," : "", mods_def(i)->id,
+                                      mods_value(i));
+        if (!n)
+            snprintf(mods, sizeof mods, "none");
+    }
+#endif
+    snprintf(out, len, "p%d core %08lx ppu %s cpu interp mods %s rom %.12s", NET_PROTOCOL,
+             (unsigned long)nes_state_fingerprint(), cfg->ppu_new ? "new" : "old", mods, sha1_hex);
+}
+
+static void net_stop(void)
+{
+    if (!net_on)
+        return;
+    net_free(&net);
+    udp_close(net_udp);
+    net_udp = NULL;
+    net_on = 0;
+    upnp_unmap(); /* close the router port we opened, if any */
+}
+
+/* Connection helpers that run every frame until connected: STUN (our public endpoint -> our join code), punching
+ * towards the other side's endpoints, and plain-language help when nothing answers. */
+static char net_code[JOINCODE_LEN];   /* our join code, once known */
+static char net_upnp[160];            /* UPnP result line */
+static char net_upnp_ip[40];
+static int net_mode;                  /* 0 direct join, 1 host, 2 loopback host (tests), 3 join by code */
+static Uint64 net_started_ns;
+static int net_help_shown;
+
+static void net_make_code(const Config *cfg)
+{
+    JoinEndpoints e;
+    uint32_t ip = 0;
+    uint16_t port = 0;
+    memset(&e, 0, sizeof e);
+    if (udp_local_endpoint(net_udp, &e.local_ip, &e.local_port) != 0)
+        return;
+    if (udp_stun_result(net_udp, &ip, &port)) {
+        e.public_ip = ip;
+        e.public_port = port;
+    } else if (net_upnp_ip[0] && SDL_GetTicksNS() - net_started_ns > 3000000000ull) { /* STUN silent: UPnP's */
+        unsigned a, b, c2, d;
+        if (sscanf(net_upnp_ip, "%u.%u.%u.%u", &a, &b, &c2, &d) == 4)
+            e.public_ip = a << 24 | b << 16 | c2 << 8 | d;
+        e.public_port = (uint16_t)cfg->net_port;
+    } else if (SDL_GetTicksNS() - net_started_ns < 4000000000ull) {
+        return; /* wait a little for STUN */
+    }
+    joincode_encode(&e, net_code);
+    SDL_SetClipboardText(net_code);
+    SDL_Log("netplay: our join code %s (copied to the clipboard)%s", net_code,
+            e.public_ip ? "" : "; no public address found: only works on the same network");
+}
+
+static void net_conn_tick(const Config *cfg)
+{
+    if (!net_on || !net_udp)
+        return;
+    udp_stun_poll(net_udp);
+    if (!udp_peer_known(net_udp))
+        udp_punch(net_udp);
+    if (!net_code[0] && net_mode != 0 && net_mode != 2)
+        net_make_code(cfg);
+    if (net.state == NET_HANDSHAKE && !net_help_shown && SDL_GetTicksNS() - net_started_ns > 20000000000ull) {
+        net_help_shown = 1;
+        if (net.local == 1)
+            snprintf(net.message, sizeof net.message,
+                     "no answer from the host yet: ask them to paste YOUR join code (Online menu), or use Tailscale /"
+                     " ZeroTier, or forward UDP port %d on their router", cfg->net_port);
+        else
+            snprintf(net.message, sizeof net.message,
+                     "nobody connected yet: send your join code to player 2 (and paste theirs if they send one back)");
+    }
+}
+
+/* mode 1: host on cfg->net_port (UPnP + join code), 2: host on 127.0.0.1 only (tests), 0: join the address `addr`,
+ * 3: join with the join code `addr` */
+static int net_start(int mode, const char *addr, const Config *cfg, const char *sha1_hex, char *msg, size_t len)
+{
+    char summary[NET_SUMMARY], err[160];
+    JoinEndpoints e = {0};
+    int host = mode == 1 || mode == 2;
+    net_stop();
+    net_code[0] = 0;
+    net_upnp[0] = net_upnp_ip[0] = 0;
+    net_help_shown = 0;
+    if (mode == 3 && joincode_decode(addr, &e) != 0) {
+        snprintf(msg, len, "that is not a join code (they look like BT1-XXXXX-XXXXX-XXXXX-XXXXXX)");
+        return -1;
+    }
+    if (host)
+        net_udp = udp_host(cfg->net_port, mode == 2, msg, len);
+    else if (mode == 3)
+        net_udp = udp_open(0, 0, msg, len);
+    else
+        net_udp = udp_join(addr, cfg->net_port, msg, len);
+    if (!net_udp)
+        return -1;
+    if (mode == 3) {
+        udp_add_candidate(net_udp, e.public_ip, e.public_port);
+        udp_add_candidate(net_udp, e.local_ip, e.local_port);
+    }
+    if (mode == 1) /* ask the router to forward our port (often off; then the join code / a VPN) */
+        upnp_map(cfg->net_port, net_upnp_ip, sizeof net_upnp_ip, net_upnp, sizeof net_upnp);
+    if ((mode == 1 || mode == 3) && cfg->net_stun[0] && udp_stun_start(net_udp, cfg->net_stun, err, sizeof err) != 0)
+        SDL_Log("netplay: %s", err);
+    power_on(cfg->ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD); /* both sides start from power-on */
+    net_summary(cfg, sha1_hex, summary, sizeof summary);
+    if (net_init(&net, &nes, host ? 0 : 1, cfg->net_delay, summary, udp_transport(net_udp), net_frame, net_confirmed,
+                 NULL) != 0) {
+        udp_close(net_udp);
+        snprintf(msg, len, "out of memory");
+        return -1;
+    }
+    net_on = 1;
+    net_mode = mode;
+    net_started_ns = SDL_GetTicksNS();
+    net_last_msg[0] = 0;
+    if (host)
+        snprintf(msg, len, "hosting on UDP port %d: %s", cfg->net_port,
+                 net_upnp[0] ? net_upnp : "waiting for player 2");
+    else if (mode == 3)
+        snprintf(msg, len, "trying the join code...");
+    else
+        snprintf(msg, len, "joining %s ...", addr);
+    SDL_Log("netplay: %s (%s)", msg, summary);
+    return 0;
+}
+
+/* the host pastes player 2's code: also send towards them (punching through the host's own NAT) */
+static int net_add_peer_code(const char *code, char *msg, size_t len)
+{
+    JoinEndpoints e;
+    if (!net_on || joincode_decode(code, &e) != 0) {
+        snprintf(msg, len, "that is not a join code");
+        return -1;
+    }
+    udp_add_candidate(net_udp, e.public_ip, e.public_port);
+    udp_add_candidate(net_udp, e.local_ip, e.local_port);
+    snprintf(msg, len, "trying player 2's join code...");
+    return 0;
+}
+
 /* ---- settings overlay (Esc, or Guide / Back+Start on a gamepad): src/platform/menu.c pages built from the live
  * state; changes apply at once and are saved to btdd.cfg when the menu closes ---- */
 
 enum {
-    PG_MAIN, PG_STATES, PG_DISPLAY, PG_GRAPHICS, PG_AUDIO, PG_CONTROLS, PG_KEYS1, PG_KEYS2, PG_GAMEPLAY, PG_MODS, PG_CHEATS,
+    PG_MAIN, PG_STATES, PG_DISPLAY, PG_GRAPHICS, PG_AUDIO, PG_CONTROLS, PG_KEYS1, PG_KEYS2, PG_GAMEPLAY, PG_MODS, PG_CHEATS, PG_NET,
 };
 enum {
     ID_RESUME = 1, ID_RESET, ID_POWER, ID_QUIT, ID_SLOT, ID_SAVE, ID_LOAD, ID_SCALE, ID_FULLSCREEN, ID_ASPECT,
     ID_FILTER, ID_SCANLINES, ID_VIDEO, ID_SHADER, ID_VOLUME, ID_REBIND_ALL, ID_REWIND, ID_FF, ID_BACK,
+    ID_NET_HOST, ID_NET_ADDR, ID_NET_JOIN, ID_NET_DELAY, ID_NET_LEAVE, ID_NET_RESYNC, ID_NET_JOINCODE,
+    ID_NET_COPY, ID_NET_PEERCODE,
     ID_KEY_BASE = 100, /* + player * BTN_COUNT + button */
     ID_MOD_BASE = 200, /* + mod index */
 };
@@ -505,6 +702,7 @@ typedef struct PlayCtx {
     const char *hash;
     int have_cfg, dirty;
     int capture; /* key being rebound: ID_KEY_BASE + ..., 0 = none */
+    int text_edit; /* typing the join address */
     char status[64];
 } PlayCtx;
 
@@ -593,6 +791,38 @@ static void build_page(Menu *m, PlayCtx *c)
         add_back(m);
         break;
     }
+    case PG_NET:
+        menu_begin(m, "ONLINE 2-PLAYER");
+        if (net_on) {
+            net_status(&net, h, sizeof h);
+            menu_add(m, ITEM_INFO, 0, h, "", "");
+            if (net_upnp[0])
+                menu_add(m, ITEM_INFO, 0, net_upnp, "", "");
+            if (net.state == NET_HANDSHAKE && net_code[0]) {
+                menu_add(m, ITEM_INFO, 0, net_code, "", "");
+                menu_add(m, ITEM_ACTION, ID_NET_COPY, "Copy my join code", "", "send it to the other player");
+                if (net.local == 0)
+                    menu_add(m, ITEM_ACTION, ID_NET_PEERCODE, "Paste player 2's code", "",
+                             "if they sent theirs back (strict routers)");
+            }
+            if (net.state == NET_DESYNC && net.local == 0)
+                menu_add(m, ITEM_ACTION, ID_NET_RESYNC, "Resync", "", "send your game to player 2; both continue");
+            menu_add(m, ITEM_ACTION, ID_NET_LEAVE, "Leave online game", "", "back to playing alone");
+        } else {
+            snprintf(v, sizeof v, "port %d", c->cfg->net_port);
+            menu_add(m, ITEM_ACTION, ID_NET_HOST, "Host game", v, "you are player 1: send your join code");
+            menu_add(m, ITEM_ACTION, ID_NET_JOINCODE, "Join with code", "", "paste the host's join code (clipboard)");
+            menu_add(m, ITEM_CHOICE, ID_NET_ADDR, "Address", c->text_edit ? "type, Enter" : c->cfg->net_join,
+                     c->text_edit ? "IP or IP:port, then Enter" : "Enter to type the host's IP:port");
+            menu_add(m, ITEM_ACTION, ID_NET_JOIN, "Join game", "", "you are player 2");
+        }
+        snprintf(v, sizeof v, "%d", c->cfg->net_delay);
+        menu_add(m, ITEM_CHOICE, ID_NET_DELAY, "Input delay", v, "frames; 1-2 for most connections");
+        menu_add(m, ITEM_INFO, 0, "No port forwarding needed: the", "", "");
+        menu_add(m, ITEM_INFO, 0, "game tries UPnP and join codes", "", "");
+        menu_add(m, ITEM_INFO, 0, "(a STUN server sees your IP).", "", "");
+        add_back(m);
+        break;
     case PG_GAMEPLAY:
         menu_begin(m, "GAMEPLAY");
         if (c->cfg->rewind_seconds)
@@ -634,6 +864,7 @@ static void build_page(Menu *m, PlayCtx *c)
         menu_add(m, ITEM_PAGE, PG_GAMEPLAY, "Gameplay", "", "");
         menu_add(m, ITEM_PAGE, PG_MODS, "Mods", "", "");
         menu_add(m, ITEM_PAGE, PG_CHEATS, "Cheats", "", "the game's own codes, entered for you");
+        menu_add(m, ITEM_PAGE, PG_NET, "Online 2-player", "", "play with a friend over the internet");
         menu_add(m, ITEM_INFO, 0, "", "", "");
         menu_add(m, ITEM_ACTION, ID_RESET, "Reset", "", "F1 in game");
         menu_add(m, ITEM_ACTION, ID_POWER, "Power cycle", "", "Ctrl+F1 in game");
@@ -799,6 +1030,52 @@ static void menu_apply(PlayCtx *c, MenuEvent ev, int id, int dir)
         c->dirty = 1;
         break;
     }
+    case ID_NET_JOINCODE:
+    case ID_NET_HOST:
+    case ID_NET_JOIN: {
+        char *clip = id == ID_NET_JOINCODE ? SDL_GetClipboardText() : NULL;
+        int r = net_start(id == ID_NET_HOST ? 1 : id == ID_NET_JOINCODE ? 3 : 0, clip ? clip : cfg->net_join, cfg,
+                          c->hash, c->status, sizeof c->status);
+        SDL_free(clip);
+        if (r == 0) {
+            c->dirty = 1;
+            menu_leave(c);
+        }
+        say(c->status);
+        break;
+    }
+    case ID_NET_COPY:
+        if (net_code[0]) {
+            SDL_SetClipboardText(net_code);
+            say("join code copied");
+        }
+        break;
+    case ID_NET_PEERCODE: {
+        char *clip = SDL_GetClipboardText();
+        net_add_peer_code(clip ? clip : "", c->status, sizeof c->status);
+        SDL_free(clip);
+        say(c->status);
+        break;
+    }
+    case ID_NET_ADDR:
+        c->text_edit = 1;
+        SDL_StartTextInput(c->video->win);
+        break;
+    case ID_NET_DELAY:
+        cfg->net_delay = wrap(cfg->net_delay + dir, 0, 3);
+        c->dirty = 1;
+        break;
+    case ID_NET_RESYNC:
+        if (net_resync(&net) == 0)
+            menu_leave(c);
+        break;
+    case ID_NET_LEAVE:
+        net_stop();
+        power_on(cfg->ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD);
+        SDL_SetWindowTitle(c->video->win, TITLE);
+        say("left the online game");
+        menu_leave(c);
+        break;
     case ID_FF:
         cfg->ff_speed = wrap(cfg->ff_speed + dir, 2, 16);
         c->dirty = 1;
@@ -820,6 +1097,17 @@ static void menu_do(PlayCtx *c, MenuInput in)
 /* Keyboard while the menu is open (or a key is being rebound). */
 static void menu_key(PlayCtx *c, SDL_Scancode sc, SDL_Keycode key)
 {
+    if (c->text_edit) { /* the join address: characters come as text events */
+        size_t n = strlen(c->cfg->net_join);
+        if (key == SDLK_BACKSPACE && n)
+            c->cfg->net_join[n - 1] = 0;
+        else if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_ESCAPE) {
+            c->text_edit = 0;
+            c->dirty = 1;
+            SDL_StopTextInput(c->video->win);
+        }
+        return;
+    }
     if (c->capture) {
         int k = c->capture - ID_KEY_BASE;
         if (key != SDLK_ESCAPE) {
@@ -886,10 +1174,18 @@ static void stage(const char *name)
     stage_last = now;
 }
 
+/* SDL_clamp is a macro that evaluates its argument more than once: never pass argv[++i] to it */
+static int arg_int(const char *s, int lo, int hi)
+{
+    int v = atoi(s);
+    return v < lo ? lo : v > hi ? hi : v;
+}
+
 static int fail(const char *what)
 {
+    fprintf(stderr, "%s\n", what); /* first: the box waits for the user */
+    fflush(stderr);
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "btdd", what, NULL);
-    fprintf(stderr, "%s\n", what);
     return 1;
 }
 
@@ -901,6 +1197,7 @@ int main(int argc, char **argv)
     const char *movie_path = NULL, *dump_path = NULL;
     long max_frames = -1, frame = 0, dumped = 0;
     int i, quit = 0, paused = 0, have_cfg, no_audio = 0, selftest_on = 0, seen[SELFTEST_STEPS] = {0};
+    int net_cli = 0; /* 1 = --host, 2 = --join, 3 = --host-loopback */
     int slot = 0, states_test = 0, st_phase = 0, st_fail = 0, rewinding = 0, ff = 0, step, steps, pads_ready = 0;
     int menu_step = 0, menu_nav_ok = 0, menu_close_ok = 0; /* --selftest-gamepad, menu part */
     static uint8_t st_ram_a[0x800], st_ram_r[0x800];
@@ -933,11 +1230,27 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--ppu") && i + 1 < argc)
             cfg.ppu_new = !strcmp(argv[++i], "new");
         else if (!strcmp(argv[i], "--scale") && i + 1 < argc)
-            cfg.scale = SDL_clamp(atoi(argv[++i]), 1, 10);
+            cfg.scale = arg_int(argv[++i], 1, 10);
         else if (!strcmp(argv[i], "--selftest-gamepad"))
             selftest_on = 1;
         else if (!strcmp(argv[i], "--selftest-states"))
             states_test = 1;
+        else if (!strcmp(argv[i], "--host")) { /* M13: host an online game (optional port) */
+            net_cli = 1;
+            if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9')
+                cfg.net_port = arg_int(argv[++i], 1, 65535);
+        } else if (!strcmp(argv[i], "--host-loopback")) { /* tests on one PC */
+            net_cli = 3;
+            if (i + 1 < argc && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '9')
+                cfg.net_port = arg_int(argv[++i], 1, 65535);
+        } else if (!strcmp(argv[i], "--join-code") && i + 1 < argc) { /* join with a join code */
+            net_cli = 4;
+            snprintf(cfg.net_join, sizeof cfg.net_join, "%s", argv[++i]);
+        } else if (!strcmp(argv[i], "--join") && i + 1 < argc) {
+            net_cli = 2;
+            snprintf(cfg.net_join, sizeof cfg.net_join, "%s", argv[++i]);
+        } else if (!strcmp(argv[i], "--net-delay") && i + 1 < argc)
+            cfg.net_delay = arg_int(argv[++i], 0, 3);
         else if (!strcmp(argv[i], "--dump-ram") && i + 1 < argc)
             dump_path = argv[++i];
         else if (!strcmp(argv[i], "--mod") && i + 1 < argc) {
@@ -1055,6 +1368,14 @@ int main(int argc, char **argv)
     rewind_setup(&cfg);
     power_on(cfg.ppu_new ? PPU_MODEL_NEW : PPU_MODEL_OLD);
     rewind_record(0);
+    net_audio = audio;
+    if (net_cli) {
+        if (net_start(net_cli == 1 ? 1 : net_cli == 3 ? 2 : net_cli == 4 ? 3 : 0, cfg.net_join, &cfg, hash, msg,
+                      sizeof msg) != 0)
+            return fail(msg);
+        net_dump = dump;
+        say(msg);
+    }
     stage("gamepads+console");
     SDL_Log("startup: %s; total %llu ms", stage_text, (unsigned long long)((SDL_GetTicksNS() - stage_t0) / 1000000));
     next_tick = SDL_GetTicksNS();
@@ -1093,6 +1414,18 @@ int main(int argc, char **argv)
                         (ev.gbutton.button == SDL_GAMEPAD_BUTTON_START && pad &&
                          SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK)))
                         menu_open(&menu, PG_MAIN);
+                }
+                break;
+            case SDL_EVENT_TEXT_INPUT:
+                if (menu.open && ctx.text_edit) { /* join address: digits, letters, dot, colon, dash */
+                    const char *t = ev.text.text;
+                    size_t n = strlen(cfg.net_join);
+                    for (; *t && n + 1 < sizeof cfg.net_join; t++)
+                        if ((*t >= '0' && *t <= '9') || (*t >= 'a' && *t <= 'z') || (*t >= 'A' && *t <= 'Z') ||
+                            *t == '.' || *t == ':' || *t == '-') {
+                            cfg.net_join[n++] = *t;
+                            cfg.net_join[n] = 0;
+                        }
                 }
                 break;
             case SDL_EVENT_KEY_DOWN:
@@ -1145,7 +1478,7 @@ int main(int argc, char **argv)
                     toggle_mod("widescreen", &cfg, have_cfg);
                 } else if (ev.key.key == SDLK_F12) {
                     save_screenshot(&cfg);
-                } else if (ev.key.key == SDLK_F6 || ev.key.key == SDLK_F7) {
+                } else if ((ev.key.key == SDLK_F6 || ev.key.key == SDLK_F7) && !net_on) {
                     int is_f6 = ev.key.key == SDLK_F6;
                     if (ev.key.mod & SDL_KMOD_SHIFT) { /* Shift+F6 / Shift+F7: previous / next slot */
                         slot = (slot + (is_f6 ? 9 : 1)) % 10;
@@ -1201,6 +1534,56 @@ int main(int argc, char **argv)
                 SDL_Log("rewind %s at frame %ld", rewinding ? "start" : "stop", frame);
             if (ff != was_ff)
                 SDL_Log("fast forward %s at frame %ld", ff ? "start" : "stop", frame);
+        }
+
+        if (net_on) { /* online: one session tick per 60 Hz display frame (not paced by the audio queue) */
+            Uint64 now = SDL_GetTicksNS();
+            char st[160];
+            if (now < next_tick) {
+                SDL_Delay(1);
+                continue;
+            }
+            next_tick = (now - next_tick > 100000000u) ? now : next_tick + (Uint64)(1e9 / FRAME_HZ);
+            net_conn_tick(&cfg);
+            {
+                int l = net.local;
+                uint8_t pad = movie.frames ? (net.have[l] < (uint32_t)movie.count ? movie.frames[net.have[l]].pad[l] : 0)
+                                           : read_pad(&cfg, 0, gp[0]); /* each player uses their own player 1 keys */
+                if (net_tick(&net, pad))
+                    frame = (long)net.frame;
+            }
+            if (audio && SDL_GetAudioStreamQueued(audio) > (int)(8 * AUDIO_RATE / FRAME_HZ) * (int)sizeof(float))
+                SDL_ClearAudioStream(audio); /* clock drift between the sound card and the 60 Hz timer */
+            if (net.state == NET_DESYNC && net.stats.desync_frame >= 0 && net.stats.desync_frame != net_logged_desync) {
+                char path[1200], *slash;
+                net_logged_desync = net.stats.desync_frame;
+                snprintf(path, sizeof path, "%s", cfg.path);
+                slash = strrchr(path, '\\');
+                if (!slash)
+                    slash = strrchr(path, '/');
+                if (slash) {
+                    snprintf(slash + 1, sizeof path - (size_t)(slash + 1 - path), "netplay");
+                    SDL_CreateDirectory(path);
+                    snprintf(path + strlen(path), sizeof path - strlen(path), "/desync_f%d_p%d.state",
+                             net.stats.desync_frame, net.local + 1);
+                    nes_state_save(&nes, (uint64_t)net.frame, hash, path);
+                    SDL_Log("netplay: desync at frame %d, our state saved to %s%s", net.stats.desync_frame, path,
+                            net.local == 0 ? " (Resync is in the settings menu)" : "");
+                }
+            }
+            if (strcmp(net.message, net_last_msg)) {
+                snprintf(net_last_msg, sizeof net_last_msg, "%s", net.message);
+                say(net.message);
+            }
+            if ((frame % 60) == 0) {
+                snprintf(st, sizeof st, TITLE " - online: %s", net_status(&net, msg, sizeof msg));
+                SDL_SetWindowTitle(video.win, st);
+            }
+            if ((movie.frames && (long)net.reported >= movie.count) || (max_frames >= 0 && (long)net.reported >= max_frames))
+                quit = 1;
+            make_picture(&video);
+            video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
+            continue;
         }
 
         if (rewinding) { /* one step back per frame period, sound muted */
@@ -1341,6 +1724,7 @@ int main(int argc, char **argv)
         SDL_DestroyAudioStream(audio);
     video_close(&video);
     fm2_free(&movie);
+    net_stop();
     SDL_Quit();
     return quit == 2 ? 1 : 0;
 }

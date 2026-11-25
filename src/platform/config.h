@@ -21,6 +21,10 @@ typedef struct Config {
     int shader;           /* GpuPreset for the GPU path */
     int rewind_seconds;   /* rewind history (Backspace), 0 = off */
     int ff_speed;         /* frames per frame while Tab is held */
+    int net_port;         /* M13 netplay: UDP port to host on */
+    int net_delay;        /* input delay in frames (0-3) */
+    char net_join[128];   /* address to join, "IP:port" */
+    char net_stun[128];   /* STUN server for join codes ("" = off); it sees your public IP */
     SDL_Scancode keys[2][BTN_COUNT];
     char path[1024];      /* where the config was read from / written to */
 } Config;

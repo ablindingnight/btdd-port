@@ -6,7 +6,8 @@
 Builds with every compiler found (MSVC via Visual Studio's CMake, clang, MSYS2 gcc), then runs the gates in
 parallel (--jobs, default 4, to leave cores free): RAM vs FCEUX on both TAS movies (2P old PPU with every
 compiler, 1P new PPU), APU vs FCEUX's log, picture vs FCEUX's index dumps, save state and rewind round trips,
-the M7 mod tests (every other gate runs with mods compiled in but off; the native gate also checks a logic mod
+the M13 netplay tests (two rollback peers over a lossy simulated link, whole 2P movie; join-code punch on
+localhost), the M7 mod tests (every other gate runs with mods compiled in but off; the native gate also checks a logic mod
 gives the same run natively and interpreted),
 CPU/APU unit tests, M5 native lockstep (btdd_gen + zig cc), the M6 harness self-test (needs a passing private
 candidate, see below), and release_audit. Exit code 0 only if nothing FAILed (SKIP and WARN do not fail).
@@ -238,6 +239,33 @@ def gate_native(build, out):
     return g
 
 
+def gate_joincode(build):
+    """M13: join codes, then two real UDP sockets on 127.0.0.1 with fake public endpoints punch through to each other
+    and play 1,500 frames of the 2P movie equal to the solo run."""
+    def g():
+        code, o = run([exe(build, 'joincode_test'), ROM, M2P])
+        lines = o.strip().splitlines()
+        if code != 0 or not lines or lines[-1] != 'PASS':
+            bad = [x for x in lines if x.startswith('FAIL')]
+            return 'FAIL', ((bad or lines or ['no output'])[0])[:200]
+        return 'PASS', 'join code round trip; localhost punch past fake public endpoints, 1500 frames == solo run'
+    return g
+
+
+def gate_netplay(build):
+    """M13: two rollback peers over a simulated 100 ms / 20 ms jitter / 5 % loss link play the whole 2P movie; every
+    confirmed frame on both peers must equal the solo run."""
+    def g():
+        code, o = run([exe(build, 'nettest'), ROM, M2P, '--ping', '100', '--jitter', '20', '--loss', '5'])
+        lines = o.strip().splitlines()
+        if code != 0 or not lines or lines[-1] != 'PASS':
+            return 'FAIL', (lines[-1] if lines else 'no output')[:200]
+        rb = re.findall(r'rollbacks (\d+)', o)
+        return 'PASS', 'whole 2P movie, 100 ms + 20 ms jitter + 5 %% loss: both peers == solo run (rollbacks %s)' % \
+            '/'.join(rb)
+    return g
+
+
 def gate_mods(build):
     def g():
         code, o = run([exe(build, 'mods_test'), ROM, M2P, M1P, '--frames', '20000'])
@@ -326,6 +354,8 @@ def main():
                   ('state-2p', gate_state(m, out)),
                   ('rewind-2p', gate_rewind(m, out)),
                   ('mods-test', gate_mods(m)),
+                  ('netplay', gate_netplay(m)),
+                  ('joincode', gate_joincode(m)),
                   ('native-lockstep', gate_native(m, out)),
                   ('m6-selftest', gate_m6(out))]
         for b in BUILDS:

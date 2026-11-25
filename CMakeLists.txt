@@ -55,6 +55,22 @@ add_executable(mods_test tests/mods/mods_test.c)
 target_link_libraries(mods_test PRIVATE btdd_screen btdd_mods)
 btdd_warnings(mods_test)
 
+# M13 netplay core (no SDL, no sockets) and its two-peer test over a simulated link
+add_library(btdd_net STATIC src/net/netplay.c src/net/joincode.c)
+target_link_libraries(btdd_net PUBLIC btdd_core)
+btdd_warnings(btdd_net)
+# join-code path on one PC: two real UDP sockets on 127.0.0.1 (src/platform/udp.c is plain sockets, no SDL)
+add_executable(joincode_test tests/net/joincode_test.c src/platform/udp.c)
+target_include_directories(joincode_test PRIVATE src/platform)
+target_link_libraries(joincode_test PRIVATE btdd_net)
+if(WIN32)
+    target_link_libraries(joincode_test PRIVATE ws2_32)
+endif()
+btdd_warnings(joincode_test)
+add_executable(nettest tools/nettest/nettest_main.c)
+target_link_libraries(nettest PRIVATE btdd_net)
+btdd_warnings(nettest)
+
 add_executable(rewind_test tests/state/rewind_test.c)
 target_link_libraries(rewind_test PRIVATE btdd_screen)
 btdd_warnings(rewind_test)
@@ -233,9 +249,29 @@ if(BTDD_SDL)
     target_link_libraries(btdd_sdl_probe PRIVATE SDL3::SDL3-static)
     btdd_warnings(btdd_sdl_probe)
 
+    # M13: UPnP port mapping for hosting online games (miniupnpc, BSD licence)
+    set(UPNPC_BUILD_STATIC ON CACHE BOOL "" FORCE)
+    set(UPNPC_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+    set(UPNPC_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(UPNPC_BUILD_SAMPLE OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(miniupnpc
+        GIT_REPOSITORY https://github.com/miniupnp/miniupnp.git
+        GIT_TAG        miniupnpc_2_3_3
+        GIT_SHALLOW    TRUE
+        SOURCE_SUBDIR  miniupnpc
+        EXCLUDE_FROM_ALL
+    )
+    FetchContent_MakeAvailable(miniupnpc)
+
     # M2: the game in a window
     add_executable(btdd_play src/platform/play_main.c src/platform/config.c src/platform/video.c src/platform/gpu.c
-                             src/platform/menu.c)
+                             src/platform/menu.c src/platform/udp.c src/platform/upnp.c)
+    target_link_libraries(btdd_play PRIVATE libminiupnpc-static)
+    target_compile_definitions(btdd_play PRIVATE MINIUPNP_STATICLIB)
+    target_link_libraries(btdd_play PRIVATE btdd_net)
+    if(WIN32)
+        target_link_libraries(btdd_play PRIVATE ws2_32)
+    endif()
     # M10 prototype: offscreen renders of the GPU shader presets (PNG files for comparing display options)
     add_executable(btdd_gfxshot tools/gfxshot/gfxshot_main.c src/platform/gpu.c)
     target_link_libraries(btdd_gfxshot PRIVATE btdd_screen SDL3::SDL3-static)
