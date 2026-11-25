@@ -153,30 +153,28 @@ static void e_rrect(float x, float y, float w, float h, float r, Rgb c, float in
     kit_rrect(EXX(x), EYY(y), w * ES, h * ES, r * ES, c, 1);
 }
 
-/* a fist seen from the side, knuckles toward `dir` (+1 = right), centred at (fx, fy) */
+/* a fist seen from the side, knuckles toward `dir` (+1 = right), centred at (fx, fy). Parts are laid out for a
+ * right-pointing fist; L() mirrors a part's left edge for dir = -1. */
 static void e_fist(float fx, float fy, int dir, Rgb skin, Rgb shade, Rgb cuff, int wrap)
 {
     float d = (float)dir;
     int k;
 #define FX(v) (fx + d * (v))
-    /* forearm and cuff */
-    e_rrect(dir > 0 ? FX(-118) : FX(-58), fy - 26, 60, 52, 10, skin, 5);
-    e_rrect(dir > 0 ? FX(-72) : FX(-46), fy - 32, 26, 64, 6, cuff, 5);
+#define L(xl, w) (dir > 0 ? fx + (xl) : fx - ((xl) + (w)))
+    e_rrect(L(-118, 60), fy - 26, 60, 52, 10, skin, 5); /* forearm */
+    e_rrect(L(-72, 26), fy - 32, 26, 64, 6, cuff, 5);   /* cuff or wrap */
     if (wrap)
         for (k = 0; k < 3; k++)
-            kit_line(EXX(dir > 0 ? FX(-70 + 8 * k) : FX(-46 - 8 * k + 26)), EYY(fy - 30), EXX(dir > 0 ? FX(-62 + 8 * k) : FX(-38 - 8 * k + 26)),
-                     EYY(fy + 30), 2.5f * ES, C_INK, 0.5f);
-    /* palm block */
-    e_rrect(dir > 0 ? FX(-50) : FX(-6), fy - 40, 56, 80, 16, skin, 5);
-    /* four curled fingers stacked at the front */
-    for (k = 0; k < 4; k++) {
+            kit_line(EXX(FX(-70 + 8 * k)), EYY(fy - 30), EXX(FX(-62 + 8 * k)), EYY(fy + 30), 2.5f * ES, C_INK, 0.5f);
+    e_rrect(L(-50, 56), fy - 40, 56, 80, 16, skin, 5); /* palm */
+    for (k = 0; k < 4; k++) {                         /* curled fingers at the front */
         float yy = fy - 42 + (float)k * 21;
-        e_rrect(dir > 0 ? FX(-6) : FX(-30), yy, 36, 22, 10, skin, 4);
-        kit_line(EXX(dir > 0 ? FX(14) : FX(-14)), EYY(yy + 5), EXX(dir > 0 ? FX(14) : FX(-14)), EYY(yy + 17), 2.5f * ES, shade, 1);
+        e_rrect(L(-6, 36), yy, 36, 22, 10, skin, 4);
+        kit_line(EXX(FX(14)), EYY(yy + 5), EXX(FX(14)), EYY(yy + 17), 2.5f * ES, shade, 1);
     }
-    /* thumb over the fingers */
-    e_rrect(dir > 0 ? FX(-40) : FX(-8), fy - 50, 48, 24, 12, skin, 5);
+    e_rrect(L(-40, 48), fy - 50, 48, 24, 12, skin, 5); /* thumb over the fingers */
     kit_line(EXX(FX(-26)), EYY(fy - 38), EXX(FX(0)), EYY(fy - 38), 2.5f * ES, shade, 1);
+#undef L
 #undef FX
 }
 
@@ -272,8 +270,8 @@ void theme_emblem(float cx, float cy, float size)
         kit_poly(p, 16, C_YELLOW, 1);
     }
     /* the two fists meet in the middle: green from the pond side, a wrapped human fist from the city side */
-    e_fist(129, 205, +1, 0x58c24a, 0x2e7d2a, C_RED, 0);
-    e_fist(201, 205, -1, 0xf0b58a, 0xb7744f, C_PAPER, 1);
+    e_fist(122, 205, +1, 0x58c24a, 0x2e7d2a, C_RED, 0);
+    e_fist(208, 205, -1, 0xf0b58a, 0xb7744f, C_PAPER, 1);
     /* motion lines */
     kit_line(EXX(-8), EYY(180), EXX(22), EYY(180), 6 * ES, C_PAPER, 1);
     kit_line(EXX(-14), EYY(206), EXX(16), EYY(206), 6 * ES, C_PAPER, 1);
