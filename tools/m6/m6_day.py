@@ -29,9 +29,9 @@ import m6_test  # noqa: E402
 PHASES = ('new', 'random', 'simplify', 'retry')
 
 
-def chunk_cmd(phase, i, a):
+def chunk_cmd(phase, spec, a):
     run = [sys.executable, '-u', os.path.join(HERE, 'm6_run.py'), '--kinds', a.kinds, '--max-size', str(a.max_size),
-           '--routines', str(a.chunk), '--shard', '%d/%d' % (i, a.shards)]
+           '--routines', str(a.chunk), '--shard', spec]
     if phase == 'new':
         return run + ['--new-only'], {}
     if phase == 'random':
@@ -39,17 +39,17 @@ def chunk_cmd(phase, i, a):
     if phase == 'retry':
         return run + ['--max-series', '1'], {'M6_THINK_BUDGET': '20000', 'M6_MAX_TOKENS': '24000'}
     return [sys.executable, '-u', os.path.join(HERE, 'm6_simplify.py'), '--routines', str(a.chunk),
-            '--shard', '%d/%d' % (i, a.shards)], {}
+            '--shard', spec], {}
 
 
-def shard(i, a, deadline, log, env):
-    for phase in PHASES:
+def shard(i, a, deadline, log, env, plan):
+    for phase, spec in plan:
         out = os.path.join(m6_test.M6, 'day_s%d_%s.log' % (i, phase))
-        m6_overnight.say(log, 'shard %d: phase %s' % (i, phase))
+        m6_overnight.say(log, 'shard %d: phase %s (routines %s)' % (i, phase, spec))
         while time.time() < deadline - 120:
             before = os.path.getsize(out) if os.path.isfile(out) else 0
             n0 = m6_overnight.passing()
-            cmd, extra = chunk_cmd(phase, i, a)
+            cmd, extra = chunk_cmd(phase, spec, a)
             if not m6_overnight.run(cmd, out, deadline, dict(env, **extra)):
                 m6_overnight.say(log, 'shard %d: stopped at the deadline (phase %s)' % (i, phase))
                 return
@@ -77,7 +77,15 @@ def main():
     ap.add_argument('--chunk', type=int, default=8)
     ap.add_argument('--kinds', default=m6_overnight.KINDS)
     ap.add_argument('--max-size', type=int, default=512)
+    ap.add_argument('--plan', help='per-shard phase lists, e.g. "new@0/1,random@0/1,retry@0/2;simplify@0/1,retry@1/2" '
+                    '(phase@i/n: that phase on routines with (bank*0x10000+addr) %% n == i); default: every shard '
+                    'runs all phases on its own i/n share')
     a = ap.parse_args()
+    if a.plan:
+        plans = [[(x.split('@')[0], x.split('@')[1]) for x in part.split(',')] for part in a.plan.split(';')]
+        a.shards = len(plans)
+    else:
+        plans = [[(ph, '%d/%d' % (i, a.shards)) for ph in PHASES] for i in range(a.shards)]
     now = datetime.datetime.now()
     h, m = (int(x) for x in a.until.split(':'))
     end = now.replace(hour=h, minute=m, second=0, microsecond=0)
@@ -88,9 +96,10 @@ def main():
     env = dict(os.environ)
     env.setdefault('M6_TAG', 'day')
     env.setdefault('M6_SERVER_WAIT', '7200')
-    m6_overnight.say(log, 'start: until %s, %d shards, chunks of %d, phases %s, passing C %d' % (
-        end.strftime('%Y-%m-%d %H:%M'), a.shards, a.chunk, ' -> '.join(PHASES), m6_overnight.passing()))
-    threads = [threading.Thread(target=shard, args=(i, a, deadline, log, env)) for i in range(a.shards)]
+    m6_overnight.say(log, 'start: until %s, %d shards, chunks of %d, plan %s, passing C %d' % (
+        end.strftime('%Y-%m-%d %H:%M'), a.shards, a.chunk,
+        ' | '.join(' -> '.join('%s@%s' % x for x in p) for p in plans), m6_overnight.passing()))
+    threads = [threading.Thread(target=shard, args=(i, a, deadline, log, env, plans[i])) for i in range(a.shards)]
     for t in threads:
         t.start()
     for t in threads:
