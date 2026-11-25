@@ -4,6 +4,8 @@
 #include <string.h>
 
 static SDL_Texture *field[2]; /* home, settings */
+static SDL_Texture *logo_tex;
+static float logo_w, logo_h; /* cropped size in texture pixels */
 
 static uint32_t lerp_rgb(Rgb a, Rgb b, float t)
 {
@@ -58,9 +60,73 @@ int theme_init(void)
     return field[0] && field[1] ? 0 : -1;
 }
 
+int theme_load_logo(const char *path)
+{
+    SDL_Surface *s = SDL_LoadPNG(path), *c;
+    int x, y, x0, y0, x1 = -1, y1 = -1;
+    SDL_Rect crop;
+    if (!s)
+        return -1;
+    c = SDL_ConvertSurface(s, SDL_PIXELFORMAT_RGBA32);
+    SDL_DestroySurface(s);
+    if (!c)
+        return -1;
+    x0 = c->w, y0 = c->h;
+    for (y = 0; y < c->h; y++) { /* crop the transparent margins */
+        const uint8_t *row = (const uint8_t *)c->pixels + (size_t)y * (size_t)c->pitch;
+        for (x = 0; x < c->w; x++)
+            if (row[4 * x + 3] > 8) {
+                if (x < x0) x0 = x;
+                if (x > x1) x1 = x;
+                if (y < y0) y0 = y;
+                if (y > y1) y1 = y;
+            }
+    }
+    if (x1 < x0) {
+        SDL_DestroySurface(c);
+        return -1;
+    }
+    crop.x = x0, crop.y = y0, crop.w = x1 - x0 + 1, crop.h = y1 - y0 + 1;
+    s = SDL_CreateSurface(crop.w, crop.h, SDL_PIXELFORMAT_RGBA32);
+    if (s) {
+        SDL_SetSurfaceBlendMode(c, SDL_BLENDMODE_NONE);
+        SDL_BlitSurface(c, &crop, s, NULL);
+        /* halve with averaging while it is much larger than needed (no mipmaps in SDL_Renderer) */
+        while (s->w > 1100) {
+            SDL_Surface *h = SDL_ScaleSurface(s, s->w / 2, s->h / 2, SDL_SCALEMODE_LINEAR);
+            if (!h)
+                break;
+            SDL_DestroySurface(s);
+            s = h;
+        }
+        logo_tex = SDL_CreateTextureFromSurface(kit_renderer(), s);
+        logo_w = (float)s->w;
+        logo_h = (float)s->h;
+        if (logo_tex)
+            SDL_SetTextureScaleMode(logo_tex, SDL_SCALEMODE_LINEAR);
+        SDL_DestroySurface(s);
+    }
+    SDL_DestroySurface(c);
+    return logo_tex ? 0 : -1;
+}
+
+int theme_logo_art(float x, float y, float w, float h)
+{
+    float k, dw, dh;
+    if (!logo_tex)
+        return 0;
+    k = w / logo_w < h / logo_h ? w / logo_w : h / logo_h;
+    dw = logo_w * k;
+    dh = logo_h * k;
+    kit_texture(logo_tex, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh, 1);
+    return 1;
+}
+
 void theme_quit(void)
 {
     int i;
+    if (logo_tex)
+        SDL_DestroyTexture(logo_tex), logo_tex = NULL;
     for (i = 0; i < 2; i++)
         if (field[i])
             SDL_DestroyTexture(field[i]), field[i] = NULL;
@@ -182,6 +248,8 @@ void theme_emblem(float cx, float cy, float size)
 {
     const float R = 150, ccx = 165, ccy = 165, horizon = 200; /* disc and the waterline (design units) */
     int i;
+    if (theme_logo_art(cx - size / 2, cy - size / 2, size, size)) /* the artwork emblem (res/art/emblem.png) */
+        return;
     ES = size / 330.0f;
     EX = cx - 165 * ES;
     EY = cy - 165 * ES;

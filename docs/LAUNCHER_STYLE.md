@@ -12,11 +12,12 @@ how `docs/images/launcher-*.png` were made until the launcher's own `--ui-shot` 
   PLAY button, on a toad-green field with orange-red and yellow accents and a deep-space emblem.
 - **Home headline**: "Two Brothers, Three Toads... Zero Mercy!" (user's line). Three lines: "Two Brothers," /
   "Three Toads..." / "Zero Mercy!" (last line yellow).
-- **Logo**: a fist bump: a green fist from the left (cuffed in red) meets a human fist in a paper-white wrist wrap
-  from the right, with a yellow impact burst, over a disc that is half night city (skyline with lit windows, a moon)
-  and half pond (water, ripples, a lily pad): pond to pavement. Hands only, no faces or characters. Drawn in
-  `src/launcher/theme.c` (`theme_emblem`). Wordmark: "POND TO" over "PAVEMENT" in Bangers, yellow with a 4 px ink
-  outline, an orange-red offset and an ink offset, tilted -4°. (The first design's rocket fist is in the mockups.)
+- **Logo**: the emblem is the user's artwork `res/art/emblem.png` (2026-11-24): a green frog-skin fist in a red cuff
+  and a human fist in a red-and-white cuff bump over a yellow impact burst, inside a cream-ringed disc that is half
+  night city (moon, skyline with lit windows) and half pond (water, ripples, a lily pad): pond to pavement. Hands
+  only, no faces or characters. `theme_emblem` draws it fitted to its box (transparent margins cropped) and falls back
+  to a drawn version if the file is missing. Wordmark (drawn, not in the image): "POND TO" over "PAVEMENT" in Bangers,
+  yellow with a 4 px ink outline, an orange-red offset and an ink offset, tilted -4°.
 - **Never** in the launcher, package, icon or page: the game's characters, logos, sprites, screenshots, music, or the
   Battletoads / Double Dragon / Rare / Tradewest / Nintendo names as branding. The game title appears only as plain
   text where we say which ROM is needed (Your game row, first-run step 1, About). "Toads" and "brothers" in the

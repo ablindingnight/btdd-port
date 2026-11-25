@@ -157,6 +157,12 @@ int main(int argc, char **argv)
     if (kit_init(r, a->font_dir) != 0)
         SDL_Log("%s", kit_error());
     theme_init();
+    {
+        char art[1200];
+        snprintf(art, sizeof art, "%s/../art/emblem.png", a->font_dir);
+        if (theme_load_logo(art) != 0)
+            SDL_Log("no emblem artwork (%s): using the drawn one", art);
+    }
     a->focus[SCR_HOME] = 8; /* PLAY */
 
     if (shot) {

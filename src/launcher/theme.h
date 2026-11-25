@@ -26,6 +26,10 @@ typedef enum Icon {
 
 int theme_init(void);  /* builds the backdrop texture; 0 on success */
 void theme_quit(void);
+/* the emblem artwork (res/art/emblem.png, RGBA, no title); 0 if loaded. Without it theme_emblem draws its own. */
+int theme_load_logo(const char *path);
+/* draws the emblem artwork fitted into the box (centred); returns 0 if there is no artwork */
+int theme_logo_art(float x, float y, float w, float h);
 
 void theme_backdrop(double t, int settings); /* field + halftone + turning rays */
 void theme_titlebar(const char *crumb, const char *version);

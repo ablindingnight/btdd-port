@@ -210,8 +210,8 @@ static void draw_home(void)
     if (act[2])
         go(SCR_ONLINE);
 
-    theme_emblem(1000, 212, 300);
-    theme_logo(995, 362, 58, 92, 1);
+    theme_emblem(1000, 206, 310);
+    theme_logo(995, 368, 58, 92, 1);
 
     x = 70;
     for (i = 0; i < 5; i++) {
@@ -1159,7 +1159,7 @@ static void draw_about(void)
     float x = PX + 270, y = RY;
     theme_emblem(PX + 120, RY + 110, 210);
     kit_text(FONT_DISPLAY, 30, PX + 120, RY + 226, "POND TO PAVEMENT", C_INK, 1, ALIGN_CENTER);
-    kit_text(FONT_LABEL, 14, PX + 120, RY + 264, "YOUR ROM. OUR ENGINE.", C_RED, 1, ALIGN_CENTER);
+    kit_text(FONT_LABEL, 16, PX + 120, RY + 262, "YOUR ROM. OUR ENGINE.", C_RED, 1, ALIGN_CENTER);
     y += kit_text_wrap(FONT_BODY, 15, x, y, PR - x - 10, 22,
                        "Pond to Pavement rebuilds a 1993 NES game as a native PC program from your own ROM. It ships no "
                        "game code, graphics, music or names; everything you see before you press PLAY is our own work.",

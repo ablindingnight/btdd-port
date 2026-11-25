@@ -311,5 +311,6 @@ if(BTDD_SDL)
         set_source_files_properties(src/launcher/stb_impl.c PROPERTIES COMPILE_OPTIONS "-w")
     endif()
     add_custom_command(TARGET btdd_launcher POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/res/fonts" "$<TARGET_FILE_DIR:btdd_launcher>/fonts")
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/res/fonts" "$<TARGET_FILE_DIR:btdd_launcher>/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/res/art" "$<TARGET_FILE_DIR:btdd_launcher>/art")
 endif()
