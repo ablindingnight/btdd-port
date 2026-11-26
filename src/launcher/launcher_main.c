@@ -13,6 +13,7 @@
 #include "theme.h"
 #include "platform/png.h"
 #include "platform/video.h"
+#include "platform/gpu.h"
 #include <SDL3/SDL_main.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +59,72 @@ static int ui_shot(App *a, SDL_Renderer *r, const char *name, const char *out, i
     return rc;
 }
 
+/* --ui-test: simulated clicks and keys on the value controls (regression for "left arrow increases") */
+static int ui_frame(App *a, int mx, int my, int click, int nav_x, int accept)
+{
+    UiIn in;
+    memset(&in, 0, sizeof in);
+    in.mx = (float)mx;
+    in.my = (float)my;
+    in.click = click;
+    in.nav_x = nav_x;
+    in.accept = accept;
+    screens_draw(a, &in);
+    return 0;
+}
+
+static int check(const char *what, int got, int want)
+{
+    printf("%s %s: got %d, want %d\n", got == want ? "ok  " : "FAIL", what, got, want);
+    return got != want;
+}
+
+static int ui_test(App *a)
+{
+    int f = 0;
+    /* Display: window size stepper, row 0 (box 976..1206 x 137..169) */
+    a->screen = SCR_DISPLAY;
+    a->cfg.scale = 3;
+    a->focus[SCR_DISPLAY] = 0;
+    ui_frame(a, -1, -1, 0, 0, 0);
+    ui_frame(a, 990, 153, 1, 0, 0);
+    f += check("window size: click left arrow", a->cfg.scale, 2);
+    ui_frame(a, 1190, 153, 1, 0, 0);
+    f += check("window size: click right arrow", a->cfg.scale, 3);
+    ui_frame(a, 450, 153, 1, 0, 0);
+    f += check("window size: click the label", a->cfg.scale, 3);
+    ui_frame(a, -1, -1, 0, -1, 0);
+    f += check("window size: left key", a->cfg.scale, 2);
+    ui_frame(a, -1, -1, 0, 1, 0);
+    f += check("window size: right key", a->cfg.scale, 3);
+    ui_frame(a, -1, -1, 0, 0, 1);
+    f += check("window size: accept = next", a->cfg.scale, 4);
+    a->cfg.scale = 1;
+    ui_frame(a, 990, 153, 1, 0, 0);
+    f += check("window size: stays at 1", a->cfg.scale, 1);
+    /* Audio: volume slider (track 906..1136) */
+    a->screen = SCR_AUDIO;
+    a->cfg.volume = 0.8f;
+    a->focus[SCR_AUDIO] = 0;
+    ui_frame(a, -1, -1, 0, 0, 0);
+    ui_frame(a, 964, 153, 1, 0, 0);
+    f += check("volume: click at a quarter", (int)(a->cfg.volume * 100 + 0.5f), 25);
+    ui_frame(a, -1, -1, 0, -1, 0);
+    f += check("volume: left key", (int)(a->cfg.volume * 100 + 0.5f), 20);
+    /* Graphics: click the third preset card */
+    a->screen = SCR_GRAPHICS;
+    a->cfg.gpu = 1;
+    a->cfg.shader = 0;
+    ui_frame(a, -1, -1, 0, 0, 0);
+    {
+        float w = (1216.0f - 330 - 10 * (GPU_PRESET_COUNT - 1)) / GPU_PRESET_COUNT;
+        ui_frame(a, (int)(330 + 2 * (w + 10) + w / 2), 260, 1, 0, 0);
+    }
+    f += check("shader preset: click card 3", a->cfg.shader, 2);
+    printf("%s\n", f ? "FAIL" : "PASS");
+    return f ? 1 : 0;
+}
+
 static void stick(UiIn *in, int axis, int value, int *held)
 {
     int dir = value > 20000 ? 1 : value < -20000 ? -1 : 0;
@@ -78,7 +145,7 @@ int main(int argc, char **argv)
     SDL_Renderer *r;
     const char *shot = NULL, *shot_out = NULL, *rom_arg = NULL;
     int shot_w = KIT_W, shot_h = KIT_H, demo = 0, launch = 0, i, rc = 0;
-    int held_x = 0, held_y = 0, pad = 0, selftest = 0, win_w = KIT_W, win_h = KIT_H;
+    int held_x = 0, held_y = 0, pad = 0, selftest = 0, uitest = 0, win_w = KIT_W, win_h = KIT_H;
 
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--ui-shot") && i + 2 < argc) {
@@ -94,6 +161,8 @@ int main(int argc, char **argv)
             launch = 1;
         else if (!strcmp(argv[i], "--selftest"))
             selftest = 1;
+        else if (!strcmp(argv[i], "--ui-test"))
+            uitest = 1;
         else if (!strcmp(argv[i], "--rom") && i + 1 < argc)
             rom_arg = argv[++i];
     }
@@ -104,7 +173,7 @@ int main(int argc, char **argv)
         SDL_Log("SDL_Init: %s", SDL_GetError());
         return 1;
     }
-    app_init(a, argv[0], demo);
+    app_init(a, argv[0], demo || uitest); /* --ui-test never saves settings */
     if (selftest) { /* the first-run checklist without a window; prints each step (tests, check_all) */
         static const char *const st[] = {"wait", "run", "done", "skipped", "FAIL"};
         int fails = 0;
@@ -138,7 +207,7 @@ int main(int argc, char **argv)
         /* opens at the 1280x720 design size (smaller only on small desktops); text stays sharp when resized */
         SDL_Rect ub;
         float f = 1.0f;
-        if (!shot && SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &ub)) {
+        if (!shot && !uitest && SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &ub)) {
             float fx = 0.95f * (float)ub.w / KIT_W, fy = 0.95f * (float)ub.h / KIT_H;
             f = fx < fy ? fx : fy;
             f = f > 1.0f ? 1.0f : f < 0.5f ? 0.5f : f;
@@ -147,7 +216,7 @@ int main(int argc, char **argv)
         win_h = (int)(KIT_H * f);
     }
     if (!SDL_CreateWindowAndRenderer("Pond to Pavement", win_w, win_h,
-                                     SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | (shot ? SDL_WINDOW_HIDDEN : 0), &win, &r)) {
+                                     SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | (shot || uitest ? SDL_WINDOW_HIDDEN : 0), &win, &r)) {
         SDL_Log("window: %s", SDL_GetError());
         SDL_Quit();
         return 1;
@@ -167,7 +236,9 @@ int main(int argc, char **argv)
     }
     a->focus[SCR_HOME] = 8; /* PLAY */
 
-    if (shot) {
+    if (uitest)
+        rc = ui_test(a);
+    else if (shot) {
         rc = ui_shot(a, r, shot, shot_out, shot_w, shot_h);
         if (rc == 0)
             printf("wrote %s\n", shot_out);
