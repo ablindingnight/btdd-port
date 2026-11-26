@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(btdd_port C)
+if(WIN32)
+    enable_language(RC) # program icon (res/win/icon.rc)
+endif()
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -277,6 +280,13 @@ if(BTDD_SDL)
     target_link_libraries(btdd_gfxshot PRIVATE btdd_screen SDL3::SDL3-static)
     btdd_warnings(btdd_gfxshot)
     target_link_libraries(btdd_play PRIVATE btdd_screen SDL3::SDL3-static)
+    if(WIN32)
+        target_sources(btdd_play PRIVATE res/win/icon.rc)
+    endif()
+    add_custom_command(TARGET btdd_play POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:btdd_play>/art"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/res/art/icon.png" "$<TARGET_FILE_DIR:btdd_play>/art/icon.png")
     btdd_warnings(btdd_play)
     # mods (M7) in the settings menu when this tree has them
     if(TARGET btdd_mods)
@@ -291,6 +301,9 @@ if(BTDD_SDL)
         src/launcher/kit.c src/launcher/stb_impl.c src/launcher/unzip.c
         src/platform/config.c src/platform/video.c src/platform/gpu.c src/platform/menu.c)
     set_target_properties(btdd_launcher PROPERTIES OUTPUT_NAME PondToPavement)
+    if(WIN32)
+        target_sources(btdd_launcher PRIVATE res/win/icon.rc)
+    endif()
     target_include_directories(btdd_launcher PRIVATE src src/launcher third_party/stb)
     target_link_libraries(btdd_launcher PRIVATE btdd_screen btdd_mods SDL3::SDL3-static)
     execute_process(COMMAND git rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

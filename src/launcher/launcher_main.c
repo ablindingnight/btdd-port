@@ -12,6 +12,7 @@
 #include "screens.h"
 #include "theme.h"
 #include "platform/png.h"
+#include "platform/video.h"
 #include <SDL3/SDL_main.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -152,6 +153,7 @@ int main(int argc, char **argv)
         return 1;
     }
     SDL_SetWindowMinimumSize(win, 640, 360);
+    video_set_icon(win);
     SDL_SetRenderVSync(r, 1);
     screens_set_window(win);
     if (kit_init(r, a->font_dir) != 0)
