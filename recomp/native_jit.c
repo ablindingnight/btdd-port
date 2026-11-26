@@ -41,6 +41,40 @@
 #define BTDD_EXE_VERSION "m5-dev " __DATE__ " " __TIME__ /* the shell scripts pass commit + source hash instead */
 #endif
 
+/* Where meta/, src/, recomp/ and TinyCC's tcc/ are: next to the exe in a release package (meta/btdd.meta present
+ * there), else the source tree the exe was built from. */
+static const char *pkg_root(void)
+{
+    static char root[1100];
+    static int done;
+    if (!done) {
+        char probe[1200];
+        FILE *f;
+        done = 1;
+#ifdef _WIN32
+        {
+            DWORD n = GetModuleFileNameA(NULL, root, (DWORD)sizeof root);
+            char *slash;
+            if (n == 0 || n >= sizeof root)
+                root[0] = 0;
+            slash = strrchr(root, '\\');
+            if (slash)
+                *slash = 0;
+        }
+#else
+        root[0] = 0;
+#endif
+        snprintf(probe, sizeof probe, "%s/meta/btdd.meta", root);
+        if (!root[0] || !(f = fopen(probe, "rb")))
+            root[0] = 0;
+        else
+            fclose(f);
+    }
+    return root;
+}
+#define SRC_ROOT (pkg_root()[0] ? pkg_root() : BTDD_SOURCE_DIR)
+#define TREE_ROOT (pkg_root()[0] ? pkg_root() : BTDD_TREE_DIR)
+
 int btdd_gen_write(const Rom *rom, const char *sha1_hex, const char *meta_path, const char *outdir,
                    const char *confs, const char *excl, int excl_timing, char *err, size_t errcap);
 
@@ -140,6 +174,10 @@ static int compile(const char *dir, const char *dll, char *err, size_t cap)
     }
     if (getenv("BTDD_TCC_LIB"))
         tcc_set_lib_path(s, getenv("BTDD_TCC_LIB"));
+    else if (pkg_root()[0]) { /* release package: TinyCC's include/ and lib/ in tcc/ next to the exe */
+        snprintf(path, sizeof path, "%s/tcc", pkg_root());
+        tcc_set_lib_path(s, path);
+    }
 #ifdef BTDD_TCC_LIB_DIR
     else
         tcc_set_lib_path(s, BTDD_TCC_LIB_DIR);
@@ -148,8 +186,10 @@ static int compile(const char *dir, const char *dll, char *err, size_t cap)
 #ifdef BTDD_CPU_HOOKS
     tcc_define_symbol(s, "BTDD_CPU_HOOKS", "1");
 #endif
-    tcc_add_include_path(s, BTDD_TREE_DIR "/src");
-    tcc_add_include_path(s, BTDD_SOURCE_DIR "/recomp");
+    snprintf(path, sizeof path, "%s/src", TREE_ROOT);
+    tcc_add_include_path(s, path);
+    snprintf(path, sizeof path, "%s/recomp", SRC_ROOT);
+    tcc_add_include_path(s, path);
     for (b = -1; b < 8 && ok; b++) {
         if (b < 0)
             snprintf(path, sizeof path, "%s/native_all.c", dir);
@@ -171,7 +211,7 @@ static int compile(const char *dir, const char *dll, char *err, size_t cap)
         return 1;
     }
     snprintf(cmd, sizeof cmd, "%s -shared -std=c11 -w %s-I\"%s/src\" -I\"%s/recomp\" -o \"%s\"", cc, HOOKS_FLAG,
-             BTDD_TREE_DIR, BTDD_SOURCE_DIR, dll);
+             TREE_ROOT, SRC_ROOT, dll);
     for (b = -1; b < 8; b++) {
         if (b < 0)
             snprintf(path, sizeof path, " \"%s/native_all.c\"", dir);
@@ -259,7 +299,7 @@ int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap)
     snprintf(cid, sizeof cid, "%s|%s|fast=%d|%s", compiler_id(), conf, btdd_gen_fast_blocks, HOOKS_FLAG);
 
     if (!meta) {
-        snprintf(meta_default, sizeof meta_default, "%s/meta/btdd.meta", BTDD_SOURCE_DIR);
+        snprintf(meta_default, sizeof meta_default, "%s/meta/btdd.meta", SRC_ROOT);
         meta = meta_default;
     }
     meta_bytes = read_all(meta, &meta_len);
@@ -272,7 +312,7 @@ int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap)
         char rt_path[1100];
         size_t rt_len = 0;
         uint8_t *rt;
-        snprintf(rt_path, sizeof rt_path, "%s/recomp/native_rt.h", BTDD_SOURCE_DIR);
+        snprintf(rt_path, sizeof rt_path, "%s/recomp/native_rt.h", SRC_ROOT);
         rt = read_all(rt_path, &rt_len);
         n = sizeof rom->prg + meta_len + strlen(ver) + 1 + strlen(cid) + (rt ? rt_len : 0);
         buf = malloc(n);
