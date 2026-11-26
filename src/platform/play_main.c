@@ -308,6 +308,13 @@ static int key_is_bound(const Config *cfg, SDL_Scancode sc)
     return 0;
 }
 
+#define MAX_EXTRA_PADS 6
+static SDL_Gamepad *extra_pads[MAX_EXTRA_PADS]; /* pads after the first two (online they feed the local player too) */
+static int pads_online;                         /* for the log line: online, every pad feeds the local player */
+
+/* Opens every connected gamepad: offline the first is player 1 and the second player 2; online all of them feed
+ * the local player (a PC can show one controller as two devices, e.g. DS4Windows / Steam Input, and only one of
+ * them sends input). Logs each pad and the player it feeds (Logs > Save report). */
 static void open_gamepads(SDL_Gamepad *gp[2])
 {
     int n = 0, i, slot = 0;
@@ -318,10 +325,44 @@ static void open_gamepads(SDL_Gamepad *gp[2])
             gp[i] = NULL;
         }
     }
-    for (i = 0; ids && i < n && slot < 2; i++)
-        if ((gp[slot] = SDL_OpenGamepad(ids[i])) != NULL)
-            slot++;
+    for (i = 0; i < MAX_EXTRA_PADS; i++) {
+        if (extra_pads[i])
+            SDL_CloseGamepad(extra_pads[i]);
+        extra_pads[i] = NULL;
+    }
+    for (i = 0; ids && i < n && slot < 2 + MAX_EXTRA_PADS; i++) {
+        SDL_Gamepad *g = SDL_OpenGamepad(ids[i]);
+        if (!g) {
+            SDL_Log("gamepad %d (%s): cannot open: %s", i + 1, SDL_GetGamepadNameForID(ids[i]), SDL_GetError());
+            continue;
+        }
+        if (slot < 2)
+            gp[slot] = g;
+        else
+            extra_pads[slot - 2] = g;
+        SDL_Log("gamepad %d: %s (id %u) -> %s", slot + 1, SDL_GetGamepadName(g), (unsigned)ids[i],
+                pads_online ? "you (online: every pad plays for you)" : slot == 0 ? "player 1" : slot == 1 ? "player 2"
+                                                                                                    : "not used offline");
+        slot++;
+    }
+    if (!slot)
+        SDL_Log("gamepads: none found");
     SDL_free(ids);
+}
+
+/* Online: the local player's input from the keyboard (player 1 keys) and every open pad. */
+static uint8_t read_local_online(const Config *cfg, SDL_Gamepad *gp[2])
+{
+    uint8_t v = read_pad(cfg, 0, gp[0]) | read_pad(cfg, 0, gp[1]);
+    int i;
+    for (i = 0; i < MAX_EXTRA_PADS; i++)
+        if (extra_pads[i])
+            v |= read_pad(cfg, 0, extra_pads[i]);
+    if ((v & (PAD_UP | PAD_DOWN)) == (PAD_UP | PAD_DOWN))
+        v &= (uint8_t)~(PAD_UP | PAD_DOWN);
+    if ((v & (PAD_LEFT | PAD_RIGHT)) == (PAD_LEFT | PAD_RIGHT))
+        v &= (uint8_t)~(PAD_LEFT | PAD_RIGHT);
+    return v;
 }
 
 /* ---- on-screen messages and key rebinding ---- */
@@ -598,6 +639,7 @@ static void net_stop(void)
         net_code_path[0] = 0;
     }
     net_free(&net);
+    pads_online = 0;
     udp_close(net_udp);
     net_udp = NULL;
     net_on = 0;
@@ -837,6 +879,9 @@ static int net_start(int mode, const char *addr, const Config *cfg, const char *
     }
     net_on = 1;
     net_mode = mode;
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1"); /* the game window may not have the focus */
+    pads_online = 1;
+    SDL_Log("netplay: you are player %d; your player 1 keys and every gamepad play for you", host ? 1 : 2);
     net_port_used = cfg->net_port;
     net_started_ns = SDL_GetTicksNS();
     net_last_msg[0] = 0;
@@ -1407,7 +1452,7 @@ int main(int argc, char **argv)
     int menu_step = 0, menu_nav_ok = 0, menu_close_ok = 0; /* --selftest-gamepad, menu part */
     static uint8_t st_ram_a[0x800], st_ram_r[0x800];
     FILE *dump = NULL;
-    SDL_Joystick *vjoy = NULL, *netpad = NULL;
+    SDL_Joystick *vjoy = NULL, *netpad = NULL, *netdead = NULL;
     const char *window_shot = NULL;
     int window_shot_ms = 0, shot_asked = 0;
     Uint64 start_ns = SDL_GetTicksNS();
@@ -1471,6 +1516,10 @@ int main(int argc, char **argv)
             window_shot_ms = arg_int(argv[++i], 0, 600000);
         } else if (!strcmp(argv[i], "--selftest-netpad")) { /* online gamepad self-test (two instances) */
             netpad_test = 1;
+            if (i + 1 < argc && !strcmp(argv[i + 1], "late")) { /* dead pad at startup, live pad plugged in later */
+                netpad_test = 2;
+                i++;
+            }
             if (max_frames < 0)
                 max_frames = 330;
         } else if (!strcmp(argv[i], "--net-loopback")) { /* tests: the join-code socket on 127.0.0.1 only */
@@ -1495,7 +1544,7 @@ int main(int argc, char **argv)
             return fail("usage: btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] "
                         "[--fullscreen] [--no-audio] [--dump-ram out.bin] [--mod ID[=N]] [--selftest-gamepad] "
                         "[--selftest-states] [--console] | online: [--host [PORT]] [--join IP:PORT] [--join-code CODE] "
-                        "[--net-delay 0-3] [--host-loopback [PORT]] [--net-loopback] [--selftest-netpad] [--window-shot PNG MS]");
+                        "[--net-delay 0-3] [--host-loopback [PORT]] [--net-loopback] [--selftest-netpad [late]] [--window-shot PNG MS]");
     }
     if (!have_cfg)
         SDL_Log("could not read or create btdd.cfg; using defaults");
@@ -1619,11 +1668,10 @@ int main(int argc, char **argv)
                 SDL_Log("gamepad init: %s", SDL_GetError());
             pads_ready = 1;
             open_gamepads(gp);
-            if (netpad_test && (netpad = make_virtual_pad()) != NULL) { /* plugged in at startup */
-                if (gp[0])
-                    SDL_CloseGamepad(gp[0]);
-                gp[0] = SDL_OpenGamepad(SDL_GetJoystickID(netpad));
-            }
+            if (netpad_test == 1 && (netpad = make_virtual_pad()) != NULL) /* plugged in at startup */
+                open_gamepads(gp);
+            if (netpad_test == 2 && (netdead = make_virtual_pad()) != NULL) /* a second device that never sends input */
+                open_gamepads(gp);
             SDL_Log("gamepads ready after %llu ms", (unsigned long long)((SDL_GetTicksNS() - t) / 1000000));
         }
         int run_frame, hold = paused || rb.active || menu.open;
@@ -1635,8 +1683,14 @@ int main(int argc, char **argv)
                 break;
             case SDL_EVENT_GAMEPAD_ADDED:
             case SDL_EVENT_GAMEPAD_REMOVED:
-                if (!vjoy)
+                SDL_Log("gamepad %s: %s", ev.type == SDL_EVENT_GAMEPAD_ADDED ? "plugged in" : "removed",
+                        ev.type == SDL_EVENT_GAMEPAD_ADDED ? SDL_GetGamepadNameForID(ev.gdevice.which) : "");
+                if (!vjoy) {
+                    pads_online = net_on;
                     open_gamepads(gp);
+                    if (ev.type == SDL_EVENT_GAMEPAD_ADDED)
+                        say("gamepad connected");
+                }
                 break;
             case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
                 if (menu.open) {
@@ -1785,6 +1839,8 @@ int main(int argc, char **argv)
             {
                 int l = net.local, k;
                 uint8_t pad;
+                if (netpad_test == 2 && !netpad && net.state == NET_RUNNING && net.have[l] >= 60)
+                    netpad = make_virtual_pad(); /* plugged in mid-session: found through SDL_EVENT_GAMEPAD_ADDED */
                 if (netpad) { /* --selftest-netpad: press the script's button for this input frame */
                     for (k = 0; k < SELFTEST_STEPS; k++)
                         SDL_SetJoystickVirtualButton(netpad, selftest[k].button,
@@ -1793,7 +1849,7 @@ int main(int argc, char **argv)
                     SDL_UpdateJoysticks();
                 }
                 pad = movie.frames ? (net.have[l] < (uint32_t)movie.count ? movie.frames[net.have[l]].pad[l] : 0)
-                                   : read_pad(&cfg, 0, gp[0]); /* each player uses their own player 1 keys or pad */
+                                   : read_local_online(&cfg, gp); /* own player 1 keys, or any of own pads */
                 if (netpad)
                     for (k = 0; k < SELFTEST_STEPS; k++)
                         if (net.have[l] == (uint32_t)(NETPAD_START + 30 * k + 2) && pad == netpad_bits[k])
@@ -1973,6 +2029,8 @@ int main(int argc, char **argv)
         }
         if (netpad)
             SDL_CloseJoystick(netpad);
+        if (netdead)
+            SDL_CloseJoystick(netdead);
         if (!ok)
             quit = 2;
     }
