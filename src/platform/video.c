@@ -96,10 +96,63 @@ static void fill(SDL_Renderer *r, float x, float y, float w, float h, Uint8 cr, 
 #define CYAN 0x5f, 0xd8, 0xff
 #define GREY 0xc9, 0xc3, 0xb4
 
+static char card_title[64], card_code[2][24], card_note[96];
+static char shot_path[1024];
+
+void video_set_card(const char *title, const char *code, const char *note)
+{
+    card_code[0][0] = card_code[1][0] = 0;
+    if (!code || !code[0])
+        return;
+    SDL_snprintf(card_title, sizeof card_title, "%s", title);
+    SDL_snprintf(card_note, sizeof card_note, "%s", note);
+    /* "BT1-AAAAA-BBBBB-CCCCC-DDDDDD": two lines of large text fit 256 pixels */
+    SDL_snprintf(card_code[0], sizeof card_code[0], "%.15s", code);
+    SDL_snprintf(card_code[1], sizeof card_code[1], "%s", SDL_strlen(code) > 16 ? code + 16 : "");
+}
+
+void video_request_shot(const char *path)
+{
+    SDL_snprintf(shot_path, sizeof shot_path, "%s", path);
+}
+
+int video_shot_pending(void)
+{
+    return shot_path[0] != 0;
+}
+
+/* The join code card: ink panel, yellow title tab, the code at twice the text size in paper colour, a grey note. */
+static void draw_card(SDL_Renderer *r, float x0, float y0)
+{
+    float sx, sy, top = y0 + 76, w = 248, h = 84, x = x0 + 4;
+    int i;
+    if (!card_code[0][0])
+        return;
+    fill(r, x + 3, top + 3, w, h, RED, 255);
+    fill(r, x, top, w, h, YELLOW, 255);
+    fill(r, x + 2, top + 2, w - 4, h - 4, INK, 245);
+    fill(r, x + 8, top - 6, (float)SDL_strlen(card_title) * 8 + 8, 13, INK, 255);
+    fill(r, x + 9, top - 5, (float)SDL_strlen(card_title) * 8 + 6, 11, YELLOW, 255);
+    SDL_SetRenderDrawColor(r, INK, 255);
+    SDL_RenderDebugText(r, x + 12, top - 3, card_title);
+    SDL_GetRenderScale(r, &sx, &sy);
+    SDL_SetRenderScale(r, sx * 2, sy * 2);
+    SDL_SetRenderDrawColor(r, PAPER, 255);
+    for (i = 0; i < 2; i++) {
+        float tw = (float)SDL_strlen(card_code[i]) * 8;
+        SDL_RenderDebugText(r, (x0 + 128) / 2 - tw / 2, (top + 14 + (float)i * 22) / 2, card_code[i]);
+    }
+    SDL_SetRenderScale(r, sx, sy);
+    SDL_SetRenderDrawColor(r, GREY, 255);
+    SDL_RenderDebugText(r, x0 + 128 - (float)SDL_strlen(card_note) * 4, top + h - 14, card_note);
+}
+
 static void draw_overlay(SDL_Renderer *r, float x0, float y0, const char *const *text, int n, int style)
 {
     int i;
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    if (style == TEXT_TOAST)
+        draw_card(r, x0, y0);
     if (style == TEXT_TOAST) { /* each line in its own cyan sticker */
         for (i = 0; i < n; i++) {
             float w = (float)SDL_strlen(text[i]) * 8 + 8, y = y0 + 4 + (float)i * 14;
@@ -170,6 +223,11 @@ static void present_gpu(Video *v, const uint32_t *pixels, const char *const *tex
     v->filter = v->preset == GPU_PRESET_NEAREST ? FILTER_NEAREST : FILTER_SHARP;
     dst = output_rect(v, ww, wh);
     v->filter = keep;
+    if (card_code[0][0] && style == TEXT_TOAST && text_lines == 0) {
+        static const char *const none[1] = {""};
+        text = none; /* draw the card even without toast lines */
+        text_lines = 1;
+    }
     if (text_lines > 0 && !v->overlay) {
         v->overlay = SDL_CreateSurface(NES_W * 2, NES_H * 2, SDL_PIXELFORMAT_ARGB8888);
         v->overlay_ren = v->overlay ? SDL_CreateSoftwareRenderer(v->overlay) : NULL;
@@ -231,11 +289,20 @@ static void present(Video *v, const uint32_t *pixels, const char *const *text, i
     SDL_SetRenderDrawColor(v->ren, 0, 0, 0, 255);
     SDL_RenderClear(v->ren);
     SDL_RenderTexture(v->ren, src, NULL, &dst);
-    if (text_lines > 0) {
+    if (text_lines > 0 || (card_code[0][0] && style == TEXT_TOAST)) {
         float scale = SDL_max(1.0f, SDL_floorf(dst.h / NES_H));
         SDL_SetRenderScale(v->ren, scale, scale);
         draw_overlay(v->ren, dst.x / scale, dst.y / scale, text, text_lines, style);
         SDL_SetRenderScale(v->ren, 1, 1);
+    }
+    if (shot_path[0]) { /* tests: the whole window, text included */
+        SDL_Surface *s = SDL_RenderReadPixels(v->ren, NULL);
+        if (s) {
+            if (!SDL_SavePNG(s, shot_path))
+                SDL_Log("window shot: %s", SDL_GetError());
+            SDL_DestroySurface(s);
+        }
+        shot_path[0] = 0;
     }
     SDL_RenderPresent(v->ren);
 }
