@@ -111,6 +111,14 @@ void video_set_card(const char *title, const char *code, const char *note)
     SDL_snprintf(card_code[1], sizeof card_code[1], "%s", SDL_strlen(code) > 16 ? code + 16 : "");
 }
 
+void video_set_card_lines(const char *title, const char *line1, const char *line2, const char *note)
+{
+    SDL_snprintf(card_title, sizeof card_title, "%s", title);
+    SDL_snprintf(card_note, sizeof card_note, "%s", note);
+    SDL_snprintf(card_code[0], sizeof card_code[0], "%.15s", line1);
+    SDL_snprintf(card_code[1], sizeof card_code[1], "%.15s", line2);
+}
+
 void video_request_shot(const char *path)
 {
     SDL_snprintf(shot_path, sizeof shot_path, "%s", path);

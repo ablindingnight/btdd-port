@@ -49,6 +49,8 @@ void video_draw_overlay(SDL_Renderer *r, float x0, float y0, const char *const *
 int video_filter_from_name(const char *name); /* -1 if unknown */
 /* Online: a centered card with the join code in large monospaced groups (NULL code = no card). */
 void video_set_card(const char *title, const char *code, const char *note);
+/* The same card with two large lines of up to 15 characters each. */
+void video_set_card_lines(const char *title, const char *line1, const char *line2, const char *note);
 /* Tests: save the next presented window (SDL renderer path) as a PNG; video_shot_pending() is 0 once done. */
 void video_request_shot(const char *path);
 int video_shot_pending(void);

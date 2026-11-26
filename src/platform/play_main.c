@@ -621,6 +621,12 @@ static void net_card_update(void)
 {
     /* the host waiting; the joiner after 20 s without an answer (then the host pastes the joiner's code) */
     int waiting = net_on && net.state == NET_HANDSHAKE && (net.local == 0 || net_help_shown);
+    /* player 2 on the title (game_mode $16: $00 intro logos, $80 title and attract demo; the host's Start makes
+     * it $FE/$FF, then 1 or 2): display only, the same RAM on both sides */
+    if (net_on && net.local == 1 && net.state == NET_RUNNING && (nes.ram[0x16] == 0x00 || nes.ram[0x16] == 0x80)) {
+        video_set_card_lines("ONLINE: YOU ARE PLAYER 2", "WAITING FOR", "THE HOST", "to press Start");
+        return;
+    }
     if (net_on && net_code[0] && (waiting || SDL_GetTicksNS() < net_card_until))
         video_set_card(net.local == 0 ? "PLAYER 2 JOIN CODE" : "MY CODE: SEND IT TO PLAYER 1", net_code,
                        "copied to clipboard");
