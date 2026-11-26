@@ -286,7 +286,7 @@ static int load_lib(const char *dll, const NativeApi *api, char *err, size_t cap
 int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap)
 {
     const char *meta = getenv("BTDD_META");
-    char meta_default[1024], root[1024], dir[1100], dll[1200], key[41];
+    char meta_default[1200], root[1024], dir[1100], dll[1200], key[41];
     uint8_t digest[20], *meta_bytes, *buf;
     size_t meta_len, n, i;
     const char *ver = BTDD_EXE_VERSION, *conf = getenv("BTDD_CONF") ? getenv("BTDD_CONF") : "verified,static";
@@ -309,7 +309,7 @@ int native_jit_load(const Rom *rom, const NativeApi *api, char *err, size_t cap)
     }
     {
         /* the runtime header the generated code is compiled against is part of the key too */
-        char rt_path[1100];
+        char rt_path[1200];
         size_t rt_len = 0;
         uint8_t *rt;
         snprintf(rt_path, sizeof rt_path, "%s/recomp/native_rt.h", SRC_ROOT);

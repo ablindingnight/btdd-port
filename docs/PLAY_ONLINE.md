@@ -16,20 +16,22 @@ Settings -> Network -> properties). Join codes work there too.
 ## Host (player 1)
 1. Open Pond to Pavement, go to **ONLINE** and press **HOST GAME** (or in the game: Esc -> Online 2-player ->
    Host game).
-2. The game window shows **"Waiting for player 2. Your join code (copied): BT1-....."**. The code is already
-   on your clipboard: paste it into the chat for your friend.
-3. Wait. When it says **"connected: you are player 1"**, play.
+2. The game window shows a big **PLAYER 2 JOIN CODE** card (`BT1-.....`, in two groups so it is easy to read
+   out). The code is already on your clipboard: paste it into the chat for your friend. The launcher's ONLINE page
+   shows it too, with a COPY button. Lost it later? Esc -> Online 2-player -> **Show my join code**.
+3. Wait. When it says **"connected: you are player 1"**, press Start on the title and play.
 
 ## Joiner (player 2)
 1. Copy the host's code from the chat (the whole `BT1-...` text).
 2. In Pond to Pavement go to **ONLINE**, press **PASTE**, then **JOIN** (or in the game: Esc -> Online 2-player
    -> Join with code, which reads the clipboard).
-3. The window shows **"Connecting to player 1..."** and then **"connected: you are player 2"**.
+3. The window shows **"Connecting to player 1..."**, then **"connected: you are player 2"** and
+   **"WAITING FOR THE HOST to press Start"** until the host starts the game.
 
-Each of you plays with your own **player 1** keys or gamepad.
+Each of you plays with your own **player 1** keys or your own gamepad (gamepads work online).
 
 ## If it does not connect within about 20 seconds
-1. The joiner's window also shows **your own code** (`If it does not connect, send them YOUR code: BT1-...`).
+1. After 20 s the joiner's window shows a **MY CODE: SEND IT TO PLAYER 1** card (also on the clipboard).
    Joiner: send that code to the host. Host: Esc -> Online 2-player -> **Paste player 2's code** (copy it
    first). Both games now try to reach each other at the same time, which gets through most home routers.
 2. Still nothing: on either PC, Esc -> Online 2-player -> **Test my connection** (when not connected). It
