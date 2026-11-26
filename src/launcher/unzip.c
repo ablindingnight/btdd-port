@@ -302,3 +302,31 @@ int unzip_first_nes(const uint8_t *zip, size_t len, uint8_t **out, size_t *out_l
     }
     return -3; /* no .nes inside */
 }
+
+int unzip_count_nes(const uint8_t *zip, size_t len)
+{
+    size_t eocd, i, n_entries, k;
+    int count = 0;
+    if (len < 22)
+        return -1;
+    for (eocd = len - 22;; eocd--) {
+        if (rd32(zip + eocd) == 0x06054b50)
+            break;
+        if (eocd == 0 || len - eocd > 22 + 65535)
+            return -1;
+    }
+    n_entries = rd16(zip + eocd + 10);
+    for (i = rd32(zip + eocd + 16), k = 0; k < n_entries; k++) {
+        uint32_t nlen, xlen, clen;
+        if (i + 46 > len || rd32(zip + i) != 0x02014b50)
+            return -1;
+        nlen = rd16(zip + i + 28);
+        xlen = rd16(zip + i + 30);
+        clen = rd16(zip + i + 32);
+        if (i + 46 + nlen > len)
+            return -1;
+        count += ends_with_nes(zip + i + 46, nlen);
+        i += 46 + nlen + xlen + clen;
+    }
+    return count;
+}

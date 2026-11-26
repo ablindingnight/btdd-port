@@ -95,3 +95,15 @@ icons (list in the style sheet); an 8x8 font for the in-game menu; app icon size
 
 - 2026-11-25: widescreen is shelved (docs/M9_WIDESCREEN.md): the Display page's Widescreen group and the four
   widescreen mod cards are hidden unless `BTDD_DEV_WIDESCREEN=1`.
+
+## Easy install, first pieces (2026-11-25, branch m11-easy)
+- Plain-language ROM problems (`src/launcher/romcheck.c`): wrong version or a changed copy, missing or extra iNES
+  data, incomplete dump, a different game, not an NES file, an empty file, a .zip with no / several .nes inside or one
+  we can't read; each says what to do (never where to download). `--rom-check FILE` prints the verdict.
+- Simple mode is the default: the sidebar shows Home, Settings (window size, fullscreen, volume, keys, controller
+  check), Controls and About; "All settings" (or the sidebar's last entry) shows every page and "Simple mode" goes
+  back. Kept in `launcher.ini` (`advanced = 0 | 1`).
+- Controller check (`--ui-shot pad-check`): an original two-button pad per player lights up for the keys and the
+  first two gamepads; leave with Esc, DONE, or START + SELECT held on a gamepad. Reached from the simple page,
+  Controls and the end of the first run.
+- The launcher gate feeds 13 ROM cases made from the real ROM in its own folder (deleted after) to `--rom-check`.

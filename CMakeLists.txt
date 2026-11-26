@@ -298,7 +298,7 @@ if(BTDD_SDL)
     # through src/platform/config.c; fonts (SIL OFL) are copied next to the exe.
     add_executable(btdd_launcher WIN32
         src/launcher/launcher_main.c src/launcher/app.c src/launcher/screens.c src/launcher/theme.c
-        src/launcher/kit.c src/launcher/stb_impl.c src/launcher/unzip.c
+        src/launcher/kit.c src/launcher/stb_impl.c src/launcher/unzip.c src/launcher/romcheck.c
         src/platform/config.c src/platform/video.c src/platform/gpu.c src/platform/menu.c src/platform/console.c)
     set_target_properties(btdd_launcher PROPERTIES OUTPUT_NAME PondToPavement)
     if(WIN32)
