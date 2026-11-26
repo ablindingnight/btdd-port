@@ -7,7 +7,7 @@
 #define NES_H 240
 #define UP 2 /* upscale factor of the upscale pass */
 
-const char *const gpu_preset_names[GPU_PRESET_COUNT] = {"nearest", "sharp", "bilinear", "crt", "smooth", "smooth-crt"};
+const char *const gpu_preset_names[GPU_PRESET_COUNT] = {"nearest", "sharp", "bilinear", "crt", "smooth", "smooth-crt", "mmpx", "xbr"};
 
 int gpu_preset_from_name(const char *name)
 {
@@ -18,8 +18,8 @@ int gpu_preset_from_name(const char *name)
     return -1;
 }
 
-enum { SH_COPY, SH_SHARP, SH_CRT, SH_UPSCALE, SH_COUNT };
-static const char *const shader_names[SH_COUNT] = {"copy", "sharp", "crt", "upscale2x"};
+enum { SH_COPY, SH_SHARP, SH_CRT, SH_UPSCALE, SH_MMPX, SH_XBR, SH_COUNT };
+static const char *const shader_names[SH_COUNT] = {"copy", "sharp", "crt", "upscale2x", "mmpx", "xbr"};
 
 #define MAX_PIPES 16
 typedef struct Pipe {
@@ -151,7 +151,7 @@ static SDL_GPUTransferBuffer *make_transfer(SDL_GPUDevice *dev, Uint32 size, SDL
 
 Gpu *gpu_open(SDL_Window *win)
 {
-    static const int samplers[SH_COUNT] = {1, 1, 1, 1};
+    static const int samplers[SH_COUNT] = {1, 1, 1, 1, 1, 1};
     Gpu *g = SDL_calloc(1, sizeof *g);
     int i;
     if (!g)
@@ -361,14 +361,14 @@ static void chain(Gpu *g, SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, SDL
     SDL_GPUTexture *src = g->frame;
     int sw = g->frame_w, sh = NES_H;
 
-    if (preset == GPU_PRESET_SMOOTH || preset == GPU_PRESET_SMOOTH_CRT) { /* pass 1: upscale */
+    if (preset == GPU_PRESET_SMOOTH || preset == GPU_PRESET_SMOOTH_CRT || preset == GPU_PRESET_MMPX) { /* pass 1 */
         SDL_FRect all = {0, 0, (float)(g->frame_w * UP), NES_H * UP};
         SDL_zero(ct);
         ct.texture = g->up;
         ct.load_op = SDL_GPU_LOADOP_DONT_CARE;
         ct.store_op = SDL_GPU_STOREOP_STORE;
         rp = SDL_BeginGPURenderPass(cmd, &ct, 1, NULL);
-        draw(g, cmd, rp, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM, SH_UPSCALE, 0, g->frame, g->frame_w, NES_H, g->nearest, all,
+        draw(g, cmd, rp, SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM, preset == GPU_PRESET_MMPX ? SH_MMPX : SH_UPSCALE, 0, g->frame, g->frame_w, NES_H, g->nearest, all,
              one, NULL);
         SDL_EndGPURenderPass(rp);
         src = g->up;
@@ -389,6 +389,9 @@ static void chain(Gpu *g, SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, SDL
     case GPU_PRESET_BILINEAR:
         draw(g, cmd, rp, fmt, SH_COPY, 0, src, sw, sh, g->linear, dst, one, NULL);
         break;
+    case GPU_PRESET_XBR: /* one pass at the output size */
+        draw(g, cmd, rp, fmt, SH_XBR, 0, src, sw, sh, g->nearest, dst, one, NULL);
+        break;
     case GPU_PRESET_CRT:
         draw(g, cmd, rp, fmt, SH_CRT, 0, src, sw, sh, g->linear, dst, crt, crt_soft);
         break;
@@ -398,7 +401,7 @@ static void chain(Gpu *g, SDL_GPUCommandBuffer *cmd, SDL_GPUTexture *target, SDL
         draw(g, cmd, rp, fmt, SH_CRT, 0, src, sw, sh, g->linear, dst, crt, soft240);
         break;
     }
-    default: /* sharp, smooth */
+    default: /* sharp, smooth, mmpx */
         draw(g, cmd, rp, fmt, SH_SHARP, 0, src, sw, sh, g->linear, dst, one, NULL);
         break;
     }

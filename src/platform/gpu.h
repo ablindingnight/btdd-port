@@ -18,6 +18,8 @@ typedef enum GpuPreset {
     GPU_PRESET_CRT,      /* scanline beams, aperture-grille mask, gamma */
     GPU_PRESET_SMOOTH,   /* pixel-art upscaler 2x (edges smoothed, colors kept), then sharp bilinear */
     GPU_PRESET_SMOOTH_CRT, /* the upscaler, then the CRT */
+    GPU_PRESET_MMPX,     /* MMPX 2x (style-preserving pixel-art magnification), then sharp bilinear */
+    GPU_PRESET_XBR,      /* xBR-style edge smoothing computed at the output size (any scale) */
     GPU_PRESET_COUNT
 } GpuPreset;
 extern const char *const gpu_preset_names[GPU_PRESET_COUNT];

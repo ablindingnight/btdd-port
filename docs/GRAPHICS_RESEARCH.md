@@ -118,9 +118,23 @@ integer, so **integer (or sharp) vertical + sharp-bilinear horizontal** gives ev
   the 2P TAS at 1440x1080 for all six presets (`f<frame>_<preset>_1440x1080.png`), frame 16500 at 1280x960 (all) and
   2880x2160 (sharp, crt, smooth-crt).
 
-Next steps: SPIR-V and MSL blobs (SDL_shadercross offline) so Vulkan/Metal get the shaders too; an MMPX port (MIT) to
-replace the EPX-rule upscaler; the CRT + Composite preset (composite from palette indices); integer-vertical geometry
+Next steps: SPIR-V and MSL blobs (SDL_shadercross offline) so Vulkan/Metal get the shaders too; an MMPX port (MIT; done, section 7); the CRT + Composite preset (composite from palette indices); integer-vertical geometry
 as the default; overscan crop and curvature options; tuning the CRT on real 1440p/4K screens.
+
+## 7. Pixel-art upscalers (branch `m10-upscale`, 2026-11-25)
+
+Two more GPU presets, both permissively licensed (notices in `third_party/README.md`), selectable with F3, in the
+in-game Graphics page and in the launcher's Graphics page (`shader = mmpx | xbr` in btdd.cfg):
+
+| Preset | Shader | How it scales | Licence |
+| --- | --- | --- | --- |
+| `mmpx` | `shaders/mmpx.frag.hlsl`: MMPX 2x (McGuire & Gagiu, JCGT 2021); keeps 1:1 and 2:1 lines, intersections and triangle tips, never invents colours | 2x pass to an offscreen texture, then sharp bilinear to the window: exact at 4x, crisp at 2x, 3x or any size | MIT (port of the reference rules) |
+| `xbr` | `shaders/xbr.frag.hlsl`: xBR edge rule (Hyllian) with its interpolation restriction, evaluated per output pixel | one pass at the output size: any scale (2x, 3x, 4x, fullscreen), one output pixel of antialiasing on edges | own code from the MIT-published rule |
+
+Both work with the M9 widescreen picture (the passes follow the frame width). Display only: the emulation gates are
+unchanged. Not chosen: xBRZ (GPL), ScaleFX (MIT, but five passes; possible later). Screenshots (private) in
+`..\Gamefiles\Movies\m10\upscale\`: frame 3000 of the 2P TAS at 512x480, 768x720 and 1024x960 (nearest, mmpx, xbr)
+and 1696x960 widescreen (mmpx, xbr).
 
 ## Sources
 - Digital Eclipse: [T1] https://videogameschronicle.com/review/tmnt-the-cowabunga-collection ; [T3] https://www.nintendolife.com/reviews/nintendo-switch/teenage-mutant-ninja-turtles-the-cowabunga-collection ; [A1] https://forums.atariage.com/topic/337463-atari-50-the-anniversary-celebration-compilation-will-include-jaguar-games/page/11/ ; [A2] https://forums.atariage.com/topic/363979-2600-scanlines-option/ ; [M1] https://www.gameinformer.com/games/mega_man_legacy_collection/b/xboxone/archive/2015/07/15/capcom-releases-new-details-about-mega-man-legacy-collection-screen-options-challenge-mode-and-more.aspx ; [M2] https://steamcommunity.com/app/363440/discussions/0/4139438126592159745 ; [M3] https://themmnetwork.com/2018/07/31/whats-the-hold-up-input-lag-tests-for-mega-man-x-legacy-collection/ ; [D1] https://wccftech.com/review/disney-classic-games-aladdin-and-the-lion-king/ ; [K1] https://seafoamgaming.com/2023/09/11/the-making-of-karateka-steam-review/ ; [K2] https://gamingnexus.com/Article/12921/The-Making-of-Karateka

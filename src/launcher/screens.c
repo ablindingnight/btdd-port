@@ -582,7 +582,8 @@ static SDL_Texture *swatch_tex[2];
 static void preset_swatch(int preset, float x, float y, float w, float h)
 {
     static const Rgb pat[4] = {C_RED, C_CYAN, C_YELLOW, 0x16206b};
-    int linear = preset == GPU_PRESET_BILINEAR || preset == GPU_PRESET_SMOOTH || preset == GPU_PRESET_SMOOTH_CRT;
+    int linear = preset == GPU_PRESET_BILINEAR || preset == GPU_PRESET_SMOOTH || preset == GPU_PRESET_SMOOTH_CRT ||
+                 preset == GPU_PRESET_XBR;
     int crt = preset == GPU_PRESET_CRT || preset == GPU_PRESET_SMOOTH_CRT;
     float yy;
     if (!swatch_tex[0]) {
@@ -616,13 +617,13 @@ static void draw_graphics(void)
     App *a = U.a;
     Config *c = &a->cfg;
     int d, i, ch = 0;
-    static const char *const pnames[GPU_PRESET_COUNT] = {"NEAREST", "SHARP", "BILINEAR", "CRT", "SMOOTH", "SMOOTH CRT"};
+    static const char *const pnames[GPU_PRESET_COUNT] = {"NEAREST", "SHARP", "BILINEAR", "CRT", "SMOOTH", "SMOOTH CRT", "MMPX", "XBR"};
     if ((d = row_choice("Renderer", c->gpu ? "GPU runs the shader presets (Direct3D 12)" : "SDL renderer: filters and scanlines below",
                         c->gpu ? "GPU" : "SDL", 0)))
         c->gpu = !c->gpu, ch = 1;
     if (c->gpu) {
         It it;
-        float x = PX, w = (PR - PX - 50) / 6;
+        float x = PX, w = (PR - PX - 10 * (GPU_PRESET_COUNT - 1)) / GPU_PRESET_COUNT;
         group("SHADER PRESET");
         it = item(PX, RY, PR - PX, 108);
         if (it.focused)

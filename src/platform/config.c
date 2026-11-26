@@ -128,7 +128,7 @@ static int write_file(const Config *c, const char *path)
     fprintf(f, "# renderer = auto, direct3d11, direct3d12, direct3d, opengl, vulkan or software\n");
     fprintf(f, "renderer = %s\n", c->renderer);
     fprintf(f, "# video = sdl | gpu (GPU shader path, Direct3D 12; falls back to sdl); shader = nearest, sharp, bilinear,\n");
-    fprintf(f, "# crt, smooth or smooth-crt (used with video = gpu; F3 cycles them)\n");
+    fprintf(f, "# crt, smooth, smooth-crt, mmpx or xbr (used with video = gpu; F3 cycles them)\n");
     fprintf(f, "video = %s\nshader = %s\n", c->gpu ? "gpu" : "sdl", gpu_preset_names[c->shader]);
     fprintf(f, "# rewind_seconds = how far Backspace can rewind (0 = off; ~1 MB per second); ff_speed = Tab speed\n");
     fprintf(f, "rewind_seconds = %d\nff_speed = %d\n", c->rewind_seconds, c->ff_speed);
