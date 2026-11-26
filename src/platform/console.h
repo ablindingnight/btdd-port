@@ -3,4 +3,6 @@
 #ifndef BTDD_CONSOLE_H
 #define BTDD_CONSOLE_H
 void console_setup(int alloc);
+/* 1 if stdout/stderr reach someone (a file, a pipe, a terminal): then errors are printed, not shown in a box. */
+int console_has_output(void);
 #endif

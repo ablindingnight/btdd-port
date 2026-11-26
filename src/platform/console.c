@@ -7,17 +7,28 @@
 #include <windows.h>
 #include <stdio.h>
 
+static int has_output;
+
 void console_setup(int alloc)
 {
-    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (out != NULL && out != INVALID_HANDLE_VALUE && !alloc)
-        return; /* redirected to a file or pipe: keep it */
+    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE), err = GetStdHandle(STD_ERROR_HANDLE);
+    if (((out != NULL && out != INVALID_HANDLE_VALUE) || (err != NULL && err != INVALID_HANDLE_VALUE)) && !alloc) {
+        has_output = 1; /* redirected to a file or pipe (tests, the launcher's run log): keep it */
+        return;
+    }
     if (AttachConsole(ATTACH_PARENT_PROCESS) || (alloc && AllocConsole())) {
         FILE *f;
         freopen_s(&f, "CONOUT$", "w", stdout);
         freopen_s(&f, "CONOUT$", "w", stderr);
+        has_output = 1;
     }
+}
+
+int console_has_output(void)
+{
+    return has_output;
 }
 #else
 void console_setup(int alloc) { (void)alloc; }
+int console_has_output(void) { return 1; }
 #endif

@@ -1292,9 +1292,10 @@ static int arg_int(const char *s, int lo, int hi)
 
 static int fail(const char *what)
 {
-    fprintf(stderr, "%s\n", what); /* first: the box waits for the user */
+    fprintf(stderr, "%s\n", what);
     fflush(stderr);
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "btdd", what, NULL);
+    if (!console_has_output()) /* double-clicked: nobody sees stderr, so a box (never for tests or the launcher) */
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "btdd", what, NULL);
     return 1;
 }
 
@@ -1387,7 +1388,8 @@ int main(int argc, char **argv)
         else
             return fail("usage: btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] "
                         "[--fullscreen] [--no-audio] [--dump-ram out.bin] [--mod ID[=N]] [--selftest-gamepad] "
-                        "[--selftest-states]");
+                        "[--selftest-states] [--console] | online: [--host [PORT]] [--join IP:PORT] [--join-code CODE] "
+                        "[--net-delay 0-3] [--host-loopback [PORT]] [--net-loopback]");
     }
     if (!have_cfg)
         SDL_Log("could not read or create btdd.cfg; using defaults");
