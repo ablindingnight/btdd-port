@@ -266,7 +266,7 @@ def gate_netpad(build):
             host = subprocess.Popen([play, '--host-loopback', '7853', '--selftest-netpad'], stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT, text=True)
             time.sleep(2)
-            guest = subprocess.Popen([play, '--join', '127.0.0.1:7853', '--selftest-netpad'], stdout=subprocess.PIPE,
+            guest = subprocess.Popen([play, '--join', '127.0.0.1:7853', '--selftest-netpad', 'late'], stdout=subprocess.PIPE,
                                      stderr=subprocess.STDOUT, text=True)
             try:
                 oh, _ = host.communicate(timeout=120)
@@ -281,7 +281,7 @@ def gate_netpad(build):
         if host.returncode or guest.returncode or 'FAIL' in oh + og or oks != 10:
             bad = [l for l in (oh + og).splitlines() if 'FAIL' in l]
             return 'FAIL', (bad[0] if bad else 'exit %s/%s' % (host.returncode, guest.returncode))[:200]
-        return 'PASS', 'host and guest: 5 gamepad buttons each reach the local input and the other player'
+        return 'PASS', 'host (pad at startup) and joiner (dead pad at startup, live pad plugged in mid-session): 5 buttons each reach both sides'
     return g
 
 
