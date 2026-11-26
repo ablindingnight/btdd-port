@@ -8,7 +8,8 @@
  * players 1 and 2 (east button = A, south button = B, Back = Select, Start, d-pad or left stick).
  * Hotkeys: Esc settings menu (gamepad: Guide, or Back+Start), P pause, F1 reset (Ctrl+F1 power cycle), F2 square pixels / 4:3, F3 filter
  * (nearest / sharp / bilinear), F4 scanlines, F5 redefine keys, F11 or Alt+Enter fullscreen, F12 screenshot.
- * Mods (M7, docs/M7_MODS.md): F8 no sprite flicker, F9 starting lives, F10 widescreen (M9) (mod_* keys in btdd.cfg, --mod ID[=N]).
+ * Mods (M7, docs/M7_MODS.md): F8 no sprite flicker, F9 starting lives (mod_* keys in btdd.cfg, --mod ID[=N]); F10 widescreen
+ * only for developers (M9 is shelved: BTDD_DEV_WIDESCREEN=1 or --mod widescreen).
  * States (M8): F6 save / F7 load the current slot, 0-9 or Shift+F6 / Shift+F7 pick the slot (10 slots, in
  * <settings folder>\states\<ROM SHA-1>); hold Backspace to rewind (rewind_seconds of history, sound muted),
  * hold Tab to fast-forward (ff_speed x; one frame's sound in ff_speed is played, so pacing stays on the sound
@@ -27,6 +28,7 @@
 #include "nes/state.h"
 #include "mods/mods.h"
 #include "net/netplay.h"
+#include "platform/console.h"
 #include "platform/menu.h"
 #include "platform/udp.h"
 #include "platform/upnp.h"
@@ -840,7 +842,7 @@ static void build_page(Menu *m, PlayCtx *c)
 #ifdef BTDD_HAVE_MODS
         for (i = 0; i < mods_count() && i < MENU_MAX_ITEMS - 4; i++) {
             const ModDef *d = mods_def(i);
-            if ((strncmp(d->id, "cheat_", 6) == 0) != (m->page == PG_CHEATS))
+            if ((strncmp(d->id, "cheat_", 6) == 0) != (m->page == PG_CHEATS) || mods_shelved(i))
                 continue;
             if (d->value_min != d->value_max && mods_enabled(i))
                 snprintf(v, sizeof v, "%d", mods_value(i));
@@ -1212,6 +1214,12 @@ int main(int argc, char **argv)
     PlayCtx ctx;
     RomResult rr;
 
+    {   /* GUI program: print to the terminal it was started from, or a console of its own with --console */
+        int want_console = 0;
+        for (i = 1; i < argc; i++)
+            want_console |= !strcmp(argv[i], "--console");
+        console_setup(want_console);
+    }
     memset(&rb, 0, sizeof rb);
     stage(NULL);
     /* Gamepads are initialized after the first frame is on screen (see the frame loop): their init enumerates
@@ -1223,7 +1231,9 @@ int main(int argc, char **argv)
     stage("SDL_Init");
     have_cfg = config_load(&cfg) == 0;
     for (i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--movie") && i + 1 < argc)
+        if (!strcmp(argv[i], "--console"))
+            ; /* handled above */
+        else if (!strcmp(argv[i], "--movie") && i + 1 < argc)
             movie_path = argv[++i];
         else if (!strcmp(argv[i], "--frames") && i + 1 < argc)
             max_frames = strtol(argv[++i], NULL, 10);
@@ -1474,8 +1484,8 @@ int main(int argc, char **argv)
                     toggle_mod("nolimit", &cfg, have_cfg);
                 } else if (ev.key.key == SDLK_F9) {
                     toggle_mod("lives", &cfg, have_cfg);
-                } else if (ev.key.key == SDLK_F10) {
-                    toggle_mod("widescreen", &cfg, have_cfg);
+                } else if (ev.key.key == SDLK_F10 && !mods_shelved(mods_find("widescreen"))) {
+                    toggle_mod("widescreen", &cfg, have_cfg); /* shelved for players (M9): developers only */
                 } else if (ev.key.key == SDLK_F12) {
                     save_screenshot(&cfg);
                 } else if ((ev.key.key == SDLK_F6 || ev.key.key == SDLK_F7) && !net_on) {

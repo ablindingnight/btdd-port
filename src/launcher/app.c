@@ -253,6 +253,8 @@ static SDL_Process *spawn(const char *const *args, const char *log_path)
     SDL_Process *p;
     SDL_SetPointerProperty(pr, SDL_PROP_PROCESS_CREATE_ARGS_POINTER, (void *)args);
     SDL_SetNumberProperty(pr, SDL_PROP_PROCESS_CREATE_STDIN_NUMBER, SDL_PROCESS_STDIO_NULL);
+    /* background = CREATE_NO_WINDOW on Windows: no console window for the game or the first-run tools */
+    SDL_SetBooleanProperty(pr, SDL_PROP_PROCESS_CREATE_BACKGROUND_BOOLEAN, true);
     if (io) {
         SDL_SetNumberProperty(pr, SDL_PROP_PROCESS_CREATE_STDOUT_NUMBER, SDL_PROCESS_STDIO_REDIRECT);
         SDL_SetPointerProperty(pr, SDL_PROP_PROCESS_CREATE_STDOUT_POINTER, io);

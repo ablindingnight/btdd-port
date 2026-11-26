@@ -64,6 +64,10 @@ int mods_value(int i);
 void mods_attach(Nes *nes);
 /* Drops pending "after" hooks (call after loading a state or rewinding: their routine frames are gone). */
 void mods_forget_pending(void);
+/* 1 if mod i is shelved: hidden from players and forced off. The M9 widescreen mods (widescreen, widesprites, widehud,
+ * widefade) are shelved since 2026-11-25 until they are rechecked; a developer turns them back on with the environment
+ * variable BTDD_DEV_WIDESCREEN=1 or a --mod argument. Saved settings never enable a shelved mod. */
+int mods_shelved(int i);
 int mods_display_flags(void);            /* MODS_DISPLAY_* of the enabled display mods */
 uint64_t mods_hook_calls(void);          /* hook functions run so far (tests) */
 

@@ -92,3 +92,6 @@ icons (list in the style sheet); an 8x8 font for the in-game menu; app icon size
   explains UPnP/port status in plain words.
 - **Updates**: optional check against our GitHub releases (our files only), one click to update, settings kept.
 - **Help**: Logs > Save report (user name removed) for when something breaks; nothing is ever sent automatically.
+
+- 2026-11-25: widescreen is shelved (docs/M9_WIDESCREEN.md): the Display page's Widescreen group and the four
+  widescreen mod cards are hidden unless `BTDD_DEV_WIDESCREEN=1`.

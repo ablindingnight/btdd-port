@@ -11,6 +11,7 @@
 #include "kit.h"
 #include "screens.h"
 #include "theme.h"
+#include "platform/console.h"
 #include "platform/png.h"
 #include "platform/video.h"
 #include "platform/gpu.h"
@@ -145,7 +146,7 @@ int main(int argc, char **argv)
     SDL_Renderer *r;
     const char *shot = NULL, *shot_out = NULL, *rom_arg = NULL;
     int shot_w = KIT_W, shot_h = KIT_H, demo = 0, launch = 0, i, rc = 0;
-    int held_x = 0, held_y = 0, pad = 0, selftest = 0, uitest = 0, win_w = KIT_W, win_h = KIT_H;
+    int held_x = 0, held_y = 0, pad = 0, selftest = 0, uitest = 0, want_console = 0, win_w = KIT_W, win_h = KIT_H;
 
     for (i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--ui-shot") && i + 2 < argc) {
@@ -163,9 +164,12 @@ int main(int argc, char **argv)
             selftest = 1;
         else if (!strcmp(argv[i], "--ui-test"))
             uitest = 1;
+        else if (!strcmp(argv[i], "--console"))
+            want_console = 1;
         else if (!strcmp(argv[i], "--rom") && i + 1 < argc)
             rom_arg = argv[++i];
     }
+    console_setup(want_console); /* GUI program: print to the starting terminal (or --console) */
     if (shot_w < 64 || shot_h < 36)
         shot_w = KIT_W, shot_h = KIT_H;
 
