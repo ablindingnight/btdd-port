@@ -9,5 +9,8 @@
  * `status` receives a plain-language line either way. Blocks up to ~2 s (discovery). */
 int upnp_map(int port, char *ext_ip, size_t ext_len, char *status, size_t status_len);
 void upnp_unmap(void); /* removes the mapping made by upnp_map, if any */
+/* Read-only check: is there a UPnP internet gateway, and what is its public IP? Changes nothing on the router.
+ * Returns 1 if a connected gateway answered (ext_ip filled when it told us), 0 if not; `status` in plain words. */
+int upnp_probe(char *ext_ip, size_t ext_len, char *status, size_t status_len);
 
 #endif

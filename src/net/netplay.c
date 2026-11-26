@@ -8,7 +8,7 @@
 #include <string.h>
 
 /* ---- packets (little-endian); every one starts with 'B' 'N', protocol, type ---- */
-enum { PK_HELLO = 1, PK_ACCEPT = 2, PK_REJECT = 3, PK_INPUT = 4, PK_CHECK = 5, PK_STATE = 6, PK_STATE_DONE = 7 };
+enum { PK_HELLO = 1, PK_ACCEPT = 2, PK_REJECT = 3, PK_INPUT = 4, PK_CHECK = 5, PK_STATE = 6, PK_STATE_DONE = 7, PK_BYE = 8 };
 #define HDR 4
 #define MAX_INPUTS_PER_PACKET 64
 #define INPUT_FIXED (HDR + 4 + 4 + 4 + 1 + 4 + 4 + 1) /* frame, ack, start, count, ts, echo, frame advantage */
@@ -381,6 +381,16 @@ static void receive(NetSession *s)
             if (s->state == NET_RUNNING || s->state == NET_DESYNC || s->state == NET_RESYNC)
                 got_state(s, p, len);
             break;
+        case PK_BYE: /* the other player closed the game or left the session */
+            if (len != HDR) {
+                s->stats.bad_packets++;
+                break;
+            }
+            if (s->state != NET_IDLE && s->state != NET_REJECTED && s->state != NET_GONE) {
+                s->state = NET_GONE;
+                snprintf(s->message, sizeof s->message, "player %d left the game (Esc: menu -> Leave)", 2 - s->local);
+            }
+            break;
         case PK_STATE_DONE: /* host: the guest has our state */
             if (len != DONE_SIZE || s->local != 0) {
                 s->stats.bad_packets++;
@@ -512,10 +522,50 @@ static void report_confirmed(NetSession *s)
     }
 }
 
+static int check_timeout(NetSession *s)
+{
+    if ((s->state == NET_RUNNING || s->state == NET_DESYNC || s->state == NET_RESYNC) &&
+        now(s) - s->last_rx_ms > NET_TIMEOUT_MS) {
+        s->state = NET_GONE;
+        snprintf(s->message, sizeof s->message,
+                 "lost the connection: nothing from player %d for %d s (Esc: menu -> Leave)", 2 - s->local,
+                 NET_TIMEOUT_MS / 1000);
+        return 1;
+    }
+    return 0;
+}
+
+void net_idle(NetSession *s)
+{
+    uint32_t t;
+    receive(s);
+    if (check_timeout(s) || (s->state != NET_RUNNING && s->state != NET_DESYNC))
+        return;
+    t = now(s);
+    if (t - s->last_idle_ms >= 50) { /* inputs + acks, 20 per second, so the other side sees we are still here */
+        s->last_idle_ms = t;
+        send_inputs(s);
+    }
+}
+
+void net_leave(NetSession *s)
+{
+    uint8_t p[HDR];
+    int i;
+    if (s->state == NET_IDLE || s->state == NET_GONE || s->state == NET_REJECTED)
+        return;
+    header(p, PK_BYE);
+    for (i = 0; i < 3; i++)
+        send_packet(s, p, HDR);
+    s->state = NET_GONE;
+}
+
 int net_tick(NetSession *s, uint8_t local_pad)
 {
     int l = s->local;
     receive(s);
+    if (check_timeout(s))
+        return 0;
     if (s->state == NET_HANDSHAKE) {
         uint32_t t = now(s);
         if (s->local == 1 && t - s->last_hello_ms >= 250) {

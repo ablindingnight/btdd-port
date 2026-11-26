@@ -28,7 +28,9 @@ typedef struct NetTransport {
 typedef void (*NetRunFrame)(void *ctx, Nes *nes, uint8_t pad1, uint8_t pad2, int resim);
 typedef void (*NetConfirmed)(void *ctx, uint32_t frame, const uint8_t *ram); /* RAM after a confirmed frame */
 
-enum NetState { NET_IDLE, NET_HANDSHAKE, NET_RUNNING, NET_REJECTED, NET_DESYNC, NET_RESYNC };
+enum NetState { NET_IDLE, NET_HANDSHAKE, NET_RUNNING, NET_REJECTED, NET_DESYNC, NET_RESYNC,
+                NET_GONE /* the other player quit, or nothing arrived for NET_TIMEOUT_MS */ };
+#define NET_TIMEOUT_MS 6000
 
 typedef struct NetStats {
     uint64_t rollbacks, resim_frames, stalls, sync_waits, packets_in, packets_out, bad_packets, rate_dropped;
@@ -64,7 +66,7 @@ typedef struct NetSession {
     uint8_t *states;                    /* NET_STATE_RING blobs */
     size_t state_size;
     uint32_t my_crc[8], my_crc_frame[8], peer_crc[8], peer_crc_frame[8];
-    uint32_t last_hello_ms, last_rx_ms, rate_window_ms, rate_count;
+    uint32_t last_hello_ms, last_rx_ms, rate_window_ms, rate_count, last_idle_ms;
     uint32_t echo_ts;                   /* the peer's newest timestamp, echoed back */
     int peer_adv;                       /* the peer's frame advantage over us, as it sees it */
     uint32_t last_sync_wait;
@@ -82,6 +84,11 @@ void net_free(NetSession *s);
 /* Call once per display frame with this frame's local pad bits. Returns 1 if a new frame was run, 0 if waiting
  * (handshake, stall, rejected). */
 int net_tick(NetSession *s, uint8_t local_pad);
+/* While the game is paused locally (menu open): keep receiving and sending acks/inputs so the other side does not
+ * time out; no frame is run. */
+void net_idle(NetSession *s);
+/* Tells the other player we are leaving (a few goodbye packets); call before net_free. */
+void net_leave(NetSession *s);
 const char *net_status(const NetSession *s, char *buf, size_t len); /* one line for the overlay */
 /* Host, after a desync: send our state of the last confirmed frame to the guest; both continue from there. The
  * state is the machine state only (RAM, CHR-RAM, registers), checked by the guest like a save state. */
