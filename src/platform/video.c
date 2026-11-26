@@ -27,6 +27,7 @@ int video_open(Video *v, const char *title, int scale, int aspect, int fullscree
                               SDL_WINDOW_RESIZABLE | (fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
     if (!v->win)
         return -1;
+    video_set_icon(v->win);
     t1 = SDL_GetTicksNS();
     SDL_Log("window created in %llu ms", (unsigned long long)((t1 - t0) / 1000000));
     v->preset = preset;
@@ -237,6 +238,20 @@ static void present(Video *v, const uint32_t *pixels, const char *const *text, i
         SDL_SetRenderScale(v->ren, 1, 1);
     }
     SDL_RenderPresent(v->ren);
+}
+
+void video_set_icon(SDL_Window *w)
+{
+    const char *base = SDL_GetBasePath();
+    char path[1024];
+    SDL_Surface *s;
+    if (!base)
+        return;
+    SDL_snprintf(path, sizeof path, "%sart/icon.png", base);
+    if ((s = SDL_LoadPNG(path)) != NULL) {
+        SDL_SetWindowIcon(w, s);
+        SDL_DestroySurface(s);
+    }
 }
 
 void video_draw_overlay(SDL_Renderer *r, float x0, float y0, const char *const *text, int n, int menu)

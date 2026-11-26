@@ -40,6 +40,9 @@ void video_present_menu(Video *v, const uint32_t *pixels, const char *const *tex
 /* Picture width for the next frames (256 or a wide picture); -1 if this path cannot (GPU path for now). */
 int video_set_width(Video *v, int w);
 void video_close(Video *v);
+/* Sets the window icon from art/icon.png next to the exe (tools/make_icon.ps1); no-op if it is missing. On Windows
+ * the exe also carries it as a resource (res/win/icon.rc). */
+void video_set_icon(SDL_Window *w);
 /* The overlay alone, in NES pixels on any renderer (current render scale applies); menu = 1 for menu_render() lines,
  * 0 for status toasts. The launcher's --ui-shot in-game uses it. */
 void video_draw_overlay(SDL_Renderer *r, float x0, float y0, const char *const *text, int n, int menu);
