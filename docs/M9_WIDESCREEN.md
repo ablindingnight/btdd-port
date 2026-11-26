@@ -1,5 +1,10 @@
 # M9: widescreen prototype (2026-11-24)
 
+**Shelved (2026-11-25, the user's call):** widescreen is hidden from players until it is rechecked: not in the launcher, the
+in-game menu or the Mods page, F10 does nothing, and a saved `mod_wide* = on` loads as off (and is dropped on the next
+save). The code stays in the tree and its tests still run; developers turn it on with `BTDD_DEV_WIDESCREEN=1` or
+`--mod widescreen` (see `mods_shelved()` in src/mods/mods.c).
+
 A 424x240 picture (16:9 with square pixels): the game's own 256x240 picture in the middle, 84 columns on each
 side drawn by the port. Game logic is unchanged (the game still runs its 256-pixel camera); everything here is a
 display mod. Background: `docs/WIDESCREEN_NOTES.md`, `docs/DATA_FORMATS.md` sections 1-4, 7.

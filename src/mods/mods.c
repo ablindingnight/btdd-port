@@ -225,6 +225,24 @@ void mods_attach(Nes *nes)
     nes->cpu.pc_hook = any ? on_pc : NULL;
 }
 
+/* ---- shelved mods (M9 widescreen, 2026-11-25) ---- */
+
+static int dev_wide = -1; /* -1 = not looked up yet */
+
+static int dev_widescreen(void)
+{
+    if (dev_wide < 0) {
+        const char *e = getenv("BTDD_DEV_WIDESCREEN");
+        dev_wide = e && e[0] && strcmp(e, "0") != 0;
+    }
+    return dev_wide;
+}
+
+int mods_shelved(int i)
+{
+    return i >= 0 && i < n_mods && !strncmp(all[i]->id, "wide", 4) && !dev_widescreen();
+}
+
 /* ---- settings ---- */
 
 static int parse_value(const ModDef *d, const char *v, int *on, int *value)
@@ -262,6 +280,8 @@ int mods_apply_setting(const char *key, const char *value)
     r = parse_value(all[i], value, &on, &v);
     if (r < 0)
         return 1;
+    if (mods_shelved(i)) /* saved settings never turn a shelved mod on */
+        on = 0;
     mods_enable(i, on);
     if (r == 1)
         mods_set_value(i, v);
@@ -280,6 +300,8 @@ int mods_apply_arg(const char *arg)
     key[4 + len] = 0;
     if (mods_find(key + 4) < 0)
         return -1;
+    if (!strncmp(key + 4, "wide", 4))
+        dev_wide = 1; /* --mod widescreen etc.: the developer way back to the shelved mods */
     mods_apply_setting(key, eq ? eq + 1 : "on");
     return 0;
 }
@@ -290,6 +312,8 @@ void mods_write_settings(FILE *f)
     fprintf(f, "# mods (docs/M7_MODS.md): mod_<id> = on | off, or a number for mods that take one\n");
     for (i = 0; i < n_mods; i++) {
         const ModDef *d = all[i];
+        if (mods_shelved(i))
+            continue; /* not offered, so not written: an old "on" is dropped */
         fprintf(f, "# %s: %s\n", d->id, d->help);
         if (d->value_min == d->value_max)
             fprintf(f, "mod_%s = %s\n", d->id, enabled[i] ? "on" : "off");

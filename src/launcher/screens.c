@@ -568,12 +568,14 @@ static void draw_display(void)
         c->fullscreen = !c->fullscreen, ch = 1;
     if ((d = row_choice("Aspect", "square pixels, or the 4:3 picture a TV showed", c->aspect ? "4:3 TV" : "Square pixels", 0)))
         c->aspect = !c->aspect, ch = 1;
-    RY += 8;
-    group("WIDESCREEN");
-    ch |= mod_toggle_row("widescreen", "Widescreen 16:9", "draws the level past the old screen edges (F10 in game)");
-    ch |= mod_toggle_row("widesprites", "Sprites in the margins", "enemies and players stay visible in the wide area");
-    ch |= mod_toggle_row("widehud", "Status bar at the edges", "each player's half moves outward");
-    ch |= mod_toggle_row("widefade", "Fade outer edges", "hides enemies popping in at the far edges");
+    if (!mods_shelved(mods_find("widescreen"))) { /* M9 widescreen is shelved for players: developers only */
+        RY += 8;
+        group("WIDESCREEN");
+        ch |= mod_toggle_row("widescreen", "Widescreen 16:9", "draws the level past the old screen edges (F10 in game)");
+        ch |= mod_toggle_row("widesprites", "Sprites in the margins", "enemies and players stay visible in the wide area");
+        ch |= mod_toggle_row("widehud", "Status bar at the edges", "each player's half moves outward");
+        ch |= mod_toggle_row("widefade", "Fade outer edges", "hides enemies popping in at the far edges");
+    }
     if (ch)
         app_save_settings(a);
 }
@@ -734,7 +736,7 @@ static void draw_controls(void)
         }
         kit_text_wrap(FONT_BODY, 15, PX + 262, RY + 2, 600, 18,
                       "Enter on a key, then press the new key (Esc keeps the old one). In game: F6/F7 save/load, "
-                      "Backspace rewind, Tab fast forward, F10 widescreen.", C_INK_DIM, 1);
+                      "Backspace rewind, Tab fast forward.", C_INK_DIM, 1);
     }
     /* key capture */
     if (a->capture && U.in->key) {
@@ -822,7 +824,7 @@ static void draw_mods(void)
         float cw = (PR - PX - 16) / 2, x = PX + (float)(k % 2) * (cw + 16), y = RY + (float)(k / 2) * 112;
         It it;
         int on = mods_enabled(i);
-        if (!strncmp(m->id, "cheat_", 6))
+        if (!strncmp(m->id, "cheat_", 6) || mods_shelved(i))
             continue;
         it = item(x, y, cw, 100);
         if (on)
@@ -1216,7 +1218,7 @@ static void draw_ingame(void)
     menu_begin(&m, "SETTINGS");
     menu_add(&m, ITEM_ACTION, 1, "Resume", "", "Esc closes this menu");
     menu_add(&m, ITEM_PAGE, 2, "Save states", "", "");
-    menu_add(&m, ITEM_PAGE, 3, "Display", "", "window, fullscreen, aspect, widescreen");
+    menu_add(&m, ITEM_PAGE, 3, "Display", "", "window size, fullscreen, aspect");
     menu_add(&m, ITEM_PAGE, 4, "Graphics", "", "");
     menu_add(&m, ITEM_PAGE, 5, "Audio", "", "");
     menu_add(&m, ITEM_PAGE, 6, "Controls", "", "");
