@@ -252,6 +252,39 @@ def gate_joincode(build):
     return g
 
 
+def gate_netpad(build):
+    """M13: two btdd_play windows (muted, 1x) on 127.0.0.1, each with a virtual gamepad plugged in at startup: every
+    scripted button must reach the local input and the other player (online sessions once ignored gamepads)."""
+    def g():
+        play = exe(build, 'btdd_play')
+        cfg = os.path.join(os.path.dirname(play), 'btdd.cfg')  # next to the exe: the user's settings stay untouched
+        if os.path.exists(cfg):
+            return 'SKIP', 'a btdd.cfg is next to btdd_play already'
+        with open(cfg, 'w') as f:
+            f.write('rom = %s\nvolume = 0.00\nscale = 1\nnet_port = 7853\nnet_stun =\n' % ROM)
+        try:
+            host = subprocess.Popen([play, '--host-loopback', '7853', '--selftest-netpad'], stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT, text=True)
+            time.sleep(2)
+            guest = subprocess.Popen([play, '--join', '127.0.0.1:7853', '--selftest-netpad'], stdout=subprocess.PIPE,
+                                     stderr=subprocess.STDOUT, text=True)
+            try:
+                oh, _ = host.communicate(timeout=120)
+                og, _ = guest.communicate(timeout=30)
+            except subprocess.TimeoutExpired:
+                host.kill()
+                guest.kill()
+                return 'FAIL', 'timed out'
+        finally:
+            os.remove(cfg)
+        oks = (oh + og).count('ok  : online')
+        if host.returncode or guest.returncode or 'FAIL' in oh + og or oks != 10:
+            bad = [l for l in (oh + og).splitlines() if 'FAIL' in l]
+            return 'FAIL', (bad[0] if bad else 'exit %s/%s' % (host.returncode, guest.returncode))[:200]
+        return 'PASS', 'host and guest: 5 gamepad buttons each reach the local input and the other player'
+    return g
+
+
 def gate_netplay(build):
     """M13: two rollback peers over a simulated 100 ms / 20 ms jitter / 5 % loss link play the whole 2P movie; every
     confirmed frame on both peers must equal the solo run."""
@@ -446,6 +479,7 @@ def main():
                   ('rewind-2p', gate_rewind(m, out)),
                   ('mods-test', gate_mods(m)),
                   ('netplay', gate_netplay(m)),
+                  ('netpad', gate_netpad(m)),
                   ('joincode', gate_joincode(m)),
                   ('native-lockstep', gate_native(m, out)),
                   ('launcher', gate_launcher(m, out)),

@@ -448,6 +448,27 @@ static const SelfTest selftest[] = {
 };
 #define SELFTEST_STEPS (int)(sizeof selftest / sizeof selftest[0])
 
+/* --selftest-netpad (online, with --host-loopback / --join on both sides): the same buttons, pressed for the local
+ * player's input frames NETPAD_START + 30 * k ... + 8; each must give these NES bits locally and arrive at the other
+ * side. The virtual pad is attached when the real pads are opened (the deferred init), like a pad plugged in. */
+#define NETPAD_START 120
+static const uint8_t netpad_bits[SELFTEST_STEPS] = {PAD_START, PAD_A, PAD_B, PAD_DOWN, PAD_RIGHT};
+
+static SDL_Joystick *make_virtual_pad(void)
+{
+    SDL_VirtualJoystickDesc d;
+    SDL_JoystickID id;
+    SDL_INIT_INTERFACE(&d);
+    d.type = SDL_JOYSTICK_TYPE_GAMEPAD;
+    d.naxes = SDL_GAMEPAD_AXIS_COUNT;
+    d.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
+    d.name = "btdd self-test pad";
+    d.button_mask = (1u << SDL_GAMEPAD_BUTTON_COUNT) - 1; /* standard gamepad layout */
+    d.axis_mask = (1u << SDL_GAMEPAD_AXIS_COUNT) - 1;
+    id = SDL_AttachVirtualJoystick(&d);
+    return id ? SDL_OpenJoystick(id) : NULL;
+}
+
 /* --selftest-states (with --movie, unpaced): the same functions as the hotkeys, scripted. Save slot 9 at
  * frame 3000, play to 3600, rewind 300 frames (RAM must equal frame 3300's), play to 3500, load slot 9 (RAM
  * must equal frame 3000's), then the rest of the movie in fast-forward steps; --dump-ram then lets
@@ -1312,7 +1333,8 @@ int main(int argc, char **argv)
     int menu_step = 0, menu_nav_ok = 0, menu_close_ok = 0; /* --selftest-gamepad, menu part */
     static uint8_t st_ram_a[0x800], st_ram_r[0x800];
     FILE *dump = NULL;
-    SDL_Joystick *vjoy = NULL;
+    SDL_Joystick *vjoy = NULL, *netpad = NULL;
+    int netpad_test = 0, loops = 0, np_local[SELFTEST_STEPS] = {0}, np_remote[SELFTEST_STEPS] = {0};
     char hash[41], msg[1400];
     Fm2 movie = {0};
     SDL_AudioStream *audio;
@@ -1367,6 +1389,10 @@ int main(int argc, char **argv)
         } else if (!strcmp(argv[i], "--join") && i + 1 < argc) {
             net_cli = 2;
             snprintf(cfg.net_join, sizeof cfg.net_join, "%s", argv[++i]);
+        } else if (!strcmp(argv[i], "--selftest-netpad")) { /* online gamepad self-test (two instances) */
+            netpad_test = 1;
+            if (max_frames < 0)
+                max_frames = 330;
         } else if (!strcmp(argv[i], "--net-loopback")) { /* tests: the join-code socket on 127.0.0.1 only */
             net_loopback = 1;
         } else if (!strcmp(argv[i], "--net-delay") && i + 1 < argc)
@@ -1389,7 +1415,7 @@ int main(int argc, char **argv)
             return fail("usage: btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] "
                         "[--fullscreen] [--no-audio] [--dump-ram out.bin] [--mod ID[=N]] [--selftest-gamepad] "
                         "[--selftest-states] [--console] | online: [--host [PORT]] [--join IP:PORT] [--join-code CODE] "
-                        "[--net-delay 0-3] [--host-loopback [PORT]] [--net-loopback]");
+                        "[--net-delay 0-3] [--host-loopback [PORT]] [--net-loopback] [--selftest-netpad]");
     }
     if (!have_cfg)
         SDL_Log("could not read or create btdd.cfg; using defaults");
@@ -1440,23 +1466,15 @@ int main(int argc, char **argv)
     } else if (no_audio) {
         SDL_Log("no audio (--no-audio); pacing by timer");
     }
+    if (netpad_test)
+        SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1"); /* test windows are usually not focused */
     if (selftest_on) {
-        SDL_VirtualJoystickDesc d;
-        SDL_JoystickID id;
         if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
             return fail("cannot initialize gamepads");
         pads_ready = 1;
         /* the test window is usually not focused; SDL drops pad input for unfocused apps otherwise */
         SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
-        SDL_INIT_INTERFACE(&d);
-        d.type = SDL_JOYSTICK_TYPE_GAMEPAD;
-        d.naxes = SDL_GAMEPAD_AXIS_COUNT;
-        d.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
-        d.name = "btdd self-test pad";
-        d.button_mask = (1u << SDL_GAMEPAD_BUTTON_COUNT) - 1; /* standard gamepad layout */
-        d.axis_mask = (1u << SDL_GAMEPAD_AXIS_COUNT) - 1;
-        id = SDL_AttachVirtualJoystick(&d);
-        vjoy = id ? SDL_OpenJoystick(id) : NULL;
+        vjoy = make_virtual_pad();
         if (!vjoy)
             return fail("cannot create the virtual gamepad");
         max_frames = 450;
@@ -1514,6 +1532,20 @@ int main(int argc, char **argv)
 
     while (!quit) {
         SDL_Event ev;
+        if (!pads_ready && loops++ > 0) { /* the first frame is on screen (every path, online too): now the slow
+                                            * gamepad init (see SDL_Init above) */
+            Uint64 t = SDL_GetTicksNS();
+            if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
+                SDL_Log("gamepad init: %s", SDL_GetError());
+            pads_ready = 1;
+            open_gamepads(gp);
+            if (netpad_test && (netpad = make_virtual_pad()) != NULL) { /* plugged in at startup */
+                if (gp[0])
+                    SDL_CloseGamepad(gp[0]);
+                gp[0] = SDL_OpenGamepad(SDL_GetJoystickID(netpad));
+            }
+            SDL_Log("gamepads ready after %llu ms", (unsigned long long)((SDL_GetTicksNS() - t) / 1000000));
+        }
         int run_frame, hold = paused || rb.active || menu.open;
         const char *lines[4];
         while (SDL_PollEvent(&ev)) {
@@ -1671,11 +1703,30 @@ int main(int argc, char **argv)
             next_tick = (now - next_tick > 100000000u) ? now : next_tick + (Uint64)(1e9 / FRAME_HZ);
             net_conn_tick(&cfg);
             {
-                int l = net.local;
-                uint8_t pad = movie.frames ? (net.have[l] < (uint32_t)movie.count ? movie.frames[net.have[l]].pad[l] : 0)
-                                           : read_pad(&cfg, 0, gp[0]); /* each player uses their own player 1 keys */
+                int l = net.local, k;
+                uint8_t pad;
+                if (netpad) { /* --selftest-netpad: press the script's button for this input frame */
+                    for (k = 0; k < SELFTEST_STEPS; k++)
+                        SDL_SetJoystickVirtualButton(netpad, selftest[k].button,
+                                                     net.have[l] >= (uint32_t)(NETPAD_START + 30 * k) &&
+                                                         net.have[l] < (uint32_t)(NETPAD_START + 30 * k + 8));
+                    SDL_UpdateJoysticks();
+                }
+                pad = movie.frames ? (net.have[l] < (uint32_t)movie.count ? movie.frames[net.have[l]].pad[l] : 0)
+                                   : read_pad(&cfg, 0, gp[0]); /* each player uses their own player 1 keys or pad */
+                if (netpad)
+                    for (k = 0; k < SELFTEST_STEPS; k++)
+                        if (net.have[l] == (uint32_t)(NETPAD_START + 30 * k + 2) && pad == netpad_bits[k])
+                            np_local[k] = 1;
                 if (net_tick(&net, pad))
                     frame = (long)net.frame;
+                if (netpad)
+                    for (k = 0; k < SELFTEST_STEPS; k++) { /* the other side's pad arrived here */
+                        uint32_t f = (uint32_t)(NETPAD_START + 30 * k + 2);
+                        if (net.have[!l] > f && net.have[!l] - f < NET_INPUT_RING / 2 &&
+                            net.in[!l][f % NET_INPUT_RING] == netpad_bits[k])
+                            np_remote[k] = 1;
+                    }
             }
             if (audio && SDL_GetAudioStreamQueued(audio) > (int)(8 * AUDIO_RATE / FRAME_HZ) * (int)sizeof(float))
                 SDL_ClearAudioStream(audio); /* clock drift between the sound card and the 60 Hz timer */
@@ -1803,14 +1854,6 @@ int main(int argc, char **argv)
         }
         make_picture(&video);
         video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
-        if (!pads_ready) { /* first frame is on screen: now the slow gamepad init (see SDL_Init above) */
-            Uint64 t = SDL_GetTicksNS();
-            if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
-                SDL_Log("gamepad init: %s", SDL_GetError());
-            pads_ready = 1;
-            open_gamepads(gp);
-            SDL_Log("gamepads ready after %llu ms", (unsigned long long)((SDL_GetTicksNS() - t) / 1000000));
-        }
 
         if (max_frames >= 0 && frame >= max_frames)
             quit = 1;
@@ -1830,6 +1873,21 @@ int main(int argc, char **argv)
     if (rw_on)
         rewind_free(&rw);
     free(rw_blob);
+    if (netpad_test) {
+        int k, ok = netpad != NULL;
+        if (!netpad)
+            printf("FAIL: no virtual pad (gamepad init did not run)\n");
+        for (k = 0; k < SELFTEST_STEPS; k++) {
+            printf("%s: online, gamepad %s -> local input $%02X; %s: it arrived at the other player\n",
+                   np_local[k] ? "ok  " : "FAIL", SDL_GetGamepadStringForButton(selftest[k].button), netpad_bits[k],
+                   np_remote[k] ? "ok  " : "FAIL");
+            ok &= np_local[k] && np_remote[k];
+        }
+        if (netpad)
+            SDL_CloseJoystick(netpad);
+        if (!ok)
+            quit = 2;
+    }
     if (vjoy) {
         int k, ok = 1;
         for (k = 0; k < SELFTEST_STEPS; k++) {
