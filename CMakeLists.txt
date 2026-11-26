@@ -266,6 +266,16 @@ if(BTDD_SDL)
     )
     FetchContent_MakeAvailable(miniupnpc)
 
+    # M13: read-only network check (UPnP discovery + public IP, one STUN query; changes nothing on the router)
+    add_executable(btdd_netcheck tools/netcheck/netcheck_main.c src/platform/udp.c src/platform/upnp.c)
+    target_include_directories(btdd_netcheck PRIVATE src)
+    target_link_libraries(btdd_netcheck PRIVATE btdd_net libminiupnpc-static)
+    target_compile_definitions(btdd_netcheck PRIVATE MINIUPNP_STATICLIB)
+    if(WIN32)
+        target_link_libraries(btdd_netcheck PRIVATE ws2_32 iphlpapi)
+    endif()
+    btdd_warnings(btdd_netcheck)
+
     # M2: the game in a window
     add_executable(btdd_play WIN32 src/platform/play_main.c src/platform/console.c src/platform/config.c src/platform/video.c src/platform/gpu.c
                              src/platform/menu.c src/platform/udp.c src/platform/upnp.c)

@@ -548,6 +548,10 @@ static void net_stop(void)
 {
     if (!net_on)
         return;
+    SDL_Log("netplay: session end at frame %u: %llu rollbacks (%llu frames re-run), %llu stalls, ping %d ms, %u checks ok, "
+            "%u resyncs", net.frame, (unsigned long long)net.stats.rollbacks, (unsigned long long)net.stats.resim_frames,
+            (unsigned long long)net.stats.stalls, net.stats.ping_ms, net.stats.checks_ok, net.stats.resyncs);
+    net_leave(&net); /* the other player gets "player N left" at once instead of a timeout */
     net_free(&net);
     udp_close(net_udp);
     net_udp = NULL;
@@ -563,6 +567,8 @@ static char net_upnp_ip[40];
 static int net_mode;                  /* 0 direct join, 1 host, 2 loopback host (tests), 3 join by code */
 static Uint64 net_started_ns;
 static int net_help_shown;
+static int net_port_used;
+static int net_loopback;
 
 static void net_make_code(const Config *cfg)
 {
@@ -610,6 +616,96 @@ static void net_conn_tick(const Config *cfg)
     }
 }
 
+/* "Test my connection": read-only, like tools/netcheck (UPnP discovery + one STUN query). Blocks up to ~5 s. */
+static char net_check_line[2][96];
+
+static void net_check(const Config *cfg)
+{
+    char ip[64], st[200], err[200];
+    Udp *u;
+    uint32_t pip = 0;
+    uint16_t pport = 0;
+    int t;
+    upnp_probe(ip, sizeof ip, st, sizeof st);
+    snprintf(net_check_line[0], sizeof net_check_line[0], "%s", strncmp(st, "router supports UPnP: yes", 25) ? "UPnP: no (fine:"
+             " use join codes)" : "UPnP: yes (hosting opens the port)");
+    SDL_Log("connection test: %s", st);
+    u = cfg->net_stun[0] ? udp_open(0, 0, err, sizeof err) : NULL;
+    if (u && udp_stun_start(u, cfg->net_stun, err, sizeof err) == 0) {
+        NetTransport tr = udp_transport(u);
+        for (t = 0; t < 60 && !udp_stun_result(u, &pip, &pport); t++) {
+            uint8_t buf[64];
+            udp_stun_poll(u);
+            tr.recv(tr.ctx, buf, sizeof buf);
+            SDL_Delay(50);
+        }
+    }
+    if (u)
+        udp_close(u);
+    snprintf(net_check_line[1], sizeof net_check_line[1], "%s", pip ? "Public address: found (join codes can work)"
+             : cfg->net_stun[0] ? "Public address: not found (UDP blocked?)" : "Public address: STUN is off in settings");
+    SDL_Log("connection test: STUN %s", pip ? "answered" : "no answer");
+}
+
+/* One field of a session summary ("... ppu old cpu interp mods none rom 1a2b..."): the word after `key`. */
+static void summary_field(const char *sum, const char *key, char *out, size_t len)
+{
+    const char *p = strstr(sum, key);
+    size_t n = 0;
+    out[0] = 0;
+    if (!p)
+        return;
+    p += strlen(key);
+    while (p[n] && p[n] != ' ' && n + 1 < len)
+        n++;
+    memcpy(out, p, n);
+    out[n] = 0;
+}
+
+/* Why the two games could not play together, in plain words (from the two session summaries). */
+static const char *net_mismatch(char *buf, size_t len)
+{
+    static const char *const keys[4] = {" rom ", " core ", " ppu ", " mods "};
+    static const char *const why[4] = {
+        "different game ROM files: both need the same Battletoads-Double Dragon (USA) .nes",
+        "different game versions: both need the same Pond to Pavement build",
+        "different PPU setting (Display page): set both the same",
+        "different gameplay mods or cheats: turn on the same ones on both PCs",
+    };
+    int k;
+    for (k = 0; k < 4; k++) {
+        char a[64], b[64];
+        summary_field(net.summary, keys[k], a, sizeof a);
+        summary_field(net.peer_summary, keys[k], b, sizeof b);
+        if (strcmp(a, b)) {
+            snprintf(buf, len, "Cannot play together: %s", why[k]);
+            return buf;
+        }
+    }
+    snprintf(buf, len, "Cannot play together: different settings (%s)", net.message);
+    return buf;
+}
+
+/* What the player needs to know while not playing: waiting / connecting / the other player left / refused. */
+static const char *net_state_line(char *buf, size_t len)
+{
+    if (net.state == NET_REJECTED || (net.local == 0 && !strncmp(net.message, "refused player 2", 16))) {
+        net_mismatch(buf, len);
+    } else if (net.state == NET_HANDSHAKE && !net_help_shown) {
+        if (net.local == 0 && net_code[0])
+            snprintf(buf, len, "Waiting for player 2. Your join code (copied): %s", net_code);
+        else if (net.local == 0)
+            snprintf(buf, len, "Waiting for player 2 (UDP port %d)...", net_port_used);
+        else if (net_code[0])
+            snprintf(buf, len, "Connecting to player 1... If it does not connect, send them YOUR code: %s", net_code);
+        else
+            snprintf(buf, len, "Connecting to player 1...");
+    } else {
+        snprintf(buf, len, "%s", net.message);
+    }
+    return buf;
+}
+
 /* mode 1: host on cfg->net_port (UPnP + join code), 2: host on 127.0.0.1 only (tests), 0: join the address `addr`,
  * 3: join with the join code `addr` */
 static int net_start(int mode, const char *addr, const Config *cfg, const char *sha1_hex, char *msg, size_t len)
@@ -628,7 +724,7 @@ static int net_start(int mode, const char *addr, const Config *cfg, const char *
     if (host)
         net_udp = udp_host(cfg->net_port, mode == 2, msg, len);
     else if (mode == 3)
-        net_udp = udp_open(0, 0, msg, len);
+        net_udp = udp_open(0, net_loopback, msg, len); /* --net-loopback: tests on one PC (no firewall prompt) */
     else
         net_udp = udp_join(addr, cfg->net_port, msg, len);
     if (!net_udp)
@@ -651,6 +747,7 @@ static int net_start(int mode, const char *addr, const Config *cfg, const char *
     }
     net_on = 1;
     net_mode = mode;
+    net_port_used = cfg->net_port;
     net_started_ns = SDL_GetTicksNS();
     net_last_msg[0] = 0;
     if (host)
@@ -688,7 +785,7 @@ enum {
     ID_RESUME = 1, ID_RESET, ID_POWER, ID_QUIT, ID_SLOT, ID_SAVE, ID_LOAD, ID_SCALE, ID_FULLSCREEN, ID_ASPECT,
     ID_FILTER, ID_SCANLINES, ID_VIDEO, ID_SHADER, ID_VOLUME, ID_REBIND_ALL, ID_REWIND, ID_FF, ID_BACK,
     ID_NET_HOST, ID_NET_ADDR, ID_NET_JOIN, ID_NET_DELAY, ID_NET_LEAVE, ID_NET_RESYNC, ID_NET_JOINCODE,
-    ID_NET_COPY, ID_NET_PEERCODE,
+    ID_NET_COPY, ID_NET_PEERCODE, ID_NET_CHECK,
     ID_KEY_BASE = 100, /* + player * BTN_COUNT + button */
     ID_MOD_BASE = 200, /* + mod index */
 };
@@ -820,6 +917,12 @@ static void build_page(Menu *m, PlayCtx *c)
         }
         snprintf(v, sizeof v, "%d", c->cfg->net_delay);
         menu_add(m, ITEM_CHOICE, ID_NET_DELAY, "Input delay", v, "frames; 1-2 for most connections");
+        if (!net_on)
+            menu_add(m, ITEM_ACTION, ID_NET_CHECK, "Test my connection", "", "about 5 s; changes nothing");
+        if (net_check_line[0][0]) {
+            menu_add(m, ITEM_INFO, 0, net_check_line[0], "", "");
+            menu_add(m, ITEM_INFO, 0, net_check_line[1], "", "");
+        }
         menu_add(m, ITEM_INFO, 0, "No port forwarding needed: the", "", "");
         menu_add(m, ITEM_INFO, 0, "game tries UPnP and join codes", "", "");
         menu_add(m, ITEM_INFO, 0, "(a STUN server sees your IP).", "", "");
@@ -1046,6 +1149,10 @@ static void menu_apply(PlayCtx *c, MenuEvent ev, int id, int dir)
         say(c->status);
         break;
     }
+    case ID_NET_CHECK:
+        say("testing the connection (about 5 s)...");
+        net_check(cfg);
+        break;
     case ID_NET_COPY:
         if (net_code[0]) {
             SDL_SetClipboardText(net_code);
@@ -1185,9 +1292,10 @@ static int arg_int(const char *s, int lo, int hi)
 
 static int fail(const char *what)
 {
-    fprintf(stderr, "%s\n", what); /* first: the box waits for the user */
+    fprintf(stderr, "%s\n", what);
     fflush(stderr);
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "btdd", what, NULL);
+    if (!console_has_output()) /* double-clicked: nobody sees stderr, so a box (never for tests or the launcher) */
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "btdd", what, NULL);
     return 1;
 }
 
@@ -1259,6 +1367,8 @@ int main(int argc, char **argv)
         } else if (!strcmp(argv[i], "--join") && i + 1 < argc) {
             net_cli = 2;
             snprintf(cfg.net_join, sizeof cfg.net_join, "%s", argv[++i]);
+        } else if (!strcmp(argv[i], "--net-loopback")) { /* tests: the join-code socket on 127.0.0.1 only */
+            net_loopback = 1;
         } else if (!strcmp(argv[i], "--net-delay") && i + 1 < argc)
             cfg.net_delay = arg_int(argv[++i], 0, 3);
         else if (!strcmp(argv[i], "--dump-ram") && i + 1 < argc)
@@ -1278,7 +1388,8 @@ int main(int argc, char **argv)
         else
             return fail("usage: btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] "
                         "[--fullscreen] [--no-audio] [--dump-ram out.bin] [--mod ID[=N]] [--selftest-gamepad] "
-                        "[--selftest-states]");
+                        "[--selftest-states] [--console] | online: [--host [PORT]] [--join IP:PORT] [--join-code CODE] "
+                        "[--net-delay 0-3] [--host-loopback [PORT]] [--net-loopback]");
     }
     if (!have_cfg)
         SDL_Log("could not read or create btdd.cfg; using defaults");
@@ -1515,6 +1626,10 @@ int main(int argc, char **argv)
         if (hold) { /* paused, redefining keys or in the settings: keep drawing the last picture with the overlay */
             if (audio)
                 SDL_ClearAudioStream(audio);
+            if (net_on) { /* online: keep talking so the other player does not see a dropped connection */
+                net_conn_tick(&cfg);
+                net_idle(&net);
+            }
             if (menu.open) {
                 if (vjoy) { /* --selftest-gamepad, menu part: release Guide, d-pad down, then East (back = close) */
                     menu_step++;
@@ -1585,6 +1700,8 @@ int main(int argc, char **argv)
                 snprintf(net_last_msg, sizeof net_last_msg, "%s", net.message);
                 say(net.message);
             }
+            if (net.state != NET_RUNNING) /* keep the state on screen, not just for 2.5 s */
+                say(net_state_line(msg, sizeof msg));
             if ((frame % 60) == 0) {
                 snprintf(st, sizeof st, TITLE " - online: %s", net_status(&net, msg, sizeof msg));
                 SDL_SetWindowTitle(video.win, st);
