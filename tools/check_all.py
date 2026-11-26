@@ -323,6 +323,7 @@ def gate_launcher(build, out):
         for dll in [f for f in os.listdir(bindir) if f.lower().endswith('.dll')]:
             shutil.copy2(os.path.join(bindir, dll), d)
         shutil.copytree(os.path.join(REPO, 'res', 'fonts'), os.path.join(d, 'fonts'))
+        shutil.copytree(os.path.join(REPO, 'res', 'art'), os.path.join(d, 'art'))
         with open(os.path.join(d, 'btdd.cfg'), 'w') as f:
             f.write('rom = %s' % ROM + chr(10))
         launcher = os.path.join(d, 'PondToPavement' + EXE)
@@ -331,6 +332,10 @@ def gate_launcher(build, out):
             code, o = run([launcher, '--ui-shot', sc, png, '--demo'], timeout=120, cwd=d)
             if code != 0 or not os.path.isfile(png) or os.path.getsize(png) < 20000:
                 return 'FAIL', 'screen %s: exit %d, %s' % (sc, code, o.strip()[-120:])
+        code, o = run([launcher, '--ui-test'], timeout=120, cwd=d)
+        if code != 0 or 'PASS' not in o.splitlines():
+            bad = [l for l in o.splitlines() if l.startswith('FAIL')]
+            return 'FAIL', 'ui test: ' + ((bad or o.strip().splitlines() or ['no output'])[0])[:150]
         code, o = run([launcher, '--selftest'], timeout=900, cwd=d)
         if code != 0:
             bad = [l for l in o.splitlines() if 'FAIL' in l or 'wait' in l]
@@ -344,7 +349,7 @@ def gate_launcher(build, out):
         if code != 0 or 'CLEAN' not in a:
             bad = [l for l in a.splitlines() if l.startswith('ROM CONTENT')]
             return 'FAIL', 'launcher package audit: ' + (bad[0] if bad else a.strip())[-150:]
-        return 'PASS', '%d screens render; first run ready (%s); package audit clean' % (
+        return 'PASS', '%d screens render; value controls step both ways; first run ready (%s); package audit clean' % (
             len(LAUNCHER_SCREENS), ' '.join(steps))
     return g
 

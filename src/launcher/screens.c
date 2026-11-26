@@ -12,6 +12,7 @@
 /* ---------------------------------------------------------------- immediate-mode focus */
 typedef struct It {
     int idx, focused, hot, activate, dx;
+    int clicked; /* activated by a mouse click (controls inside the row use the click position) */
 } It;
 
 static struct {
@@ -53,7 +54,8 @@ static It item(float x, float y, float w, float h)
     if (it.hot && U.in->mouse_moved && !U.a->capture && !U.a->edit)
         *f = it.idx;
     it.focused = *f == it.idx;
-    it.activate = (it.focused && U.in->accept) || (it.hot && U.in->click);
+    it.clicked = it.hot && U.in->click;
+    it.activate = (it.focused && U.in->accept) || it.clicked;
     it.dx = it.focused ? U.in->nav_x : 0;
     if (it.activate) {
         U.in->accept = 0;
@@ -483,10 +485,9 @@ static int ctl_choice(It it, float cy, const char *value, int disabled)
     kit_pop();
     if (disabled)
         return 0;
-    if (U.in->click && inside(x, y, w, 32)) {
-        d = U.in->mx < x + w / 2 ? -1 : 1;
-        U.in->click = 0;
-    } else if (it.activate)
+    if (it.clicked) /* the row took the click: only a click on the box changes the value, by its half */
+        d = inside(x, y, w, 32) ? (U.in->mx < x + w / 2 ? -1 : 1) : 0;
+    else if (it.activate)
         d = 1;
     return d;
 }
@@ -635,10 +636,9 @@ static void draw_graphics(void)
             kit_frame(x + 6, RY + lift + 6, w - 12, 62, 2, C_INK, 1);
             preset_swatch(i, x + 8, RY + lift + 8, w - 16, 58);
             kit_text(FONT_LABEL, 14, x + w / 2, RY + lift + 74, pnames[i], C_INK, 1, ALIGN_CENTER);
-            if (U.in->click && inside(x, RY, w, 100)) {
+            if (it.clicked && inside(x, RY, w, 100)) {
                 c->shader = i;
                 ch = 1;
-                U.in->click = 0;
             }
             x += w + 10;
         }
@@ -672,13 +672,12 @@ static void draw_audio(void)
     theme_halftone_bar(x, y, w, 22, a->cfg.volume, T(), 0);
     snprintf(v, sizeof v, "%d%%", pct);
     kit_text(FONT_LABEL, 18, PR - 10, y, v, C_INK, 1, ALIGN_RIGHT);
-    if (it.dx || (U.in->click && inside(x, y - 6, w, 34))) {
+    if (it.dx || (it.clicked && inside(x, y - 6, w, 34))) {
         if (it.dx)
             pct = SDL_clamp(pct + 5 * it.dx, 0, 100);
         else {
             pct = (int)((U.in->mx - x) / w * 100 + 0.5f);
             pct = SDL_clamp(pct, 0, 100);
-            U.in->click = 0;
         }
         a->cfg.volume = (float)pct / 100.0f;
         app_save_settings(a);
