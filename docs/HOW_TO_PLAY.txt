@@ -25,7 +25,8 @@ In the game
   F1          reset                  F11   fullscreen
   F3          next picture style (Graphics -> GPU renderer)
 
-Online with a friend: see "Play online.txt".
+Online with a friend: see "Play online.txt" (the host gets a big join code to send; each player uses their
+own player 1 keys or gamepad).
 
 Settings are kept in %APPDATA%\btdd\btdd.cfg, prepared game files in %LOCALAPPDATA%\btdd\cache.
 Logs (useful when reporting a problem) are on the launcher's LOGS page.
