@@ -2,6 +2,7 @@
 #include "rom/rom.h"
 #include "mods/mods.h"
 #include "unzip.h"
+#include "romcheck.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,7 +72,7 @@ void app_open_folder(const char *path)
     SDL_OpenURL(url);
 }
 
-/* ---------- launcher.ini: first_run_sha1 = <sha1 of the ROM the checklist finished for> ---------- */
+/* ---------- launcher.ini: first_run_sha1 = <sha1 of the ROM the checklist finished for>, advanced = 0 | 1 ---------- */
 static void ini_path(const App *a, char *out, size_t len) { snprintf(out, len, "%s" SEP "launcher.ini", a->data_dir); }
 
 static void ini_read(App *a, char *sha, size_t len)
@@ -85,7 +86,8 @@ static void ini_read(App *a, char *sha, size_t len)
     while (fgets(line, sizeof line, f))
         if (!strncmp(line, "first_run_sha1 = ", 17)) {
             snprintf(sha, len, "%.40s", line + 17);
-        }
+        } else if (!strncmp(line, "advanced = ", 11))
+            a->advanced = atoi(line + 11) != 0;
     fclose(f);
 }
 
@@ -95,7 +97,7 @@ static void ini_write(App *a, const char *sha)
     FILE *f;
     ini_path(a, p, sizeof p);
     if ((f = fopen(p, "w"))) {
-        fprintf(f, "# Pond to Pavement launcher state\nfirst_run_sha1 = %s\n", sha);
+        fprintf(f, "# Pond to Pavement launcher state\nfirst_run_sha1 = %s\nadvanced = %d\n", sha, a->advanced);
         fclose(f);
     }
 }
@@ -149,6 +151,15 @@ void app_quit(App *a)
     SDL_DestroyMutex(a->lock);
 }
 
+void app_set_advanced(App *a, int on)
+{
+    char sha[64];
+    ini_read(a, sha, sizeof sha);
+    a->advanced = on;
+    if (!a->demo)
+        ini_write(a, sha);
+}
+
 void app_save_settings(App *a)
 {
     if (a->demo)
@@ -177,10 +188,9 @@ void app_check_rom(App *a)
     if (r == ROM_OK) {
         a->rom_ok = 1;
         snprintf(a->rom_msg, sizeof a->rom_msg, "SHA-1 ok");
-    } else if (r == ROM_ERR_HASH)
-        snprintf(a->rom_msg, sizeof a->rom_msg, "Not the USA cartridge (SHA-1 %.8s...)", sha);
-    else
-        snprintf(a->rom_msg, sizeof a->rom_msg, "%s", rom_result_text(r));
+        a->rom_hint[0] = 0;
+    } else /* plain words: what is wrong and what to do */
+        romcheck_file(a->cfg.rom, a->rom_msg, sizeof a->rom_msg, a->rom_hint, sizeof a->rom_hint);
     ini_read(a, done_sha, sizeof done_sha);
     a->first_run_done = a->rom_ok && !strcmp(done_sha, a->rom_sha1);
     if (a->first_run_done) {
@@ -229,7 +239,9 @@ void app_set_rom(App *a, const char *path)
     size_t pl = strlen(path);
     if (pl > 4 && !SDL_strcasecmp(path + pl - 4, ".zip")) {
         char unpacked[1300];
-        if (unpack_zip(a, path, unpacked, sizeof unpacked) != 0) {
+        if (romcheck_file(path, a->rom_msg, sizeof a->rom_msg, a->rom_hint, sizeof a->rom_hint) != RC_OK ||
+            unpack_zip(a, path, unpacked, sizeof unpacked) != 0) {
+            snprintf(a->cfg.rom, sizeof a->cfg.rom, "%s", path); /* shown, not saved */
             a->rom_ok = 0;
             app_start_first_run(a, STEP_VERIFY);
             return;

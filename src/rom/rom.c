@@ -53,6 +53,19 @@ RomResult rom_load(const char *path, Rom *rom, char sha1_hex[41])
     return ROM_OK;
 }
 
+int rom_is_usa(const uint8_t *file, size_t len)
+{
+    uint8_t digest[20];
+    char hex[41];
+    int i;
+    if (len != ROM_FILE_SIZE)
+        return 0;
+    sha1(file, len, digest);
+    for (i = 0; i < 20; i++)
+        sprintf(hex + 2 * i, "%02x", digest[i]);
+    return strcmp(hex, USA_SHA1) == 0;
+}
+
 const char *rom_result_text(RomResult r)
 {
     switch (r) {

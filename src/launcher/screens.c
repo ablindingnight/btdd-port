@@ -29,7 +29,8 @@ static SDL_AtomicInt pending_flag;
 void screens_set_window(SDL_Window *w) { U.win = w; }
 
 static const char *const SCR_NAMES[SCR_COUNT] = {"home", "first-run", "display", "graphics", "audio", "controls",
-                                                 "gameplay", "mods", "online", "builds", "logs", "about", "in-game"};
+                                                 "gameplay", "mods", "online", "builds", "logs", "about", "simple",
+                                                 "pad-check", "in-game"};
 Screen screen_from_name(const char *n)
 {
     int i;
@@ -223,7 +224,7 @@ static void draw_home(void)
         theme_box(x, 644, w, 38, it.focused ? C_YELLOW : C_PAPER, 3, 3);
         kit_text(FONT_LABEL, 19, x + 14, 650, tabs[i], C_INK, 1, ALIGN_LEFT);
         if (it.activate)
-            go(tab_to[i]);
+            go(i == 0 && !a->advanced ? SCR_SIMPLE : tab_to[i]);
         x += w + 12;
     }
     {
@@ -347,11 +348,15 @@ static void draw_first_run(void)
         }
         kit_text_ink(FONT_DISPLAY, 34, 1020, 196, a->rom_ok ? "ROM ACCEPTED" : a->cfg.rom[0] ? "TRY ANOTHER ROM" : "DROP YOUR ROM HERE",
                      C_YELLOW, C_INK, 2, 0, 0, ALIGN_CENTER);
-        kit_text_wrap(FONT_BODY, 16, 856, 248, 330, 20,
-                      a->rom_ok ? "Drop a different .nes or .zip here, or click, to start over. Your file stays where it is; we only read it."
-                      : a->cfg.rom[0] ? a->rom_msg
-                                      : "Or click to pick it. You need your own backup of the USA cartridge; Pond to Pavement does not include the game.",
-                      C_PAPER, 0.9f);
+        {
+            char bad[400];
+            snprintf(bad, sizeof bad, "%s %s", a->rom_msg, a->rom_hint);
+            kit_text_wrap(FONT_BODY, 16, 856, 248, 330, 20,
+                          a->rom_ok ? "Drop a different .nes or .zip here, or click, to start over. Your file stays where it is; we only read it."
+                          : a->cfg.rom[0] ? bad
+                                          : "Or click to pick it. You need your own backup of the USA cartridge; Pond to Pavement does not include the game.",
+                          C_PAPER, 0.9f);
+        }
         if (it.activate)
             open_rom_dialog();
     }
@@ -362,6 +367,14 @@ static void draw_first_run(void)
         if (it.activate && app_ready(a)) {
             go(SCR_HOME);
             app_launch_game(a, "Play", NULL);
+        }
+    }
+    if (app_ready(a)) {
+        It pc = item(560, 676, 206, 34);
+        theme_button(560, 676, 206, 34, "CHECK CONTROLLERS", C_CYAN, C_INK, pc.focused, 0);
+        if (pc.activate) {
+            a->pad_return = SCR_FIRST_RUN;
+            go(SCR_PADCHECK);
         }
     }
     if (U.in->back && app_ready(a))
@@ -376,9 +389,11 @@ static void draw_first_run(void)
 
 /* ---------------------------------------------------------------- SETTINGS shell + rows */
 static const char *const PAGE_TITLE[SCR_COUNT] = {"", "", "DISPLAY", "GRAPHICS", "AUDIO", "CONTROLS", "GAMEPLAY", "MODS",
-                                                  "ONLINE PLAY", "BUILDS", "LOGS", "ABOUT", ""};
+                                                  "ONLINE PLAY", "BUILDS", "LOGS", "ABOUT", "SETTINGS",
+                                                  "CONTROLLER CHECK", ""};
 static const Icon PAGE_ICON[SCR_COUNT] = {ICON_HOME, ICON_HOME, ICON_DISPLAY, ICON_GRAPHICS, ICON_AUDIO, ICON_CONTROLS,
-                                          ICON_GAMEPLAY, ICON_MODS, ICON_ONLINE, ICON_BUILDS, ICON_LOGS, ICON_ABOUT, ICON_HOME};
+                                          ICON_GAMEPLAY, ICON_MODS, ICON_ONLINE, ICON_BUILDS, ICON_LOGS, ICON_ABOUT, ICON_DISPLAY,
+                                          ICON_CONTROLS, ICON_HOME};
 
 #define PX 330.0f   /* panel content left */
 #define PR 1216.0f  /* panel content right */
@@ -389,22 +404,36 @@ static void settings_shell(void)
     int i;
     theme_backdrop(T(), 1);
     theme_titlebar("SETTINGS", "launcher " LAUNCHER_VERSION);
-    for (i = SCR_FIRST_RUN; i <= SCR_LAST_SETTINGS; i++) {
-        int s = i == SCR_FIRST_RUN ? SCR_HOME : i; /* first entry is HOME */
-        float y = 76 + (float)(i - SCR_FIRST_RUN) * 47 + (i >= SCR_BUILDS ? 8 : 0), x = 34;
+    /* simple mode: a few big settings; advanced: every page. The last entry switches between them. */
+    static const Screen simple_pages[] = {SCR_HOME, SCR_SIMPLE, SCR_CONTROLS, SCR_ABOUT};
+    static const Screen adv_pages[] = {SCR_HOME, SCR_DISPLAY, SCR_GRAPHICS, SCR_AUDIO, SCR_CONTROLS, SCR_GAMEPLAY,
+                                       SCR_MODS, SCR_ONLINE, SCR_BUILDS, SCR_LOGS, SCR_ABOUT};
+    const Screen *pages = U.a->advanced ? adv_pages : simple_pages;
+    int n_pages = U.a->advanced ? (int)(sizeof adv_pages / sizeof adv_pages[0]) : 4, cur = -1;
+    for (i = 0; i <= n_pages; i++) {
+        int last = i == n_pages, s = last ? -1 : (int)pages[i];
+        float y = 76 + (float)i * 47 + (s >= SCR_BUILDS && s <= SCR_ABOUT && U.a->advanced ? 8 : 0) + (last ? 16 : 0), x = 34;
         int on = s == U.scr;
-        const char *t = s == SCR_HOME ? "HOME" : PAGE_TITLE[s];
+        const char *t = last ? (U.a->advanced ? "SIMPLE MODE" : "ALL SETTINGS") : s == SCR_HOME ? "HOME" : PAGE_TITLE[s];
         int hot = inside(x, y, 236, 40);
+        if (on)
+            cur = i;
         kit_push();
         if (on)
             kit_translate(10, 0);
-        theme_box(x, y, 236, 40, on ? C_YELLOW : hot ? 0x1f7a29 : C_GREEN_DEEP, 3, on ? 5.0f : 3.0f);
-        theme_icon(PAGE_ICON[s], x + 14, y + 10, 20, on ? C_INK : C_PAPER);
-        kit_text(FONT_LABEL, 18, x + 46, y + 9, t, on ? C_INK : C_PAPER, 1, ALIGN_LEFT);
+        theme_box(x, y, 236, 40, on ? C_YELLOW : last ? (hot ? 0xfff0b0 : C_PAPER) : hot ? 0x1f7a29 : C_GREEN_DEEP, 3,
+                  on ? 5.0f : 3.0f);
+        theme_icon(last ? (U.a->advanced ? ICON_HOME : ICON_MODS) : PAGE_ICON[s], x + 14, y + 10, 20,
+                   on || last ? C_INK : C_PAPER);
+        kit_text(FONT_LABEL, 18, x + 46, y + 9, t, on || last ? C_INK : C_PAPER, 1, ALIGN_LEFT);
         kit_pop();
         if (hot && U.in->click) {
             U.in->click = 0;
-            go((Screen)s);
+            if (last) {
+                app_set_advanced(U.a, !U.a->advanced);
+                go(U.a->advanced ? SCR_DISPLAY : SCR_SIMPLE);
+            } else
+                go((Screen)s);
         }
     }
     theme_box(300, 70, 946, 590, C_PAPER, 3, 7);
@@ -418,15 +447,15 @@ static void settings_shell(void)
     kit_pop();
     RY = 128;
     /* page switching */
-    if (U.in->page && !U.a->capture && !U.a->edit) {
-        int s = U.scr + U.in->page;
-        if (s < SCR_FIRST_SETTINGS)
-            s = SCR_LAST_SETTINGS;
-        if (s > SCR_LAST_SETTINGS)
-            s = SCR_FIRST_SETTINGS;
-        go((Screen)s);
+    if (U.in->page && !U.a->capture && !U.a->edit && cur >= 0) { /* cycles the visible pages, HOME excluded */
+        int k = cur + U.in->page;
+        if (k < 1)
+            k = n_pages - 1;
+        if (k > n_pages - 1)
+            k = 1;
+        go(pages[k]);
     }
-    if (U.in->back && !U.a->capture && !U.a->edit)
+    if (U.in->back && !U.a->capture && !U.a->edit && U.scr != SCR_PADCHECK)
         go(SCR_HOME);
 }
 
@@ -734,7 +763,15 @@ static void draw_controls(void)
             app_save_settings(a);
             app_toast(a, "Keys reset");
         }
-        kit_text_wrap(FONT_BODY, 15, PX + 262, RY + 2, 600, 18,
+        {
+            It pc = item(PX + 254, RY, 240, 38);
+            theme_button(PX + 254, RY, 240, 38, "CONTROLLER CHECK", C_CYAN, C_INK, pc.focused, 0);
+            if (pc.activate) {
+                a->pad_return = SCR_CONTROLS;
+                go(SCR_PADCHECK);
+            }
+        }
+        kit_text_wrap(FONT_BODY, 15, PX + 510, RY - 2, 376, 18,
                       "Enter on a key, then press the new key (Esc keeps the old one). In game: F6/F7 save/load, "
                       "Backspace rewind, Tab fast forward.", C_INK_DIM, 1);
     }
@@ -1195,6 +1232,135 @@ static void draw_about(void)
     }
 }
 
+/* ---------------------------------------------------------------- SIMPLE settings */
+static void draw_simple(void)
+{
+    App *a = U.a;
+    Config *c = &a->cfg;
+    char v[64];
+    int d, ch = 0;
+    snprintf(v, sizeof v, "%dx · %d × %d", c->scale, 256 * c->scale, 240 * c->scale);
+    if ((d = row_choice("Window size", "how big the game window opens", v, 0))) {
+        c->scale = SDL_clamp(c->scale + d, 1, 10);
+        ch = 1;
+    }
+    if (row_toggle("Fullscreen", "fill the whole screen (F11 switches in game)", c->fullscreen, 0))
+        c->fullscreen = !c->fullscreen, ch = 1;
+    {
+        It it = row_begin("Volume", "left / right in steps of 5%", 0);
+        float x = PR - 10 - 300, y = RY + 14, w = 230;
+        int pct = (int)(c->volume * 100 + 0.5f);
+        theme_halftone_bar(x, y, w, 22, c->volume, T(), 0);
+        snprintf(v, sizeof v, "%d%%", pct);
+        kit_text(FONT_LABEL, 18, PR - 10, y, v, C_INK, 1, ALIGN_RIGHT);
+        if (it.dx || (it.clicked && inside(x, y - 6, w, 34))) {
+            pct = it.dx ? SDL_clamp(pct + 5 * it.dx, 0, 100) : SDL_clamp((int)((U.in->mx - x) / w * 100 + 0.5f), 0, 100);
+            c->volume = (float)pct / 100.0f;
+            ch = 1;
+        }
+        row_end("x");
+    }
+    if (row_button("Keys and gamepads", "which key does what, for player 1 and player 2", "CONTROLS", C_PAPER))
+        go(SCR_CONTROLS);
+    if (row_button("Controller check", "press buttons and watch them light up", "CHECK", C_CYAN)) {
+        a->pad_return = SCR_SIMPLE;
+        go(SCR_PADCHECK);
+    }
+    RY += 10;
+    if (row_button("All settings", "graphics presets, cheats, rewind, mods, online, logs and more", "SHOW", C_YELLOW)) {
+        app_set_advanced(a, 1);
+        go(SCR_DISPLAY);
+    }
+    if (ch)
+        app_save_settings(a);
+}
+
+/* ---------------------------------------------------------------- CONTROLLER CHECK */
+/* an original two-button pad: body, d-pad, select/start, B and A (lit = pressed) */
+static void pad_drawing(float x, float y, const int *on, const char *name, const char *dev)
+{
+    float w = 420, h = 190, cx, cy;
+    int k;
+    theme_box(x, y, w, h, 0xd9d4c8, 3, 6);
+    kit_rect(x + 3, y + 3, w - 6, 28, C_INK, 1);
+    kit_text(FONT_DISPLAY, 22, x + 14, y + 4, name, C_YELLOW, 1, ALIGN_LEFT);
+    kit_text(FONT_LABEL, 15, x + w - 12, y + 8, dev, C_PAPER, 1, ALIGN_RIGHT);
+    cx = x + 90, cy = y + 112; /* d-pad */
+    kit_rect(cx - 16, cy - 50, 32, 100, C_INK, 1);
+    kit_rect(cx - 50, cy - 16, 100, 32, C_INK, 1);
+    {
+        static const float dx[4] = {0, 0, -33, 33}, dy[4] = {-33, 33, 0, 0};
+        for (k = 0; k < 4; k++)
+            if (on[BTN_UP + k])
+                kit_rect(cx + dx[k] - 13, cy + dy[k] - 13, 26, 26, C_YELLOW, 1);
+    }
+    for (k = 0; k < 2; k++) { /* select, start */
+        float px = x + 170 + (float)k * 62, py = y + 120;
+        kit_rrect(px - 3, py - 3, 52, 22, 11, C_INK, 1);
+        kit_rrect(px, py, 46, 16, 8, on[BTN_SELECT + k] ? C_YELLOW : 0x6a6a72, 1);
+        kit_text(FONT_LABEL, 13, px + 23, py + 20, k ? "START" : "SELECT", C_INK, 1, ALIGN_CENTER);
+    }
+    for (k = 0; k < 2; k++) { /* B, A */
+        float bx = x + 320 + (float)k * 62, by = y + 112;
+        kit_circle(bx, by, 25, C_INK, 1);
+        kit_circle(bx, by, 21, on[k ? BTN_A : BTN_B] ? C_YELLOW : C_RED, 1);
+        kit_text(FONT_DISPLAY, 22, bx, by + 26, k ? "A" : "B", C_INK, 1, ALIGN_CENTER);
+    }
+}
+
+static void draw_padcheck(void)
+{
+    App *a = U.a;
+    const bool *keys = SDL_GetKeyboardState(NULL);
+    SDL_JoystickID *ids;
+    int count = 0, p, b, held_exit = 0;
+    float y = RY + 76;
+    ids = SDL_GetGamepads(&count);
+    kit_text_wrap(FONT_BODY, 17, PX + 4, RY, PR - PX - 8, 24,
+                  "Press buttons on your keyboard or gamepad: they light up here. Player 1 uses gamepad 1, player 2 "
+                  "gamepad 2. To finish: Esc, the DONE button, or hold START + SELECT on a gamepad.",
+                  C_INK, 1);
+    for (p = 0; p < 2; p++) {
+        int on[BTN_COUNT];
+        char dev[96];
+        SDL_Gamepad *gp = ids && p < count ? SDL_GetGamepadFromID(ids[p]) : NULL;
+        for (b = 0; b < BTN_COUNT; b++)
+            on[b] = keys && keys[a->cfg.keys[p][b]];
+        if (gp) {
+            Sint16 lx = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTX), ly = SDL_GetGamepadAxis(gp, SDL_GAMEPAD_AXIS_LEFTY);
+            on[BTN_A] |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_EAST);
+            on[BTN_B] |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_SOUTH);
+            on[BTN_SELECT] |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_BACK);
+            on[BTN_START] |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_START);
+            on[BTN_UP] |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_UP) || ly < -16000;
+            on[BTN_DOWN] |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_DOWN) || ly > 16000;
+            on[BTN_LEFT] |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_LEFT) || lx < -16000;
+            on[BTN_RIGHT] |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || lx > 16000;
+            held_exit |= SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_START) && SDL_GetGamepadButton(gp, SDL_GAMEPAD_BUTTON_BACK);
+            snprintf(dev, sizeof dev, "keyboard + %.36s", SDL_GetGamepadName(gp) ? SDL_GetGamepadName(gp) : "gamepad");
+        } else
+            snprintf(dev, sizeof dev, "keyboard (no gamepad %d)", p + 1);
+        if (a->demo && p == 0) /* screenshots: show a press */
+            on[BTN_A] = on[BTN_RIGHT] = 1;
+        pad_drawing(PX + (float)p * 466, y, on, p ? "PLAYER 2" : "PLAYER 1", dev);
+    }
+    SDL_free(ids);
+    {
+        It it = item(PX, y + 236, 180, 40);
+        theme_button(PX, y + 236, 180, 40, "DONE", C_YELLOW, C_INK, 1, 0);
+        if (held_exit) {
+            if (a->pad_hold == 0)
+                a->pad_hold = a->now;
+        } else
+            a->pad_hold = 0;
+        if (it.clicked || (U.in->back && !U.in->pad) || (a->pad_hold > 0 && a->now - a->pad_hold > 1.2)) {
+            a->pad_hold = 0;
+            U.in->back = 0;
+            go(a->pad_return ? a->pad_return : SCR_CONTROLS);
+        }
+    }
+}
+
 /* ---------------------------------------------------------------- IN-GAME (screenshots only) */
 static void draw_ingame(void)
 {
@@ -1297,6 +1463,13 @@ void screens_draw(App *a, UiIn *in)
     }
     if (a->capture || a->edit)
         in->nav_x = in->nav_y = 0;
+    if (a->screen == SCR_PADCHECK) { /* buttons are being tested: no play, no page keys, no pad "back" */
+        in->play = 0;
+        in->page = 0;
+        in->accept = 0;
+        if (in->pad)
+            in->back = 0;
+    }
     if (in->play && app_ready(a) && !a->edit && !a->capture)
         app_launch_game(a, "Play", NULL);
     switch (a->screen) {
@@ -1322,6 +1495,8 @@ void screens_draw(App *a, UiIn *in)
         case SCR_BUILDS: draw_builds(); break;
         case SCR_LOGS: draw_logs(); break;
         case SCR_ABOUT: draw_about(); break;
+        case SCR_SIMPLE: draw_simple(); break;
+        case SCR_PADCHECK: draw_padcheck(); break;
         default: break;
         }
         hints(U.scr == SCR_CONTROLS ? "rebind" : "change");

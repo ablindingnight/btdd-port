@@ -12,8 +12,9 @@
 typedef enum Screen {
     SCR_HOME, SCR_FIRST_RUN,
     SCR_DISPLAY, SCR_GRAPHICS, SCR_AUDIO, SCR_CONTROLS, SCR_GAMEPLAY, SCR_MODS, SCR_ONLINE, SCR_BUILDS, SCR_LOGS,
-    SCR_ABOUT, SCR_INGAME, SCR_COUNT
+    SCR_ABOUT, SCR_SIMPLE, SCR_PADCHECK, SCR_INGAME, SCR_COUNT
 } Screen;
+/* SCR_SIMPLE: the few big settings of simple mode; SCR_PADCHECK: press buttons, see them light up */
 /* SCR_INGAME is only for --ui-shot: btdd_play's in-game menu as it looks, over a placeholder picture */
 #define SCR_FIRST_SETTINGS SCR_DISPLAY
 #define SCR_LAST_SETTINGS SCR_ABOUT
@@ -46,6 +47,7 @@ typedef struct App {
     int rom_ok;           /* verified USA dump */
     char rom_sha1[41];
     char rom_msg[160];
+    char rom_hint[200];   /* what to do about a bad ROM (romcheck.c) */
     /* tools next to the launcher */
     char play_exe[1100], jit_exe[1100], headless_exe[1100];
     /* first run */
@@ -71,6 +73,9 @@ typedef struct App {
     int edit;             /* text field being edited (screens.c ids), 0 = none */
     char join_code[160];
     int demo;             /* example values for screenshots */
+    int advanced;         /* show every settings page (launcher.ini advanced = 1); 0 = simple mode */
+    Screen pad_return;    /* where the controller check goes back to */
+    double pad_hold;      /* gamepad Start+Select held since (controller check exit) */
     double now;
     int quit;
 } App;
@@ -78,6 +83,7 @@ typedef struct App {
 void app_init(App *a, const char *argv0, int demo);
 void app_quit(App *a);
 void app_save_settings(App *a);
+void app_set_advanced(App *a, int on); /* simple / advanced settings, kept in launcher.ini */
 void app_check_rom(App *a);                      /* quick verify of cfg.rom (main thread) */
 void app_set_rom(App *a, const char *path);      /* new ROM: verify, save, restart the checklist */
 void app_start_first_run(App *a, int from_step); /* worker thread: verify, compile, self-check */

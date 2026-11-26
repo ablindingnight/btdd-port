@@ -1,5 +1,6 @@
 #ifndef BTDD_ROM_H
 #define BTDD_ROM_H
+#include <stddef.h>
 #include <stdint.h>
 
 #define ROM_BANKS     8
@@ -20,6 +21,9 @@ typedef enum RomResult {
 /* Loads and verifies the user's ROM. On ROM_ERR_HASH, sha1_hex (41 bytes) still receives the file's hash. */
 RomResult rom_load(const char *path, Rom *rom, char sha1_hex[41]);
 const char *rom_result_text(RomResult r);
+/* 1 if `file` (a whole .nes file) is the supported USA dump (SHA-1 of the whole file). */
+int rom_is_usa(const uint8_t *file, size_t len);
+#define ROM_FILE_BYTES (16 + ROM_BANKS * ROM_BANK_SIZE) /* iNES header + PRG */
 
 /* Reads a CPU address in $8000-$FFFF while `bank` is mapped. */
 static inline uint8_t rom_read(const Rom *rom, int bank, uint16_t addr)

@@ -301,7 +301,41 @@ def gate_m6(out):
 
 
 LAUNCHER_SCREENS = ['home', 'first-run', 'display', 'graphics', 'audio', 'controls', 'gameplay', 'mods', 'online',
-                    'builds', 'logs', 'about', 'in-game']
+                    'builds', 'logs', 'about', 'simple', 'pad-check', 'in-game']
+
+
+def launcher_rom_cases(d, launcher):
+    """Bad ROMs made from the real one in the gate's own folder (ROM-derived: never in the repo); the launcher must
+    name each problem. Returns '' or the first mismatch."""
+    import zipfile
+    rd = os.path.join(d, 'roms')
+    os.makedirs(rd, exist_ok=True)
+    rom = open(ROM, 'rb').read()
+    cases = {'good.nes': (rom, 'ok'), 'noheader.nes': (rom[16:], 'no-header'), 'short.nes': (rom[:-4096], 'incomplete'),
+             'extra.nes': (rom + bytes(512), 'extra-data'),
+             'changed.nes': (rom[:1000] + bytes([rom[1000] ^ 1]) + rom[1001:], 'other-version'),
+             'othergame.nes': (rom[:4] + bytes([8, 8]) + rom[6:], 'other-game'), 'text.nes': (b'hello', 'not-nes'),
+             'empty.nes': (b'', 'empty')}
+    for name, (data, _) in cases.items():
+        open(os.path.join(rd, name), 'wb').write(data)
+    with zipfile.ZipFile(os.path.join(rd, 'good.zip'), 'w', zipfile.ZIP_DEFLATED) as z:
+        z.writestr('folder/game.nes', rom)
+    with zipfile.ZipFile(os.path.join(rd, 'none.zip'), 'w') as z:
+        z.writestr('readme.txt', 'no rom here')
+    with zipfile.ZipFile(os.path.join(rd, 'two.zip'), 'w') as z:
+        z.writestr('a.nes', rom)
+        z.writestr('b.nes', rom)
+    open(os.path.join(rd, 'broken.zip'), 'wb').write(b'PK broken')
+    want = {k: v[1] for k, v in cases.items()}
+    want.update({'good.zip': 'ok', 'none.zip': 'zip-empty', 'two.zip': 'zip-many', 'broken.zip': 'zip-bad',
+                 'missing.nes': 'open'})
+    for name, code in want.items():
+        c, o = run([launcher, '--rom-check', os.path.join(rd, name)], timeout=60, cwd=d)
+        m = re.search(r'rom-check: ([a-z-]+):', o)
+        if c != 0 or not m or m.group(1) != code:
+            return '%s: got %s, want %s' % (name, m.group(1) if m else o.strip()[-80:], code)
+    shutil.rmtree(rd, ignore_errors=True)
+    return ''
 
 
 def gate_launcher(build, out):
@@ -336,6 +370,9 @@ def gate_launcher(build, out):
         if code != 0 or 'PASS' not in o.splitlines():
             bad = [l for l in o.splitlines() if l.startswith('FAIL')]
             return 'FAIL', 'ui test: ' + ((bad or o.strip().splitlines() or ['no output'])[0])[:150]
+        bad_rom = launcher_rom_cases(d, launcher)
+        if bad_rom:
+            return 'FAIL', 'rom check: ' + bad_rom
         code, o = run([launcher, '--selftest'], timeout=900, cwd=d)
         if code != 0:
             bad = [l for l in o.splitlines() if 'FAIL' in l or 'wait' in l]
@@ -349,7 +386,7 @@ def gate_launcher(build, out):
         if code != 0 or 'CLEAN' not in a:
             bad = [l for l in a.splitlines() if l.startswith('ROM CONTENT')]
             return 'FAIL', 'launcher package audit: ' + (bad[0] if bad else a.strip())[-150:]
-        return 'PASS', '%d screens render; value controls step both ways; first run ready (%s); package audit clean' % (
+        return 'PASS', '%d screens render; value controls step both ways; 13 ROM cases explained; first run ready (%s); package audit clean' % (
             len(LAUNCHER_SCREENS), ' '.join(steps))
     return g
 

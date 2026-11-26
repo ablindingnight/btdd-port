@@ -12,6 +12,7 @@
 #include "screens.h"
 #include "theme.h"
 #include "platform/console.h"
+#include "romcheck.h"
 #include "platform/png.h"
 #include "platform/video.h"
 #include "platform/gpu.h"
@@ -38,6 +39,7 @@ static int ui_shot(App *a, SDL_Renderer *r, const char *name, const char *out, i
     SDL_SetRenderScale(r, (float)w / KIT_W, (float)h / KIT_H);
     kit_set_pixel_scale((float)w / KIT_W);
     a->screen = s;
+    a->advanced = s != SCR_SIMPLE; /* screenshots of the full settings show the full sidebar */
     a->now = 0.4; /* a moment into the idle animations */
     memset(&in, 0, sizeof in);
     in.mx = in.my = -1;
@@ -122,6 +124,25 @@ static int ui_test(App *a)
         ui_frame(a, (int)(330 + 2 * (w + 10) + w / 2), 260, 1, 0, 0);
     }
     f += check("shader preset: click card 3", a->cfg.shader, 2);
+    /* simple mode: the window size stepper sits in the same place; Esc leaves the controller check */
+    a->advanced = 0;
+    a->screen = SCR_SIMPLE;
+    a->cfg.scale = 4;
+    a->focus[SCR_SIMPLE] = 0;
+    ui_frame(a, -1, -1, 0, 0, 0);
+    ui_frame(a, 990, 153, 1, 0, 0);
+    f += check("simple: window size left arrow", a->cfg.scale, 3);
+    a->screen = SCR_PADCHECK;
+    a->pad_return = SCR_SIMPLE;
+    ui_frame(a, -1, -1, 0, 0, 0);
+    {
+        UiIn in;
+        memset(&in, 0, sizeof in);
+        in.mx = in.my = -1;
+        in.back = 1;
+        screens_draw(a, &in);
+    }
+    f += check("controller check: Esc goes back", (int)a->screen, (int)SCR_SIMPLE);
     printf("%s\n", f ? "FAIL" : "PASS");
     return f ? 1 : 0;
 }
@@ -144,7 +165,7 @@ int main(int argc, char **argv)
     App *a = &app;
     SDL_Window *win;
     SDL_Renderer *r;
-    const char *shot = NULL, *shot_out = NULL, *rom_arg = NULL;
+    const char *shot = NULL, *shot_out = NULL, *rom_arg = NULL, *romcheck_arg = NULL;
     int shot_w = KIT_W, shot_h = KIT_H, demo = 0, launch = 0, i, rc = 0;
     int held_x = 0, held_y = 0, pad = 0, selftest = 0, uitest = 0, want_console = 0, win_w = KIT_W, win_h = KIT_H;
 
@@ -166,10 +187,18 @@ int main(int argc, char **argv)
             uitest = 1;
         else if (!strcmp(argv[i], "--console"))
             want_console = 1;
+        else if (!strcmp(argv[i], "--rom-check") && i + 1 < argc)
+            romcheck_arg = argv[++i];
         else if (!strcmp(argv[i], "--rom") && i + 1 < argc)
             rom_arg = argv[++i];
     }
     console_setup(want_console); /* GUI program: print to the starting terminal (or --console) */
+    if (romcheck_arg) { /* what the first-run checklist would say about this file (tests) */
+        char t[200], h[200];
+        RomCheck c = romcheck_file(romcheck_arg, t, sizeof t, h, sizeof h);
+        printf("rom-check: %s: %s %s\n", romcheck_code(c), t, h);
+        return 0;
+    }
     if (shot_w < 64 || shot_h < 36)
         shot_w = KIT_W, shot_h = KIT_H;
 
