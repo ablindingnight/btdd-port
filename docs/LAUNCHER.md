@@ -75,3 +75,20 @@ icons (list in the style sheet); an 8x8 font for the in-game menu; app icon size
   each step; exit 0 when ready). The window opens at up to 2x the 1280x720 design (85% of the desktop).
 - Not yet: the in-game menu restyle (btdd_play still draws the old overlay), per-channel mute, sprite packs, zip ROMs,
   a packaged release folder.
+
+## Easy install for non-technical players (plan, 2026-11-25; stays legal: we never ship or download ROMs)
+- **One download, no admin, no extra installs**: a portable zip and a small per-user installer (Inno Setup, free)
+  that adds Start-menu/desktop shortcuts with our icon; everything statically linked; libtcc + licence bundled.
+- **Fewer scary prompts**: code-sign the exes (e.g. a low-cost cloud signing service) so SmartScreen stops warning;
+  until then, the README and first screen explain "More info > Run anyway" with a picture.
+- **Finding the ROM**: drag-and-drop, a file picker, and an optional, opt-in "look for it for me" scan of common
+  folders (Downloads, Documents, emulator folders) that matches files by SHA-1 only and lists what it found; accepts
+  .nes/.zip/.7z. Never links to or downloads ROMs.
+- **Friendly ROM errors**: say exactly what's wrong in plain words ("this is the Europe version", "this file has an
+  extra header", "this isn't a complete dump") and what the player can do, without pointing to download sites.
+- **Simple mode**: the Home screen + PLAY + a few big settings by default; "Show advanced settings" reveals the rest.
+- **Controller first-run check**: plug in a gamepad, press buttons, see them light up; keyboard layout shown.
+- **Play with a friend in two clicks**: "Host" copies a join code; the friend pastes it into "Join"; the launcher
+  explains UPnP/port status in plain words.
+- **Updates**: optional check against our GitHub releases (our files only), one click to update, settings kept.
+- **Help**: Logs > Save report (user name removed) for when something breaks; nothing is ever sent automatically.
