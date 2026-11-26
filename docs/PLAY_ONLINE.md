@@ -2,6 +2,11 @@
 
 Two PCs, one game: the **host** is player 1, the **joiner** is player 2. Nobody needs to open ports on a router.
 
+Not needed for two players on **one PC**: plug in two gamepads (or share the keyboard) and press PLAY.
+On the **same home network** (same Wi-Fi/router): the joiner can simply use **OR JOIN AN ADDRESS** with the
+host PC's local address and port, e.g. `192.168.1.20:7845` (the host finds its IPv4 address in Windows
+Settings -> Network -> properties). Join codes work there too.
+
 ## Before you start (both players)
 - Same game files: the same Pond to Pavement build and the same `Battletoads-Double Dragon (USA).nes`.
 - Same gameplay mods and cheats (Mods / Cheats pages). Picture settings (shaders, scale) can differ.
@@ -35,8 +40,9 @@ Each of you plays with your own **player 1** keys or gamepad.
    cannot get through that. Then use a free VPN made for this: both install **Tailscale** (or ZeroTier), join the
    same network, and the joiner uses **OR JOIN AN ADDRESS** with the host's Tailscale address and `:7845`
    (for example `100.101.102.103:7845`).
-4. Last resort: the host forwards **UDP port 7845** on the router to the host PC, and the joiner joins
-   `host-public-IP:7845`.
+4. Or the host forwards **UDP port 7845** on the router to the host PC (router settings, "port forwarding"), and
+   the joiner uses **OR JOIN AN ADDRESS** with `host-public-IP:7845` (the host can look up its public IP on a site
+   like whatismyip.com). Once the port is forwarded this always works.
 
 ## Messages you may see
 | Message | Meaning |

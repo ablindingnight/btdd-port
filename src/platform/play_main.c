@@ -383,8 +383,27 @@ static int overlay(const Rebind *rb, const Config *cfg, int paused, const char *
     } else if (paused) {
         lines[n++] = "PAUSED (P)";
     }
-    if (message_until > SDL_GetTicksNS())
-        lines[n++] = message;
+    if (message_until > SDL_GetTicksNS()) { /* wrap at spaces: one sticker holds 31 characters */
+        static char wrap[3][32];
+        const char *t = message;
+        int k;
+        for (k = 0; k < 3 && *t && n < 4; k++) {
+            size_t len = strlen(t), cut = len;
+            if (len > 31) {
+                cut = 31;
+                while (cut > 10 && t[cut] != ' ')
+                    cut--;
+                if (t[cut] != ' ')
+                    cut = 31;
+            }
+            memcpy(wrap[k], t, cut);
+            wrap[k][cut] = 0;
+            lines[n++] = wrap[k];
+            t += cut;
+            while (*t == ' ')
+                t++;
+        }
+    }
     return n;
 }
 
@@ -448,6 +467,27 @@ static const SelfTest selftest[] = {
 };
 #define SELFTEST_STEPS (int)(sizeof selftest / sizeof selftest[0])
 
+/* --selftest-netpad (online, with --host-loopback / --join on both sides): the same buttons, pressed for the local
+ * player's input frames NETPAD_START + 30 * k ... + 8; each must give these NES bits locally and arrive at the other
+ * side. The virtual pad is attached when the real pads are opened (the deferred init), like a pad plugged in. */
+#define NETPAD_START 120
+static const uint8_t netpad_bits[SELFTEST_STEPS] = {PAD_START, PAD_A, PAD_B, PAD_DOWN, PAD_RIGHT};
+
+static SDL_Joystick *make_virtual_pad(void)
+{
+    SDL_VirtualJoystickDesc d;
+    SDL_JoystickID id;
+    SDL_INIT_INTERFACE(&d);
+    d.type = SDL_JOYSTICK_TYPE_GAMEPAD;
+    d.naxes = SDL_GAMEPAD_AXIS_COUNT;
+    d.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
+    d.name = "btdd self-test pad";
+    d.button_mask = (1u << SDL_GAMEPAD_BUTTON_COUNT) - 1; /* standard gamepad layout */
+    d.axis_mask = (1u << SDL_GAMEPAD_AXIS_COUNT) - 1;
+    id = SDL_AttachVirtualJoystick(&d);
+    return id ? SDL_OpenJoystick(id) : NULL;
+}
+
 /* --selftest-states (with --movie, unpaced): the same functions as the hotkeys, scripted. Save slot 9 at
  * frame 3000, play to 3600, rewind 300 frames (RAM must equal frame 3300's), play to 3500, load slot 9 (RAM
  * must equal frame 3000's), then the rest of the movie in fast-forward steps; --dump-ram then lets
@@ -492,6 +532,7 @@ static int states_script(int phase, long *frame, const char *sha1, uint8_t *ram_
 static NetSession net;
 static Udp *net_udp;
 static int net_on;
+static char net_code_path[1200]; /* <settings>/netplay/joincode.txt while hosting (see net_code_file) */
 static SDL_AudioStream *net_audio;
 static FILE *net_dump; /* --dump-ram while online: RAM after every confirmed frame */
 static long net_dumped;
@@ -552,6 +593,10 @@ static void net_stop(void)
             "%u resyncs", net.frame, (unsigned long long)net.stats.rollbacks, (unsigned long long)net.stats.resim_frames,
             (unsigned long long)net.stats.stalls, net.stats.ping_ms, net.stats.checks_ok, net.stats.resyncs);
     net_leave(&net); /* the other player gets "player N left" at once instead of a timeout */
+    if (net_code_path[0]) {
+        remove(net_code_path);
+        net_code_path[0] = 0;
+    }
     net_free(&net);
     udp_close(net_udp);
     net_udp = NULL;
@@ -568,7 +613,50 @@ static int net_mode;                  /* 0 direct join, 1 host, 2 loopback host 
 static Uint64 net_started_ns;
 static int net_help_shown;
 static int net_port_used;
+static Uint64 net_card_until; /* "Show my join code": card on screen until then */
+
+/* The join code card: on its own while the host waits for player 2, or for 15 s after "Show my join code"; never
+ * while playing otherwise (the status line is enough then). */
+static void net_card_update(void)
+{
+    /* the host waiting; the joiner after 20 s without an answer (then the host pastes the joiner's code) */
+    int waiting = net_on && net.state == NET_HANDSHAKE && (net.local == 0 || net_help_shown);
+    /* player 2 on the title (game_mode $16: $00 intro logos, $80 title and attract demo; the host's Start makes
+     * it $FE/$FF, then 1 or 2): display only, the same RAM on both sides */
+    if (net_on && net.local == 1 && net.state == NET_RUNNING && (nes.ram[0x16] == 0x00 || nes.ram[0x16] == 0x80)) {
+        video_set_card_lines("ONLINE: YOU ARE PLAYER 2", "WAITING FOR", "THE HOST", "to press Start");
+        return;
+    }
+    if (net_on && net_code[0] && (waiting || SDL_GetTicksNS() < net_card_until))
+        video_set_card(net.local == 0 ? "PLAYER 2 JOIN CODE" : "MY CODE: SEND IT TO PLAYER 1", net_code,
+                       "copied to clipboard");
+    else
+        video_set_card(NULL, NULL, NULL);
+}
 static int net_loopback;
+
+/* <settings folder>/netplay/joincode.txt: the host's code for the launcher's Online page (deleted on Leave/quit) */
+static void net_code_file(const Config *cfg, const char *code)
+{
+    char *slash;
+    FILE *f;
+    snprintf(net_code_path, sizeof net_code_path, "%s", cfg->path);
+    slash = strrchr(net_code_path, '\\');
+    if (!slash)
+        slash = strrchr(net_code_path, '/');
+    if (!slash) {
+        net_code_path[0] = 0;
+        return;
+    }
+    snprintf(slash + 1, sizeof net_code_path - (size_t)(slash + 1 - net_code_path), "netplay");
+    SDL_CreateDirectory(net_code_path);
+    snprintf(net_code_path + strlen(net_code_path), sizeof net_code_path - strlen(net_code_path), "/joincode.txt");
+    if ((f = fopen(net_code_path, "w")) != NULL) {
+        fprintf(f, "%s\n", code);
+        fclose(f);
+    } else
+        net_code_path[0] = 0;
+}
 
 static void net_make_code(const Config *cfg)
 {
@@ -591,6 +679,8 @@ static void net_make_code(const Config *cfg)
     }
     joincode_encode(&e, net_code);
     SDL_SetClipboardText(net_code);
+    if (net.local == 0)
+        net_code_file(cfg, net_code);
     SDL_Log("netplay: our join code %s (copied to the clipboard)%s", net_code,
             e.public_ip ? "" : "; no public address found: only works on the same network");
 }
@@ -602,17 +692,17 @@ static void net_conn_tick(const Config *cfg)
     udp_stun_poll(net_udp);
     if (!udp_peer_known(net_udp))
         udp_punch(net_udp);
-    if (!net_code[0] && net_mode != 0 && net_mode != 2)
+    if (!net_code[0] && net_mode != 0) /* loopback hosting (tests) gets one too */
         net_make_code(cfg);
     if (net.state == NET_HANDSHAKE && !net_help_shown && SDL_GetTicksNS() - net_started_ns > 20000000000ull) {
         net_help_shown = 1;
         if (net.local == 1)
             snprintf(net.message, sizeof net.message,
-                     "no answer from the host yet: ask them to paste YOUR join code (Online menu), or use Tailscale /"
-                     " ZeroTier, or forward UDP port %d on their router", cfg->net_port);
+                     "No answer yet: send player 1 YOUR code below. They paste it in the Online menu.");
         else
             snprintf(net.message, sizeof net.message,
-                     "nobody connected yet: send your join code to player 2 (and paste theirs if they send one back)");
+                     "No one yet. If player 2 sends their code, paste it: Esc, Online, Paste player 2's code");
+        SDL_Log("netplay: no answer after 20 s (UDP port %d)", cfg->net_port);
     }
 }
 
@@ -693,11 +783,11 @@ static const char *net_state_line(char *buf, size_t len)
         net_mismatch(buf, len);
     } else if (net.state == NET_HANDSHAKE && !net_help_shown) {
         if (net.local == 0 && net_code[0])
-            snprintf(buf, len, "Waiting for player 2. Your join code (copied): %s", net_code);
+            snprintf(buf, len, "Waiting for player 2...");
         else if (net.local == 0)
             snprintf(buf, len, "Waiting for player 2 (UDP port %d)...", net_port_used);
         else if (net_code[0])
-            snprintf(buf, len, "Connecting to player 1... If it does not connect, send them YOUR code: %s", net_code);
+            snprintf(buf, len, "Connecting to player 1...");
         else
             snprintf(buf, len, "Connecting to player 1...");
     } else {
@@ -785,7 +875,7 @@ enum {
     ID_RESUME = 1, ID_RESET, ID_POWER, ID_QUIT, ID_SLOT, ID_SAVE, ID_LOAD, ID_SCALE, ID_FULLSCREEN, ID_ASPECT,
     ID_FILTER, ID_SCANLINES, ID_VIDEO, ID_SHADER, ID_VOLUME, ID_REBIND_ALL, ID_REWIND, ID_FF, ID_BACK,
     ID_NET_HOST, ID_NET_ADDR, ID_NET_JOIN, ID_NET_DELAY, ID_NET_LEAVE, ID_NET_RESYNC, ID_NET_JOINCODE,
-    ID_NET_COPY, ID_NET_PEERCODE, ID_NET_CHECK,
+    ID_NET_COPY, ID_NET_PEERCODE, ID_NET_CHECK, ID_NET_SHOWCODE,
     ID_KEY_BASE = 100, /* + player * BTN_COUNT + button */
     ID_MOD_BASE = 200, /* + mod index */
 };
@@ -900,6 +990,7 @@ static void build_page(Menu *m, PlayCtx *c)
             if (net.state == NET_HANDSHAKE && net_code[0]) {
                 menu_add(m, ITEM_INFO, 0, net_code, "", "");
                 menu_add(m, ITEM_ACTION, ID_NET_COPY, "Copy my join code", "", "send it to the other player");
+                menu_add(m, ITEM_ACTION, ID_NET_SHOWCODE, "Show my join code", "", "large, for reading it out");
                 if (net.local == 0)
                     menu_add(m, ITEM_ACTION, ID_NET_PEERCODE, "Paste player 2's code", "",
                              "if they sent theirs back (strict routers)");
@@ -1153,6 +1244,10 @@ static void menu_apply(PlayCtx *c, MenuEvent ev, int id, int dir)
         say("testing the connection (about 5 s)...");
         net_check(cfg);
         break;
+    case ID_NET_SHOWCODE:
+        net_card_until = SDL_GetTicksNS() + 15000000000ull;
+        menu_leave(c);
+        break;
     case ID_NET_COPY:
         if (net_code[0]) {
             SDL_SetClipboardText(net_code);
@@ -1312,7 +1407,11 @@ int main(int argc, char **argv)
     int menu_step = 0, menu_nav_ok = 0, menu_close_ok = 0; /* --selftest-gamepad, menu part */
     static uint8_t st_ram_a[0x800], st_ram_r[0x800];
     FILE *dump = NULL;
-    SDL_Joystick *vjoy = NULL;
+    SDL_Joystick *vjoy = NULL, *netpad = NULL;
+    const char *window_shot = NULL;
+    int window_shot_ms = 0, shot_asked = 0;
+    Uint64 start_ns = SDL_GetTicksNS();
+    int netpad_test = 0, loops = 0, np_local[SELFTEST_STEPS] = {0}, np_remote[SELFTEST_STEPS] = {0};
     char hash[41], msg[1400];
     Fm2 movie = {0};
     SDL_AudioStream *audio;
@@ -1367,6 +1466,13 @@ int main(int argc, char **argv)
         } else if (!strcmp(argv[i], "--join") && i + 1 < argc) {
             net_cli = 2;
             snprintf(cfg.net_join, sizeof cfg.net_join, "%s", argv[++i]);
+        } else if (!strcmp(argv[i], "--window-shot") && i + 2 < argc) { /* tests: save the window after MS ms */
+            window_shot = argv[++i];
+            window_shot_ms = arg_int(argv[++i], 0, 600000);
+        } else if (!strcmp(argv[i], "--selftest-netpad")) { /* online gamepad self-test (two instances) */
+            netpad_test = 1;
+            if (max_frames < 0)
+                max_frames = 330;
         } else if (!strcmp(argv[i], "--net-loopback")) { /* tests: the join-code socket on 127.0.0.1 only */
             net_loopback = 1;
         } else if (!strcmp(argv[i], "--net-delay") && i + 1 < argc)
@@ -1389,7 +1495,7 @@ int main(int argc, char **argv)
             return fail("usage: btdd_play [ROM] [--movie X.fm2] [--frames N] [--ppu old|new] [--scale S] "
                         "[--fullscreen] [--no-audio] [--dump-ram out.bin] [--mod ID[=N]] [--selftest-gamepad] "
                         "[--selftest-states] [--console] | online: [--host [PORT]] [--join IP:PORT] [--join-code CODE] "
-                        "[--net-delay 0-3] [--host-loopback [PORT]] [--net-loopback]");
+                        "[--net-delay 0-3] [--host-loopback [PORT]] [--net-loopback] [--selftest-netpad] [--window-shot PNG MS]");
     }
     if (!have_cfg)
         SDL_Log("could not read or create btdd.cfg; using defaults");
@@ -1440,23 +1546,15 @@ int main(int argc, char **argv)
     } else if (no_audio) {
         SDL_Log("no audio (--no-audio); pacing by timer");
     }
+    if (netpad_test)
+        SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1"); /* test windows are usually not focused */
     if (selftest_on) {
-        SDL_VirtualJoystickDesc d;
-        SDL_JoystickID id;
         if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
             return fail("cannot initialize gamepads");
         pads_ready = 1;
         /* the test window is usually not focused; SDL drops pad input for unfocused apps otherwise */
         SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
-        SDL_INIT_INTERFACE(&d);
-        d.type = SDL_JOYSTICK_TYPE_GAMEPAD;
-        d.naxes = SDL_GAMEPAD_AXIS_COUNT;
-        d.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
-        d.name = "btdd self-test pad";
-        d.button_mask = (1u << SDL_GAMEPAD_BUTTON_COUNT) - 1; /* standard gamepad layout */
-        d.axis_mask = (1u << SDL_GAMEPAD_AXIS_COUNT) - 1;
-        id = SDL_AttachVirtualJoystick(&d);
-        vjoy = id ? SDL_OpenJoystick(id) : NULL;
+        vjoy = make_virtual_pad();
         if (!vjoy)
             return fail("cannot create the virtual gamepad");
         max_frames = 450;
@@ -1514,6 +1612,20 @@ int main(int argc, char **argv)
 
     while (!quit) {
         SDL_Event ev;
+        if (!pads_ready && loops++ > 0) { /* the first frame is on screen (every path, online too): now the slow
+                                            * gamepad init (see SDL_Init above) */
+            Uint64 t = SDL_GetTicksNS();
+            if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
+                SDL_Log("gamepad init: %s", SDL_GetError());
+            pads_ready = 1;
+            open_gamepads(gp);
+            if (netpad_test && (netpad = make_virtual_pad()) != NULL) { /* plugged in at startup */
+                if (gp[0])
+                    SDL_CloseGamepad(gp[0]);
+                gp[0] = SDL_OpenGamepad(SDL_GetJoystickID(netpad));
+            }
+            SDL_Log("gamepads ready after %llu ms", (unsigned long long)((SDL_GetTicksNS() - t) / 1000000));
+        }
         int run_frame, hold = paused || rb.active || menu.open;
         const char *lines[4];
         while (SDL_PollEvent(&ev)) {
@@ -1671,11 +1783,30 @@ int main(int argc, char **argv)
             next_tick = (now - next_tick > 100000000u) ? now : next_tick + (Uint64)(1e9 / FRAME_HZ);
             net_conn_tick(&cfg);
             {
-                int l = net.local;
-                uint8_t pad = movie.frames ? (net.have[l] < (uint32_t)movie.count ? movie.frames[net.have[l]].pad[l] : 0)
-                                           : read_pad(&cfg, 0, gp[0]); /* each player uses their own player 1 keys */
+                int l = net.local, k;
+                uint8_t pad;
+                if (netpad) { /* --selftest-netpad: press the script's button for this input frame */
+                    for (k = 0; k < SELFTEST_STEPS; k++)
+                        SDL_SetJoystickVirtualButton(netpad, selftest[k].button,
+                                                     net.have[l] >= (uint32_t)(NETPAD_START + 30 * k) &&
+                                                         net.have[l] < (uint32_t)(NETPAD_START + 30 * k + 8));
+                    SDL_UpdateJoysticks();
+                }
+                pad = movie.frames ? (net.have[l] < (uint32_t)movie.count ? movie.frames[net.have[l]].pad[l] : 0)
+                                   : read_pad(&cfg, 0, gp[0]); /* each player uses their own player 1 keys or pad */
+                if (netpad)
+                    for (k = 0; k < SELFTEST_STEPS; k++)
+                        if (net.have[l] == (uint32_t)(NETPAD_START + 30 * k + 2) && pad == netpad_bits[k])
+                            np_local[k] = 1;
                 if (net_tick(&net, pad))
                     frame = (long)net.frame;
+                if (netpad)
+                    for (k = 0; k < SELFTEST_STEPS; k++) { /* the other side's pad arrived here */
+                        uint32_t f = (uint32_t)(NETPAD_START + 30 * k + 2);
+                        if (net.have[!l] > f && net.have[!l] - f < NET_INPUT_RING / 2 &&
+                            net.in[!l][f % NET_INPUT_RING] == netpad_bits[k])
+                            np_remote[k] = 1;
+                    }
             }
             if (audio && SDL_GetAudioStreamQueued(audio) > (int)(8 * AUDIO_RATE / FRAME_HZ) * (int)sizeof(float))
                 SDL_ClearAudioStream(audio); /* clock drift between the sound card and the 60 Hz timer */
@@ -1709,7 +1840,15 @@ int main(int argc, char **argv)
             if ((movie.frames && (long)net.reported >= movie.count) || (max_frames >= 0 && (long)net.reported >= max_frames))
                 quit = 1;
             make_picture(&video);
+            net_card_update();
             video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
+            if (window_shot && SDL_GetTicksNS() - start_ns > (Uint64)window_shot_ms * 1000000u) {
+                if (!shot_asked) {
+                    video_request_shot(window_shot);
+                    shot_asked = 1;
+                } else if (!video_shot_pending())
+                    quit = 1;
+            }
             continue;
         }
 
@@ -1803,14 +1942,6 @@ int main(int argc, char **argv)
         }
         make_picture(&video);
         video_present(&video, pixels, lines, overlay(&rb, &cfg, 0, lines));
-        if (!pads_ready) { /* first frame is on screen: now the slow gamepad init (see SDL_Init above) */
-            Uint64 t = SDL_GetTicksNS();
-            if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD))
-                SDL_Log("gamepad init: %s", SDL_GetError());
-            pads_ready = 1;
-            open_gamepads(gp);
-            SDL_Log("gamepads ready after %llu ms", (unsigned long long)((SDL_GetTicksNS() - t) / 1000000));
-        }
 
         if (max_frames >= 0 && frame >= max_frames)
             quit = 1;
@@ -1830,6 +1961,21 @@ int main(int argc, char **argv)
     if (rw_on)
         rewind_free(&rw);
     free(rw_blob);
+    if (netpad_test) {
+        int k, ok = netpad != NULL;
+        if (!netpad)
+            printf("FAIL: no virtual pad (gamepad init did not run)\n");
+        for (k = 0; k < SELFTEST_STEPS; k++) {
+            printf("%s: online, gamepad %s -> local input $%02X; %s: it arrived at the other player\n",
+                   np_local[k] ? "ok  " : "FAIL", SDL_GetGamepadStringForButton(selftest[k].button), netpad_bits[k],
+                   np_remote[k] ? "ok  " : "FAIL");
+            ok &= np_local[k] && np_remote[k];
+        }
+        if (netpad)
+            SDL_CloseJoystick(netpad);
+        if (!ok)
+            quit = 2;
+    }
     if (vjoy) {
         int k, ok = 1;
         for (k = 0; k < SELFTEST_STEPS; k++) {

@@ -949,12 +949,36 @@ static void text_field(int id, float x, float y, float w, char *buf, size_t len,
     }
 }
 
+/* The code of the game this launcher is hosting: written by btdd_play to <settings>/netplay/joincode.txt while it
+ * waits or plays (removed when it ends). --demo shows BTDD_DEMO_JOINCODE (UI screenshots). */
+static int host_code(App *a, char *out, size_t len)
+{
+    char path[1200];
+    FILE *f;
+    out[0] = 0;
+    if (a->demo) {
+        const char *d = SDL_getenv("BTDD_DEMO_JOINCODE");
+        if (d)
+            snprintf(out, len, "%s", d);
+        return out[0] != 0;
+    }
+    if (!a->game)
+        return 0;
+    snprintf(path, sizeof path, "%s/netplay/joincode.txt", a->data_dir);
+    if ((f = fopen(path, "r")) != NULL) {
+        if (fgets(out, (int)len, f))
+            out[strcspn(out, "\r\n")] = 0;
+        fclose(f);
+    }
+    return strncmp(out, "BT1-", 4) == 0;
+}
+
 static void draw_online(void)
 {
     App *a = U.a;
     Config *c = &a->cfg;
     float lx = PX, rx = PX + 470, y0 = RY;
-    char port[16], v[32];
+    char port[16], v[32], code[40];
     int d;
     It it;
     /* left: host / join */
@@ -970,6 +994,24 @@ static void draw_online(void)
         app_toast(a, "Finish the first run first");
     kit_text_wrap(FONT_BODY, 15, lx + 214, y0 + 32, 230, 20, "You are player 1. The game copies your join code: send it to player 2.", C_INK_DIM, 1);
 
+    if (host_code(a, code, sizeof code)) { /* hosting: the code, large and grouped, instead of the join fields */
+        size_t n = strlen(code);
+        char l1[24], l2[24];
+        snprintf(l1, sizeof l1, "%.15s", code);
+        snprintf(l2, sizeof l2, "%s", n > 16 ? code + 16 : "");
+        theme_box(lx, y0 + 92, 440, 140, C_INK, 3, 4.0f);
+        kit_text(FONT_DISPLAY, 18, lx + 14, y0 + 102, "YOUR JOIN CODE: SEND IT TO PLAYER 2", C_YELLOW, 1, ALIGN_LEFT);
+        kit_text(FONT_MONO, 30, lx + 220, y0 + 132, l1, C_PAPER, 1, ALIGN_CENTER);
+        kit_text(FONT_MONO, 30, lx + 220, y0 + 168, l2, C_PAPER, 1, ALIGN_CENTER);
+        kit_text(FONT_BODY, 14, lx + 14, y0 + 208, "copied to the clipboard", C_GREY, 1, ALIGN_LEFT);
+        it = item(lx + 300, y0 + 198, 126, 28);
+        theme_button(lx + 300, y0 + 198, 126, 28, "COPY", C_CYAN, C_INK, it.focused, 0);
+        if (it.activate) {
+            SDL_SetClipboardText(code);
+            app_toast(a, "Join code copied");
+        }
+        goto address;
+    }
     kit_text(FONT_DISPLAY, 20, lx + 2, y0 + 92, "JOIN WITH A CODE", C_RED, 1, ALIGN_LEFT);
     text_field(EDIT_CODE, lx, y0 + 122, 440, a->join_code, sizeof a->join_code, "Enter, then Ctrl+V the host's code");
     it = item(lx, y0 + 178, 140, 38);
@@ -994,6 +1036,7 @@ static void draw_online(void)
             SDL_free(clip);
         }
     }
+address:
     kit_text(FONT_DISPLAY, 20, lx + 2, y0 + 240, "OR JOIN AN ADDRESS", C_RED, 1, ALIGN_LEFT);
     text_field(EDIT_ADDR, lx, y0 + 270, 300, c->net_join, sizeof c->net_join, "IP:port");
     it = item(lx + 312, y0 + 273, 128, 38);

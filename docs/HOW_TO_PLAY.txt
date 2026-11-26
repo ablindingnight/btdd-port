@@ -1,0 +1,31 @@
+POND TO PAVEMENT - a PC version of Battletoads & Double Dragon (tester build)
+==========================================================================
+
+You need your own copy of the game: "Battletoads-Double Dragon (USA).nes" (or a .zip with it inside).
+It is not included.
+
+1. Unzip this folder somewhere simple, for example C:\Games\PondToPavement
+2. Double-click PondToPavement.exe
+   Windows may say "Windows protected your PC" (SmartScreen, because this build is not signed):
+   click "More info", then "Run anyway".
+3. The first time, drag your .nes or .zip file onto the window (or use the button to pick it).
+   It checks the file, prepares the game (about a minute the first time) and then says Ready.
+4. Press PLAY.
+
+Controls (change them in the settings, Esc -> Controls; gamepads work too)
+  Player 1: arrows move, X = A (jump), Z = B (attack), Enter = Start, Right Shift = Select
+  Player 2: W A S D move, H = A, G = B, Y = Start, T = Select
+  Two players on one PC: just plug in two gamepads (or share the keyboard). No online setup needed.
+
+In the game
+  Esc         settings menu (save states, display, graphics, sound, controls, online, quit)
+  P           pause
+  F6 / F7     save / load the current slot (Shift+F6 / Shift+F7 change the slot)
+  Backspace   rewind (hold)          Tab   fast forward (hold)
+  F1          reset                  F11   fullscreen
+  F3          next picture style (Graphics -> GPU renderer)
+
+Online with a friend: see "Play online.txt".
+
+Settings are kept in %APPDATA%\btdd\btdd.cfg, prepared game files in %LOCALAPPDATA%\btdd\cache.
+Logs (useful when reporting a problem) are on the launcher's LOGS page.
