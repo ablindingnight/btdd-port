@@ -28,6 +28,7 @@
 #include "nes/state.h"
 #include "mods/mods.h"
 #include "net/netplay.h"
+#include "platform/console.h"
 #include "platform/menu.h"
 #include "platform/udp.h"
 #include "platform/upnp.h"
@@ -1213,6 +1214,12 @@ int main(int argc, char **argv)
     PlayCtx ctx;
     RomResult rr;
 
+    {   /* GUI program: print to the terminal it was started from, or a console of its own with --console */
+        int want_console = 0;
+        for (i = 1; i < argc; i++)
+            want_console |= !strcmp(argv[i], "--console");
+        console_setup(want_console);
+    }
     memset(&rb, 0, sizeof rb);
     stage(NULL);
     /* Gamepads are initialized after the first frame is on screen (see the frame loop): their init enumerates
@@ -1224,7 +1231,9 @@ int main(int argc, char **argv)
     stage("SDL_Init");
     have_cfg = config_load(&cfg) == 0;
     for (i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--movie") && i + 1 < argc)
+        if (!strcmp(argv[i], "--console"))
+            ; /* handled above */
+        else if (!strcmp(argv[i], "--movie") && i + 1 < argc)
             movie_path = argv[++i];
         else if (!strcmp(argv[i], "--frames") && i + 1 < argc)
             max_frames = strtol(argv[++i], NULL, 10);

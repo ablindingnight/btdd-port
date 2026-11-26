@@ -267,7 +267,7 @@ if(BTDD_SDL)
     FetchContent_MakeAvailable(miniupnpc)
 
     # M2: the game in a window
-    add_executable(btdd_play src/platform/play_main.c src/platform/config.c src/platform/video.c src/platform/gpu.c
+    add_executable(btdd_play WIN32 src/platform/play_main.c src/platform/console.c src/platform/config.c src/platform/video.c src/platform/gpu.c
                              src/platform/menu.c src/platform/udp.c src/platform/upnp.c)
     target_link_libraries(btdd_play PRIVATE libminiupnpc-static)
     target_compile_definitions(btdd_play PRIVATE MINIUPNP_STATICLIB)
@@ -299,7 +299,7 @@ if(BTDD_SDL)
     add_executable(btdd_launcher WIN32
         src/launcher/launcher_main.c src/launcher/app.c src/launcher/screens.c src/launcher/theme.c
         src/launcher/kit.c src/launcher/stb_impl.c src/launcher/unzip.c
-        src/platform/config.c src/platform/video.c src/platform/gpu.c src/platform/menu.c)
+        src/platform/config.c src/platform/video.c src/platform/gpu.c src/platform/menu.c src/platform/console.c)
     set_target_properties(btdd_launcher PROPERTIES OUTPUT_NAME PondToPavement)
     if(WIN32)
         target_sources(btdd_launcher PRIVATE res/win/icon.rc)
